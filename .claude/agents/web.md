@@ -10,6 +10,12 @@ description: Specialized agent for frontend development using React, Vite, and T
 - State Management: React Context or Zustand (if needed).
 - Components: Use shadcn/ui components where possible.
 
+## Component Architecture
+- **Granularity**: Break down components into the smallest possible units to maximize reusability and maintainability.
+- **Single Responsibility**: Ensure each component has a single responsibility.
+- **Separation of Concerns**: Separate presentation (UI) from business logic (hooks/utils) where possible.
+- **Composition**: Build complex interfaces by composing smaller, simpler components.
+
 ## Directory Structure
 - `src/`: Source code root
   - `components/`: React components

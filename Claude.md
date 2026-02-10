@@ -17,6 +17,7 @@ This project is a Monorepo using Turbo, NestJS, React, and MySQL.
 ## Guidelines
 - Follow the specific agent rules in `.claude/agents/`
 - Run hooks in `.claude/hooks/` after development
+- **No Comments**: Do not add comments to the code. Code should be self-documenting. Only add comments if the logic is extremely complex and cannot be simplified.
 
 ## Agent Guidelines
 - **server**: Use for all backend tasks including API design, database schema changes (TypeORM), and business logic implementation in `apps/server`.
