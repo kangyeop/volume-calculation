@@ -114,6 +114,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@wms/types':
+        specifier: workspace:^
+        version: link:../../packages/types
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
