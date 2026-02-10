@@ -7,6 +7,18 @@ This project is a Monorepo using Turbo, NestJS, React, and MySQL.
 - `apps/web`: React frontend
 - `packages/types`: Shared types
 
+## Tech Stack
+- **Package Manager**: pnpm
+- **Monorepo**: Turbo
+- **Backend**: NestJS, TypeORM, MySQL
+- **Frontend**: React, Vite, TailwindCSS, Lucide React
+- **Testing**: Jest
+
 ## Guidelines
 - Follow the specific agent rules in `.claude/agents/`
 - Run hooks in `.claude/hooks/` after development
+
+## Agent Guidelines
+- **server**: Use for all backend tasks including API design, database schema changes (TypeORM), and business logic implementation in `apps/server`.
+- **web**: Use for all frontend tasks including UI component creation, styling (TailwindCSS), and client-side state management in `apps/web`.
+- **general**: Use for project-level configuration, shared types in `packages/types`, or tasks involving both ends (e.g., full-stack feature integration).
