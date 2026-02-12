@@ -20,7 +20,7 @@ description: Specialized agent for frontend development using React, Vite, and T
 - `src/`: Source code root
   - `components/`: React components
     - `ui/`: Base UI components (shadcn/ui)
-  - `lib/`: Utilities and helper functions (e.g., `utils.ts`, `bin-packing.ts`)
+  - `lib/`: Utilities and helper functions (e.g., `utils.ts`, `volume-calculator.ts`)
   - `constants/`: Constant values and configuration (e.g., `boxes.ts`)
   - `hooks/`: Custom React hooks
   - `App.tsx`: Main application component
