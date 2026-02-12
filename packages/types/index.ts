@@ -34,3 +34,24 @@ export interface PackingRecommendation {
   totalCBM: number;
   totalEfficiency: number;
 }
+
+export interface Project {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
+export interface Product {
+  sku: string;
+  name: string;
+  width: number;
+  length: number;
+  height: number;
+  weight: number;
+}
+
+export interface Outbound {
+  order_id: string;
+  sku: string;
+  quantity: number;
+}
