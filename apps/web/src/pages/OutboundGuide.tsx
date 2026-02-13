@@ -50,10 +50,14 @@ const OutboundGuide: React.FC = () => {
     let recommendedBox = 'N/A';
     if (recommendation) {
       // Find which box contains this SKU
-      for (const box of recommendation.boxes) {
-        if (box.packedSKUs.some(s => s.skuId === product?.id)) {
-            recommendedBox = box.box.name;
-            break;
+      // iterate groups -> boxes -> packedSKUs
+      outerLoop:
+      for (const group of recommendation.groups) {
+        for (const box of group.boxes) {
+          if (box.packedSKUs.some(s => s.skuId === product?.id)) {
+              recommendedBox = box.box.name;
+              break outerLoop;
+          }
         }
       }
     }

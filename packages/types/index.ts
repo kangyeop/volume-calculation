@@ -10,6 +10,12 @@ export interface SKU extends Dimensions {
   quantity: number;
 }
 
+export enum PackingGroupingOption {
+  ORDER = 'ORDER',
+  RECIPIENT = 'RECIPIENT',
+  ORDER_RECIPIENT = 'ORDER_RECIPIENT',
+}
+
 export interface Box extends Dimensions {
   id: string;
   name: string; // e.g., "Post Office #1"
@@ -25,15 +31,23 @@ export interface PackingResult {
   remainingQuantity: number; // How many items left to pack
   efficiency: number; // 0-1 (percentage of volume used)
   totalCBM: number;
+  groupLabel?: string; // e.g. "Order: #123"
   createdAt: Date | string;
 }
 
-export interface PackingRecommendation {
+export interface PackingGroup {
+  groupLabel: string;
   boxes: {
     box: Box;
     count: number;
     packedSKUs: { skuId: string; quantity: number }[];
   }[];
+  totalCBM: number;
+  totalEfficiency: number;
+}
+
+export interface PackingRecommendation {
+  groups: PackingGroup[];
   totalCBM: number;
   totalEfficiency: number;
 }
@@ -76,5 +90,7 @@ export interface Outbound {
   address?: string;
   detailAddress?: string;
   shippingMemo?: string;
+  batchId?: string;
+  batchName?: string;
   createdAt: Date | string;
 }

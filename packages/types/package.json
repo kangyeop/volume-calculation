@@ -2,14 +2,15 @@
   "name": "@wms/types",
   "version": "0.0.0",
   "private": true,
-  "main": "./index.ts",
-  "types": "./index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "license": "MIT",
   "scripts": {
+    "build": "tsc",
     "lint": "eslint .",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
-    "typescript": "^5.0.0" 
+    "typescript": "^5.0.0"
   }
 }

@@ -31,6 +31,12 @@ export class OutboundEntity extends BaseEntity {
   @Column({ nullable: true })
   shippingMemo: string;
 
+  @Column({ nullable: true })
+  batchId: string; // ID to group items from a single upload
+
+  @Column({ nullable: true })
+  batchName: string; // e.g., "Upload 2024-03-20"
+
   @Column()
   projectId: string;
 

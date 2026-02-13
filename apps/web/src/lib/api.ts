@@ -1,4 +1,4 @@
-import { Project, Product, Outbound, PackingRecommendation, PackingResult } from '@wms/types';
+import { Project, Product, Outbound, PackingRecommendation, PackingResult, PackingGroupingOption } from '@wms/types';
 
 const API_BASE = '/api';
 
@@ -35,6 +35,7 @@ export const api = {
   },
   outbound: {
     list: (projectId: string) => fetchJson<Outbound[]>(`/projects/${projectId}/outbounds`),
+    listBatches: (projectId: string) => fetchJson<{ batchId: string; batchName: string; count: number; createdAt: string }[]>(`/projects/${projectId}/outbounds/batches`),
     createBulk: (projectId: string, outbounds: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[]) =>
       fetchJson<void>(`/projects/${projectId}/outbounds/bulk`, {
         method: 'POST',
@@ -44,9 +45,11 @@ export const api = {
     deleteAll: (projectId: string) => fetchJson<void>(`/projects/${projectId}/outbounds`, { method: 'DELETE' }),
   },
   packing: {
-    calculate: (projectId: string) =>
+    calculate: (projectId: string, groupingOption: PackingGroupingOption = PackingGroupingOption.ORDER, batchId?: string) =>
       fetchJson<PackingRecommendation>(`/projects/${projectId}/packing/calculate`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupingOption, batchId }),
       }),
     history: (projectId: string) => fetchJson<PackingResult[]>(`/projects/${projectId}/packing/results`),
   },

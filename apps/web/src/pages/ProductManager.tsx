@@ -28,7 +28,7 @@ const ProductManager: React.FC = () => {
     return undefined;
   };
 
-  const handleUpload = async (rawData: any[]) => {
+  const handleUpload = async (rawData: any[], fileName: string) => {
     if (projectId) {
       try {
         const processedData = rawData.map((item) => {

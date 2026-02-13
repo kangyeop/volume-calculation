@@ -22,6 +22,9 @@ export class PackingResultEntity extends BaseEntity {
   @Column('decimal', { precision: 10, scale: 4 })
   totalCBM: number;
 
+  @Column({ nullable: true })
+  groupLabel: string;
+
   @Column('uuid')
   projectId: string;
 

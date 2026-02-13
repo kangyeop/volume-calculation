@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import { Upload } from 'lucide-react';
 
 interface ExcelUploadProps<T> {
-  onUpload: (data: T[]) => void;
+  onUpload: (data: T[], fileName: string) => void;
   title: string;
   headerRow?: number; // 0-indexed header row
 }
@@ -22,7 +22,7 @@ const ExcelUpload = <T,>({ onUpload, title, headerRow = 0 }: ExcelUploadProps<T>
       const wsname = wb.SheetNames[0];
       const ws = wb.Sheets[wsname];
       const data = XLSX.utils.sheet_to_json(ws, { range: headerRow }) as T[];
-      onUpload(data);
+      onUpload(data, file.name);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }

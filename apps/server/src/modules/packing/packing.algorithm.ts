@@ -1,8 +1,10 @@
-import { SKU, Box, PackingRecommendation } from '@wms/types';
+import { SKU, Box, PackingGroup } from '@wms/types';
 
 const EFFICIENCY_THRESHOLD = 0.9;
 
-export function calculatePacking(skus: SKU[], boxes: Box[]): PackingRecommendation {
+type PackingCalculationResult = Omit<PackingGroup, 'groupLabel'>;
+
+export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationResult {
   // Check if we have boxes to pack into
   if (!boxes || boxes.length === 0) {
     return {
@@ -12,12 +14,14 @@ export function calculatePacking(skus: SKU[], boxes: Box[]): PackingRecommendati
     };
   }
 
-  // Sort boxes by volume (descending)
+  // Sort boxes by volume (Ascending: Box 1 -> Box 5)
   const sortedBoxes = [...boxes].sort((a, b) => {
     const volA = a.width * a.length * a.height;
     const volB = b.width * b.length * b.height;
-    return volB - volA;
+    return volA - volB;
   });
+
+  const largestBox = sortedBoxes[sortedBoxes.length - 1];
 
   // Flat list of items to pack, sorted by volume (descending)
   let itemsToPack: { skuId: string; volume: number }[] = [];
@@ -29,87 +33,97 @@ export function calculatePacking(skus: SKU[], boxes: Box[]): PackingRecommendati
   }
   itemsToPack.sort((a, b) => b.volume - a.volume);
 
-  const recommendedBoxes: PackingRecommendation['boxes'] = [];
+  const recommendedBoxes: PackingCalculationResult['boxes'] = [];
   let totalCBM = 0;
   let totalUsedVolume = 0;
   let totalAvailableVolume = 0;
 
   while (itemsToPack.length > 0) {
-    let bestBox: Box | null = null;
-    let bestFitItems: { skuId: string; volume: number }[] = [];
+    // Check if remaining items fit into any single box (checking from smallest to largest)
+    const currentTotalVolume = itemsToPack.reduce((sum, item) => sum + item.volume, 0);
+    let selectedSingleBox: Box | null = null;
 
-    // Find the smallest box that can fit the largest remaining item
-    const largestItem = itemsToPack[0];
+    for (const box of sortedBoxes) {
+      const boxVolume = box.width * box.length * box.height;
+      const effectiveCapacity = boxVolume * EFFICIENCY_THRESHOLD;
 
-    // We try to find the smallest box that can fit at least this largest item
-    // and potentially more. In volume-based FFD, we often pick the largest box
-    // and fill it as much as possible, or pick the most efficient one.
-    // For simplicity and following "First Fit Decreasing", we'll try boxes.
-
-    // Actually, "First Fit Decreasing" typically means:
-    // Take the next item, put it in the first box it fits in.
-    // But here we are deciding which boxes to use.
-
-    // Let's use the largest box and fill it.
-    const selectedBox = sortedBoxes[0];
-    const boxVolume = selectedBox.width * selectedBox.length * selectedBox.height;
-    const effectiveVolume = boxVolume * EFFICIENCY_THRESHOLD;
-
-    let currentBoxUsedVolume = 0;
-    const packedInThisBox: { skuId: string; volume: number }[] = [];
-    const remainingItems: { skuId: string; volume: number }[] = [];
-
-    for (const item of itemsToPack) {
-      if (currentBoxUsedVolume + item.volume <= effectiveVolume) {
-        currentBoxUsedVolume += item.volume;
-        packedInThisBox.push(item);
-      } else {
-        remainingItems.push(item);
-      }
-    }
-
-    // If we couldn't even fit the largest item in the largest box
-    if (packedInThisBox.length === 0 && itemsToPack.length > 0) {
-      // This item is too big for any box. In a real scenario, we'd handle this.
-      // For now, let's just skip it to avoid infinite loop, but this shouldn't happen with standard box sizes vs typical items.
-      console.warn(`Item ${itemsToPack[0].skuId} is too large for any box`);
-      itemsToPack.shift();
-      continue;
-    }
-
-    // Try to downsize the box if a smaller one can fit all these items
-    let finalBox = selectedBox;
-    for (let i = sortedBoxes.length - 1; i >= 0; i--) {
-      const b = sortedBoxes[i];
-      const bVol = b.width * b.length * b.height;
-      if (currentBoxUsedVolume <= bVol * EFFICIENCY_THRESHOLD) {
-        finalBox = b;
+      if (currentTotalVolume <= effectiveCapacity) {
+        selectedSingleBox = box;
         break;
       }
     }
 
-    const boxVol = finalBox.width * finalBox.length * finalBox.height;
-    totalCBM += boxVol / 1000000; // cm3 to m3
-    totalUsedVolume += currentBoxUsedVolume;
-    totalAvailableVolume += boxVol;
+    if (selectedSingleBox) {
+      // All remaining items fit into this box
+      const boxVol = selectedSingleBox.width * selectedSingleBox.length * selectedSingleBox.height;
+      totalCBM += boxVol / 1000000; // cm3 to m3
+      totalUsedVolume += currentTotalVolume;
+      totalAvailableVolume += boxVol;
 
-    // Group packed items for recommendation
-    const skuMap = new Map<string, number>();
-    for (const item of packedInThisBox) {
-      skuMap.set(item.skuId, (skuMap.get(item.skuId) || 0) + 1);
+      // Group packed items for recommendation
+      const skuMap = new Map<string, number>();
+      for (const item of itemsToPack) {
+        skuMap.set(item.skuId, (skuMap.get(item.skuId) || 0) + 1);
+      }
+
+      recommendedBoxes.push({
+        box: selectedSingleBox,
+        count: 1,
+        packedSKUs: Array.from(skuMap.entries()).map(([skuId, quantity]) => ({ skuId, quantity })),
+      });
+
+      // All items packed
+      itemsToPack = [];
+    } else {
+      // Items do not fit in any single box (even the largest).
+      // We must split. Strategy: Fill the largest box (Box 5) and recurse.
+      const boxVolume = largestBox.width * largestBox.length * largestBox.height;
+      const effectiveCapacity = boxVolume * EFFICIENCY_THRESHOLD;
+
+      let currentBoxUsedVolume = 0;
+      const packedInThisBox: { skuId: string; volume: number }[] = [];
+      const remainingItems: { skuId: string; volume: number }[] = [];
+
+      for (const item of itemsToPack) {
+        if (currentBoxUsedVolume + item.volume <= effectiveCapacity) {
+          currentBoxUsedVolume += item.volume;
+          packedInThisBox.push(item);
+        } else {
+          remainingItems.push(item);
+        }
+      }
+
+       // Safety check: if largest item is bigger than largest box
+      if (packedInThisBox.length === 0 && itemsToPack.length > 0) {
+        console.warn(`Item ${itemsToPack[0].skuId} is too large for the largest box`);
+        // Force pack it or skip it to avoid infinite loop.
+        // For this requirement, we assume items fit in boxes reasonably.
+        // Let's skip it from calculation but log it.
+        remainingItems.shift();
+         // In production, we might want to return an error or special container.
+      } else {
+          totalCBM += boxVolume / 1000000;
+          totalUsedVolume += currentBoxUsedVolume;
+          totalAvailableVolume += boxVolume;
+
+          const skuMap = new Map<string, number>();
+          for (const item of packedInThisBox) {
+             skuMap.set(item.skuId, (skuMap.get(item.skuId) || 0) + 1);
+          }
+
+          recommendedBoxes.push({
+            box: largestBox,
+            count: 1,
+            packedSKUs: Array.from(skuMap.entries()).map(([skuId, quantity]) => ({ skuId, quantity })),
+          });
+
+          itemsToPack = remainingItems;
+      }
     }
-
-    recommendedBoxes.push({
-      box: finalBox,
-      count: 1,
-      packedSKUs: Array.from(skuMap.entries()).map(([skuId, quantity]) => ({ skuId, quantity })),
-    });
-
-    itemsToPack = remainingItems;
   }
 
   // Merge identical boxes in recommendation
-  const mergedBoxes: PackingRecommendation['boxes'] = [];
+  const mergedBoxes: PackingCalculationResult['boxes'] = [];
   for (const rb of recommendedBoxes) {
     const existing = mergedBoxes.find(b => b.box.id === rb.box.id);
     if (existing) {

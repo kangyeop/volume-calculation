@@ -23,11 +23,37 @@ export class OutboundService {
     return this.outboundRepository.save(outbound);
   }
 
-  async findAll(projectId: string): Promise<OutboundEntity[]> {
+  async findAll(projectId: string, batchId?: string): Promise<OutboundEntity[]> {
+    const where: any = { projectId };
+    if (batchId) {
+      where.batchId = batchId;
+    }
     return this.outboundRepository.find({
-      where: { projectId },
+      where,
       order: { createdAt: 'DESC' },
     });
+  }
+
+  async findBatches(projectId: string): Promise<{ batchId: string; batchName: string; count: number; createdAt: Date }[]> {
+    const results = await this.outboundRepository
+      .createQueryBuilder('outbound')
+      .select('outbound.batchId', 'batchId')
+      .addSelect('outbound.batchName', 'batchName')
+      .addSelect('MIN(outbound.createdAt)', 'createdAt')
+      .addSelect('COUNT(*)', 'count')
+      .where('outbound.projectId = :projectId', { projectId })
+      .andWhere('outbound.batchId IS NOT NULL')
+      .groupBy('outbound.batchId')
+      .addGroupBy('outbound.batchName')
+      .orderBy('createdAt', 'DESC')
+      .getRawMany();
+
+    return results.map(r => ({
+      batchId: r.batchId,
+      batchName: r.batchName,
+      count: parseInt(r.count, 10),
+      createdAt: r.createdAt,
+    }));
   }
 
   async remove(id: string): Promise<void> {
@@ -47,10 +73,15 @@ export class OutboundService {
     await queryRunner.startTransaction();
 
     try {
+      const batchId = crypto.randomUUID();
+      const batchName = `Upload ${new Date().toLocaleString()}`;
+
       const outbounds = createOutboundDtos.map((dto) =>
         this.outboundRepository.create({
           ...dto,
           projectId,
+          batchId,
+          batchName,
         }),
       );
 

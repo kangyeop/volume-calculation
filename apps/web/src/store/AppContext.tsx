@@ -6,6 +6,7 @@ interface AppState {
   projects: Project[];
   products: Record<string, Product[]>; // projectId -> products
   outbounds: Record<string, Outbound[]>; // projectId -> outbound orders
+  batches: Record<string, { batchId: string; batchName: string; count: number; createdAt: string }[]>; // projectId -> batches
   loading: boolean;
   error: string | null;
 }
@@ -14,6 +15,7 @@ interface AppContextType extends AppState {
   addProject: (name: string) => Promise<Project>;
   fetchProducts: (projectId: string) => Promise<void>;
   fetchOutbounds: (projectId: string) => Promise<void>;
+  fetchBatches: (projectId: string) => Promise<void>;
   createProducts: (projectId: string, data: any[]) => Promise<void>;
   createOutbound: (projectId: string, data: any[]) => Promise<void>;
 }
@@ -24,6 +26,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [projects, setProjects] = useState<Project[]>([]);
   const [products, setProductsState] = useState<Record<string, Product[]>>({});
   const [outbounds, setOutboundsState] = useState<Record<string, Outbound[]>>({});
+  const [batches, setBatchesState] = useState<Record<string, { batchId: string; batchName: string; count: number; createdAt: string }[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,6 +78,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  const fetchBatches = async (projectId: string) => {
+    try {
+      const data = await api.outbound.listBatches(projectId);
+      setBatchesState((prev) => ({ ...prev, [projectId]: data }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch batches');
+    }
+  };
+
   const createProducts = async (projectId: string, data: any[]) => {
     setLoading(true);
     try {
@@ -92,7 +104,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setLoading(true);
     try {
       await api.outbound.createBulk(projectId, data);
-      await fetchOutbounds(projectId);
+      await Promise.all([
+        fetchOutbounds(projectId),
+        fetchBatches(projectId)
+      ]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create outbound');
       throw err;
@@ -107,11 +122,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         projects,
         products,
         outbounds,
+        batches,
         loading,
         error,
         addProject,
         fetchProducts,
         fetchOutbounds,
+        fetchBatches,
         createProducts,
         createOutbound,
       }}
