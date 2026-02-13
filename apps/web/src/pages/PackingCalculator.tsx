@@ -45,12 +45,19 @@ export const PackingCalculator: React.FC = () => {
     if (!id) return;
     setLoading(true);
     try {
+      const boxes = await api.boxes.list();
+      if (!boxes || boxes.length === 0) {
+        alert('등록된 박스가 없습니다. 박스 관리 메뉴에서 박스를 먼저 등록해주세요.');
+        setLoading(false);
+        return;
+      }
+
       const data = await api.packing.calculate(id, groupingOption, selectedBatchId || undefined);
       setResult(data);
       loadHistory();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Calculation failed:', error);
-      alert('Failed to calculate packing. Please ensure products and outbound orders are registered.');
+      alert(error.message || '계산에 실패했습니다. 상품 및 출고 목록이 등록되어 있는지 확인해주세요.');
     } finally {
       setLoading(false);
     }

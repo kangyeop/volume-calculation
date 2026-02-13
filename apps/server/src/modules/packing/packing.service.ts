@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PackingResultEntity } from './entities/packing-result.entity';
@@ -33,6 +33,12 @@ export class PackingService {
     const outbounds = await this.outboundService.findAll(projectId, batchId);
     const products = await this.productsService.findAll(projectId);
     const boxes = await this.boxesService.findAll();
+
+    if (boxes.length === 0) {
+      throw new BadRequestException(
+        '등록된 박스가 없습니다. 박스 관리 메뉴에서 박스를 먼저 등록해주세요.',
+      );
+    }
 
     const productMap = new Map(products.map((p) => [p.sku, p]));
 
