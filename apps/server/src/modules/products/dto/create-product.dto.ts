@@ -4,6 +4,9 @@ import {
   MinLength,
   IsNotEmpty,
   Min,
+  IsOptional,
+  IsDateString,
+  IsBoolean,
 } from 'class-validator';
 
 export class CreateProductDto {
@@ -31,4 +34,24 @@ export class CreateProductDto {
   @IsNumber()
   @Min(0)
   weight: number;
+
+  @IsOptional()
+  @IsDateString()
+  inboundDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  outboundDate?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  barcode?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  aircap?: boolean;
+
+  @IsOptional()
+  @IsString()
+  remarks?: string;
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useParams } from 'react-router-dom';
-import { Package, Send, LayoutDashboard, Calculator } from 'lucide-react';
+import { Package, Send, LayoutDashboard, Calculator, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Sidebar: React.FC = () => {
@@ -28,6 +28,11 @@ const Sidebar: React.FC = () => {
       label: 'Packing / CBM',
       icon: Calculator,
     },
+    {
+      to: `/projects/${id}/guide`,
+      label: 'Outbound Guide',
+      icon: BookOpen,
+    },
   ];
 
   return (
@@ -54,7 +59,18 @@ const Sidebar: React.FC = () => {
             </NavLink>
           ))}
         </nav>
-        <div className="mt-auto">
+        <div className="mt-auto space-y-1">
+          <NavLink
+            to="/boxes"
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100',
+                isActive ? 'bg-gray-100 text-primary' : 'text-muted-foreground'
+              )
+            }
+          >
+            📦 Box Manager
+          </NavLink>
           <NavLink
             to="/"
             className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:bg-gray-100"

@@ -5,7 +5,7 @@ import { api } from '../lib/api';
 interface AppState {
   projects: Project[];
   products: Record<string, Product[]>; // projectId -> products
-  outbound: Record<string, Outbound[]>; // projectId -> outbound orders
+  outbounds: Record<string, Outbound[]>; // projectId -> outbound orders
   loading: boolean;
   error: string | null;
 }
@@ -13,7 +13,7 @@ interface AppState {
 interface AppContextType extends AppState {
   addProject: (name: string) => Promise<Project>;
   fetchProducts: (projectId: string) => Promise<void>;
-  fetchOutbound: (projectId: string) => Promise<void>;
+  fetchOutbounds: (projectId: string) => Promise<void>;
   createProducts: (projectId: string, data: any[]) => Promise<void>;
   createOutbound: (projectId: string, data: any[]) => Promise<void>;
 }
@@ -23,7 +23,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [products, setProductsState] = useState<Record<string, Product[]>>({});
-  const [outbound, setOutboundState] = useState<Record<string, Outbound[]>>({});
+  const [outbounds, setOutboundsState] = useState<Record<string, Outbound[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,10 +66,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const fetchOutbound = async (projectId: string) => {
+  const fetchOutbounds = async (projectId: string) => {
     try {
       const data = await api.outbound.list(projectId);
-      setOutboundState((prev) => ({ ...prev, [projectId]: data }));
+      setOutboundsState((prev) => ({ ...prev, [projectId]: data }));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch outbound');
     }
@@ -92,7 +92,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setLoading(true);
     try {
       await api.outbound.createBulk(projectId, data);
-      await fetchOutbound(projectId);
+      await fetchOutbounds(projectId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create outbound');
       throw err;
@@ -106,12 +106,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       value={{
         projects,
         products,
-        outbound,
+        outbounds,
         loading,
         error,
         addProject,
         fetchProducts,
-        fetchOutbound,
+        fetchOutbounds,
         createProducts,
         createOutbound,
       }}

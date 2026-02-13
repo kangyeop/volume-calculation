@@ -1,14 +1,9 @@
-import { Entity, Column, ManyToOne, JoinColumn, Unique } from 'typeorm';
+import { Entity, Column } from 'typeorm';
 import { BaseEntity } from '../../../common/entities/base.entity';
-import { ProjectEntity } from '../../projects/entities/project.entity';
-import { Product } from '@wms/types';
+import { Box } from '@wms/types';
 
-@Entity('products')
-@Unique(['project', 'sku'])
-export class ProductEntity extends BaseEntity implements Product {
-  @Column()
-  sku: string;
-
+@Entity('boxes')
+export class BoxEntity extends BaseEntity implements Box {
   @Column()
   name: string;
 
@@ -49,34 +44,11 @@ export class ProductEntity extends BaseEntity implements Product {
     type: 'decimal',
     precision: 10,
     scale: 2,
+    nullable: true,
     transformer: {
       to: (value: number) => value,
       from: (value: string) => parseFloat(value),
     },
   })
-  weight: number;
-
-  @Column()
-  projectId: string;
-
-  @Column({ type: 'date', nullable: true })
-  inboundDate: Date;
-
-  @Column({ type: 'date', nullable: true })
-  outboundDate: Date;
-
-  @Column({ default: false })
-  barcode: boolean;
-
-  @Column({ default: false })
-  aircap: boolean;
-
-  @Column({ type: 'text', nullable: true })
-  remarks: string;
-
-  @ManyToOne(() => ProjectEntity, (project) => project.products, {
-    onDelete: 'CASCADE',
-  })
-  @JoinColumn({ name: 'projectId' })
-  project: ProjectEntity;
+  price: number;
 }

@@ -7,17 +7,17 @@ import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 const OutboundManager: React.FC = () => {
   const { id: projectId } = useParams<{ id: string }>();
-  const { products, outbound, fetchProducts, fetchOutbound, createOutbound } = useApp();
+  const { products, outbounds, fetchProducts, fetchOutbounds, createOutbound } = useApp();
   const [errors, setErrors] = useState<string[]>([]);
 
   useEffect(() => {
     if (projectId) {
       fetchProducts(projectId);
-      fetchOutbound(projectId);
+      fetchOutbounds(projectId);
     }
   }, [projectId]);
 
-  const currentOutbound = outbound[projectId || ''] || [];
+  const currentOutbound = outbounds[projectId || ''] || [];
   const currentProducts = products[projectId || ''] || [];
   const productSkus = new Set(currentProducts.map((p) => p.sku));
 

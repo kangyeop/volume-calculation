@@ -50,7 +50,7 @@ const PackingCalculator: React.FC = () => {
         <button
           onClick={handleCalculate}
           disabled={loading}
-          className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+          className="inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 disabled:pointer-events-none disabled:opacity-50 transition-colors"
         >
           {loading ? 'Calculating...' : (
             <>
@@ -64,30 +64,30 @@ const PackingCalculator: React.FC = () => {
       {result && (
         <div className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-xl border bg-card text-card-foreground shadow">
-              <div className="p-6 pb-2 flex flex-row items-center justify-between">
-                <h3 className="font-semibold">Total Volume</h3>
+            <div className="rounded-xl border bg-card text-card-foreground shadow p-6">
+              <div className="flex flex-row items-center justify-between pb-2">
+                <h3 className="font-semibold text-lg">Total Volume</h3>
                 <Package className="h-4 w-4 text-muted-foreground" />
               </div>
-              <div className="p-6 pt-0">
-                <div className="text-2xl font-bold">{result.totalCBM.toFixed(4)} CBM</div>
-                <p className="text-xs text-muted-foreground">Combined volume of all boxes</p>
+              <div>
+                <div className="text-3xl font-bold">{result.totalCBM.toFixed(4)} CBM</div>
+                <p className="text-sm text-muted-foreground">Combined volume of all boxes</p>
               </div>
             </div>
 
-            <div className="rounded-xl border bg-card text-card-foreground shadow">
-              <div className="p-6 pb-2 flex flex-row items-center justify-between">
-                <h3 className="font-semibold">Packing Efficiency</h3>
-                <div className="text-sm font-medium">{(result.totalEfficiency * 100).toFixed(1)}%</div>
+            <div className="rounded-xl border bg-card text-card-foreground shadow p-6">
+              <div className="flex flex-row items-center justify-between pb-2">
+                <h3 className="font-semibold text-lg">Packing Efficiency</h3>
+                <div className="text-lg font-bold">{(result.totalEfficiency * 100).toFixed(1)}%</div>
               </div>
-              <div className="p-6 pt-0 space-y-2">
-                <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
+              <div className="space-y-2">
+                <div className="w-full bg-secondary h-2 rounded-full overflow-hidden bg-gray-100">
                   <div
-                    className="bg-primary h-full transition-all duration-500"
+                    className="bg-indigo-600 h-full transition-all duration-500"
                     style={{ width: `${result.totalEfficiency * 100}%` }}
                   />
                 </div>
-                <p className="text-xs text-muted-foreground text-right">Volume utilization</p>
+                <p className="text-sm text-muted-foreground text-right">Volume utilization</p>
               </div>
             </div>
           </div>
@@ -96,7 +96,7 @@ const PackingCalculator: React.FC = () => {
             <h2 className="text-xl font-semibold">Recommended Boxes</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {result.boxes.map((boxGroup, idx) => (
-                <div key={idx} className="rounded-xl border bg-card p-6 shadow-sm">
+                <div key={idx} className="rounded-xl border bg-card p-6 shadow-sm flex flex-col h-full">
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <h4 className="font-bold text-lg">{boxGroup.box.name}</h4>
@@ -104,18 +104,22 @@ const PackingCalculator: React.FC = () => {
                         {boxGroup.box.length} x {boxGroup.box.width} x {boxGroup.box.height} cm
                       </p>
                     </div>
-                    <div className="bg-primary/10 text-primary px-2 py-1 rounded text-sm font-bold">
+                    <div className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-sm font-bold border border-indigo-100">
                       x{boxGroup.count}
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Contents per box</p>
-                    <ul className="space-y-1">
+                  <div className="space-y-3 flex-1">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wider border-b pb-1">Contents per box</p>
+                    <ul className="space-y-2 text-sm overflow-y-auto max-h-40 pr-1">
                       {boxGroup.packedSKUs.map((sku, sIdx) => (
-                        <li key={sIdx} className="text-sm flex justify-between">
-                          <span className="truncate mr-2">{sku.skuId}</span>
-                          <span className="font-medium whitespace-nowrap">qty: {sku.quantity}</span>
+                        <li key={sIdx} className="flex justify-between items-center group">
+                          <span className="truncate mr-2 font-mono text-gray-700 group-hover:text-indigo-600 transition-colors" title={sku.skuId}>
+                            {sku.skuId}
+                          </span>
+                          <span className="font-medium whitespace-nowrap bg-gray-100 px-1.5 py-0.5 rounded text-xs text-gray-600">
+                            qty: {sku.quantity}
+                          </span>
                         </li>
                       ))}
                     </ul>
@@ -133,25 +137,31 @@ const PackingCalculator: React.FC = () => {
             <History className="h-5 w-5" />
             Recent Results
           </h2>
-          <div className="rounded-md border">
+          <div className="rounded-lg border overflow-hidden bg-white shadow-sm">
             <table className="w-full text-sm">
-              <thead className="bg-muted/50 border-b">
+              <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="px-4 py-3 text-left font-medium">Date</th>
-                  <th className="px-4 py-3 text-left font-medium">Box</th>
-                  <th className="px-4 py-3 text-right font-medium">Efficiency</th>
-                  <th className="px-4 py-3 text-right font-medium">CBM</th>
+                  <th className="px-6 py-3 text-left font-medium text-gray-500">Date</th>
+                  <th className="px-6 py-3 text-left font-medium text-gray-500">Box Type</th>
+                  <th className="px-6 py-3 text-right font-medium text-gray-500">Efficiency</th>
+                  <th className="px-6 py-3 text-right font-medium text-gray-500">Total CBM</th>
+                  <th className="px-6 py-3 text-right font-medium text-gray-500">Packed Count</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {history.slice(0, 5).map((item, idx) => (
-                  <tr key={idx} className="hover:bg-muted/50 transition-colors">
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {new Date(item.createdAt).toLocaleDateString()}
+                {history.slice(0, 10).map((item, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-3 text-gray-600">
+                      {new Date(item.createdAt).toLocaleDateString()} {new Date(item.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </td>
-                    <td className="px-4 py-3 font-medium">{item.boxName}</td>
-                    <td className="px-4 py-3 text-right">{(item.efficiency * 100).toFixed(1)}%</td>
-                    <td className="px-4 py-3 text-right font-mono">{item.totalCBM.toFixed(4)}</td>
+                    <td className="px-6 py-3 font-medium text-gray-900">{item.boxName}</td>
+                    <td className="px-6 py-3 text-right">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${item.efficiency > 0.8 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                        {(item.efficiency * 100).toFixed(1)}%
+                      </span>
+                    </td>
+                    <td className="px-6 py-3 text-right font-mono text-gray-600">{item.totalCBM.toFixed(4)}</td>
+                    <td className="px-6 py-3 text-right font-mono text-gray-600">{item.packedCount}</td>
                   </tr>
                 ))}
               </tbody>

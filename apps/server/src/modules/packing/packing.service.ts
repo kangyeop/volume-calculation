@@ -4,7 +4,8 @@ import { Repository } from 'typeorm';
 import { PackingResultEntity } from './entities/packing-result.entity';
 import { OutboundService } from '../outbound/outbound.service';
 import { ProductsService } from '../products/products.service';
-import { calculatePacking, STANDARD_BOXES } from './packing.algorithm';
+import { BoxesService } from '../boxes/boxes.service';
+import { calculatePacking } from './packing.algorithm';
 import { SKU, PackingRecommendation } from '@wms/types';
 
 @Injectable()
@@ -16,6 +17,7 @@ export class PackingService {
     private readonly packingResultRepository: Repository<PackingResultEntity>,
     private readonly outboundService: OutboundService,
     private readonly productsService: ProductsService,
+    private readonly boxesService: BoxesService,
   ) {}
 
   async calculate(projectId: string): Promise<PackingRecommendation> {
@@ -23,6 +25,7 @@ export class PackingService {
 
     const outbounds = await this.outboundService.findAll(projectId);
     const products = await this.productsService.findAll(projectId);
+    const boxes = await this.boxesService.findAll();
 
     const productMap = new Map(products.map((p) => [p.sku, p]));
 
@@ -44,7 +47,7 @@ export class PackingService {
       })
       .filter((s): s is SKU => s !== null);
 
-    const recommendation = calculatePacking(skus, STANDARD_BOXES);
+    const recommendation = calculatePacking(skus, boxes);
 
     // Save results to history
     await this.packingResultRepository.delete({ projectId });

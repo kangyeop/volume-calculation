@@ -1,16 +1,17 @@
 import { SKU, Box, PackingRecommendation } from '@wms/types';
 
-export const STANDARD_BOXES: Box[] = [
-  { id: 'box-1', name: 'Post Office #1', width: 22, length: 19, height: 9 },
-  { id: 'box-2', name: 'Post Office #2', width: 27, length: 18, height: 15 },
-  { id: 'box-3', name: 'Post Office #3', width: 34, length: 25, height: 21 },
-  { id: 'box-4', name: 'Post Office #4', width: 41, length: 31, height: 28 },
-  { id: 'box-5', name: 'Post Office #5', width: 48, length: 38, height: 34 },
-];
-
 const EFFICIENCY_THRESHOLD = 0.9;
 
-export function calculatePacking(skus: SKU[], boxes: Box[] = STANDARD_BOXES): PackingRecommendation {
+export function calculatePacking(skus: SKU[], boxes: Box[]): PackingRecommendation {
+  // Check if we have boxes to pack into
+  if (!boxes || boxes.length === 0) {
+    return {
+      boxes: [],
+      totalCBM: 0,
+      totalEfficiency: 0,
+    };
+  }
+
   // Sort boxes by volume (descending)
   const sortedBoxes = [...boxes].sort((a, b) => {
     const volA = a.width * a.length * a.height;

@@ -49,5 +49,15 @@ export const api = {
         method: 'POST',
       }),
     history: (projectId: string) => fetchJson<PackingResult[]>(`/projects/${projectId}/packing/results`),
-  }
+  },
+  boxes: {
+    list: () => fetchJson<any[]>('/boxes'),
+    create: (data: any) =>
+      fetchJson<any>('/boxes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) => fetchJson<void>(`/boxes/${id}`, { method: 'DELETE' }),
+  },
 };
