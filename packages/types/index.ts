@@ -17,12 +17,15 @@ export interface Box extends Dimensions {
 }
 
 export interface PackingResult {
+  id: string;
+  projectId: string;
   boxId: string;
   boxName: string;
   packedCount: number; // How many items packed in this box
   remainingQuantity: number; // How many items left to pack
   efficiency: number; // 0-1 (percentage of volume used)
   totalCBM: number;
+  createdAt: Date | string;
 }
 
 export interface PackingRecommendation {
@@ -38,20 +41,29 @@ export interface PackingRecommendation {
 export interface Project {
   id: string;
   name: string;
-  createdAt: string;
+  description?: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 export interface Product {
+  id: string;
+  projectId: string;
   sku: string;
   name: string;
   width: number;
   length: number;
   height: number;
   weight: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 export interface Outbound {
-  order_id: string;
+  id: string;
+  projectId: string;
+  orderId: string;
   sku: string;
   quantity: number;
+  createdAt: Date | string;
 }
