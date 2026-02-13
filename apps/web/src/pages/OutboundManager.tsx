@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useApp } from '@/store/AppContext';
 import ExcelUpload from '@/components/ExcelUpload';
@@ -7,18 +7,25 @@ import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 const OutboundManager: React.FC = () => {
   const { id: projectId } = useParams<{ id: string }>();
-  const { products, outbound, setOutbound } = useApp();
+  const { products, outbound, fetchProducts, fetchOutbound, createOutbound } = useApp();
   const [errors, setErrors] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (projectId) {
+      fetchProducts(projectId);
+      fetchOutbound(projectId);
+    }
+  }, [projectId]);
 
   const currentOutbound = outbound[projectId || ''] || [];
   const currentProducts = products[projectId || ''] || [];
   const productSkus = new Set(currentProducts.map((p) => p.sku));
 
-  const handleUpload = (data: Outbound[]) => {
+  const handleUpload = async (data: Outbound[]) => {
     if (!projectId) return;
 
     const newErrors: string[] = [];
-    const validData: Outbound[] = [];
+    const validData: any[] = [];
 
     data.forEach((item, index) => {
       if (!productSkus.has(item.sku)) {
@@ -29,7 +36,14 @@ const OutboundManager: React.FC = () => {
     });
 
     setErrors(newErrors);
-    setOutbound(projectId, validData);
+
+    if (validData.length > 0) {
+      try {
+        await createOutbound(projectId, validData);
+      } catch (err) {
+        // Error handled in context
+      }
+    }
   };
 
   return (
@@ -87,8 +101,8 @@ const OutboundManager: React.FC = () => {
             </thead>
             <tbody className="divide-y">
               {currentOutbound.map((o, i) => (
-                <tr key={`${o.order_id}-${i}`} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 font-medium">{o.order_id}</td>
+                <tr key={`${o.orderId}-${i}`} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3 font-medium">{o.orderId}</td>
                   <td className="px-4 py-3 font-mono">{o.sku}</td>
                   <td className="px-4 py-3">{o.quantity}</td>
                   <td className="px-4 py-3">

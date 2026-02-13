@@ -8,12 +8,16 @@ const ProjectList: React.FC = () => {
   const [newProjectName, setNewProjectName] = useState('');
   const navigate = useNavigate();
 
-  const handleCreateProject = (e: React.FormEvent) => {
+  const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProjectName.trim()) return;
-    const project = addProject(newProjectName);
-    setNewProjectName('');
-    navigate(`/projects/${project.id}`);
+    try {
+      const project = await addProject(newProjectName);
+      setNewProjectName('');
+      navigate(`/projects/${project.id}`);
+    } catch (err) {
+      // Error is handled in context
+    }
   };
 
   return (

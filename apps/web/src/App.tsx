@@ -5,6 +5,7 @@ import ProjectList from './pages/ProjectList';
 import ProjectDashboard from './pages/ProjectDashboard';
 import ProductManager from './pages/ProductManager';
 import OutboundManager from './pages/OutboundManager';
+import PackingCalculator from './pages/PackingCalculator';
 import './App.css';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
             <Route index element={<ProjectDashboard />} />
             <Route path="products" element={<ProductManager />} />
             <Route path="outbound" element={<OutboundManager />} />
+            <Route path="packing" element={<PackingCalculator />} />
           </Route>
         </Routes>
       </BrowserRouter>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useApp } from '@/store/AppContext';
 import ExcelUpload from '@/components/ExcelUpload';
@@ -6,13 +6,23 @@ import { Product } from '@wms/types';
 
 const ProductManager: React.FC = () => {
   const { id: projectId } = useParams<{ id: string }>();
-  const { products, setProducts } = useApp();
+  const { products, fetchProducts, createProducts } = useApp();
+
+  useEffect(() => {
+    if (projectId) {
+      fetchProducts(projectId);
+    }
+  }, [projectId]);
 
   const currentProducts = products[projectId || ''] || [];
 
-  const handleUpload = (data: Product[]) => {
+  const handleUpload = async (data: Product[]) => {
     if (projectId) {
-      setProducts(projectId, data);
+      try {
+        await createProducts(projectId, data);
+      } catch (err) {
+        // Error is handled in context
+      }
     }
   };
 

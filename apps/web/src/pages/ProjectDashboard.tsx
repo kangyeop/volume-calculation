@@ -1,15 +1,26 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useApp } from '@/store/AppContext';
 import { Package, Send, TrendingUp } from 'lucide-react';
 
 const ProjectDashboard: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { projects, products, outbound } = useApp();
+  const { projects, products, outbound, fetchProducts, fetchOutbound, loading } = useApp();
+
+  useEffect(() => {
+    if (id) {
+      fetchProducts(id);
+      fetchOutbound(id);
+    }
+  }, [id]);
 
   const project = projects.find((p) => p.id === id);
   const productCount = products[id || '']?.length || 0;
   const outboundCount = outbound[id || '']?.length || 0;
+
+  if (loading && !project) {
+    return <div>Loading...</div>;
+  }
 
   if (!project) {
     return <div>Project not found</div>;
