@@ -6,6 +6,7 @@ import { PackingController } from './packing.controller';
 import { ProductsModule } from '../products/products.module';
 import { OutboundModule } from '../outbound/outbound.module';
 import { ProjectsModule } from '../projects/projects.module';
+import { BoxesModule } from '../boxes/boxes.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { ProjectsModule } from '../projects/projects.module';
     ProductsModule,
     OutboundModule,
     ProjectsModule,
+    BoxesModule,
   ],
   controllers: [PackingController],
   providers: [PackingService],

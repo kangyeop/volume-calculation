@@ -1,4 +1,4 @@
-import { IsString, IsInt, IsPositive } from 'class-validator';
+import { IsString, IsInt, IsPositive, IsOptional } from 'class-validator';
 
 export class CreateOutboundDto {
   @IsString()
@@ -10,4 +10,28 @@ export class CreateOutboundDto {
   @IsInt()
   @IsPositive()
   quantity: number;
+
+  @IsOptional()
+  @IsString()
+  recipientName?: string;
+
+  @IsOptional()
+  @IsString()
+  recipientPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  zipCode?: string;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @IsOptional()
+  @IsString()
+  detailAddress?: string;
+
+  @IsOptional()
+  @IsString()
+  shippingMemo?: string;
 }

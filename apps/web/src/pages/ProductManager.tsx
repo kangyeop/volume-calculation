@@ -15,28 +15,65 @@ const ProductManager: React.FC = () => {
 
   const currentProducts = products[projectId || ''] || [];
 
+  const excelDateToISOString = (serial: any): string | undefined => {
+    if (!serial) return undefined;
+    // If it's already a string looking like a date
+    if (typeof serial === 'string' && serial.includes('-')) return serial;
+    // If it's a number (Excel serial date)
+    if (typeof serial === 'number') {
+      // Excel base date: Dec 30, 1899
+      const date = new Date(Math.round((serial - 25569) * 86400 * 1000));
+      return date.toISOString().split('T')[0];
+    }
+    return undefined;
+  };
+
   const handleUpload = async (rawData: any[]) => {
     if (projectId) {
       try {
-        const processedData = rawData.map((item) => ({
-          sku: item.sku ? String(item.sku) : '',
-          name: item.name,
-          width: Number(item.width),
-          length: Number(item.length),
-          height: Number(item.height),
-          weight: Number(item.weight),
-          // Handle Date fields (assuming standard formats or strings)
-          inboundDate: item.inboundDate,
-          outboundDate: item.outboundDate,
-          // Handle Boolean fields (support "O", "X", "TRUE", "FALSE", etc.)
-          barcode: ['o', 'true', 'yes', 'y'].includes(String(item.barcode).toLowerCase()),
-          aircap: ['o', 'true', 'yes', 'y'].includes(String(item.aircap).toLowerCase()),
-          remarks: item.remarks,
-        }));
+        const processedData = rawData.map((item) => {
+          // Parse dimensions from format "가로30*세로37" or "가로10*세로10*높이32"
+          let width = 0;
+          let length = 0;
+          let height = 0;
+
+          const volumeStr = item['체적정보'] || '';
+          if (volumeStr) {
+            // Extract numbers for width (가로), length (세로), height (높이)
+            const widthMatch = volumeStr.match(/가로(\d+(\.\d+)?)/);
+            const lengthMatch = volumeStr.match(/세로(\d+(\.\d+)?)/);
+            const heightMatch = volumeStr.match(/높이(\d+(\.\d+)?)/);
+
+            if (widthMatch) width = parseFloat(widthMatch[1]);
+            if (lengthMatch) length = parseFloat(lengthMatch[1]);
+            if (heightMatch) height = parseFloat(heightMatch[1]);
+          }
+
+          return {
+            sku: String(item['상품명'] || item.name || ''),
+            name: String(item['상품명'] || item.name || ''),
+            width: width || Number(item.width) || 0,
+            length: length || Number(item.length) || 0,
+            height: height || Number(item.height) || 1, // Default to 1 if height is missing (for flat items)
+            weight: 0, // Weight is not in the excel, defaulting to 0
+
+            // Handle Dates - Convert to ISO string for backend validation
+            inboundDate: excelDateToISOString(item['입고일'] || item.inboundDate),
+            outboundDate: excelDateToISOString(item['출고일'] || item.outboundDate),
+
+            // Handle Booleans (ㅇ/x mapping)
+            barcode: ['ㅇ', 'o', 'true', 'yes', 'y'].includes(String(item['바코드'] || item.barcode).toLowerCase()),
+            aircap: ['ㅇ', 'o', 'true', 'yes', 'y'].includes(String(item['에어캡'] || item.aircap).toLowerCase()),
+
+            remarks: item['비고'] || item.remarks,
+          };
+        });
 
         await createProducts(projectId, processedData);
       } catch (err) {
         // Error is handled in context
+        console.error('Upload failed:', err);
+        alert('Failed to upload products. Please checks the console for details.');
       }
     }
   };
@@ -55,6 +92,7 @@ const ProductManager: React.FC = () => {
           <ExcelUpload<any>
             onUpload={handleUpload}
             title="Import Products via Excel"
+            headerRow={2}
           />
           <div className="mt-4 p-4 bg-blue-50 rounded-lg text-xs text-blue-700">
             <h4 className="font-bold mb-1">Expected Format:</h4>

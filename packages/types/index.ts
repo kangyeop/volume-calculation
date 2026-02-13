@@ -70,5 +70,11 @@ export interface Outbound {
   orderId: string;
   sku: string;
   quantity: number;
+  recipientName?: string;
+  recipientPhone?: string;
+  zipCode?: string;
+  address?: string;
+  detailAddress?: string;
+  shippingMemo?: string;
   createdAt: Date | string;
 }

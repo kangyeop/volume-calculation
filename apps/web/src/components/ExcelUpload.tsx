@@ -5,9 +5,10 @@ import { Upload } from 'lucide-react';
 interface ExcelUploadProps<T> {
   onUpload: (data: T[]) => void;
   title: string;
+  headerRow?: number; // 0-indexed header row
 }
 
-const ExcelUpload = <T,>({ onUpload, title }: ExcelUploadProps<T>) => {
+const ExcelUpload = <T,>({ onUpload, title, headerRow = 0 }: ExcelUploadProps<T>) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -20,7 +21,7 @@ const ExcelUpload = <T,>({ onUpload, title }: ExcelUploadProps<T>) => {
       const wb = XLSX.read(bstr, { type: 'binary' });
       const wsname = wb.SheetNames[0];
       const ws = wb.Sheets[wsname];
-      const data = XLSX.utils.sheet_to_json(ws) as T[];
+      const data = XLSX.utils.sheet_to_json(ws, { range: headerRow }) as T[];
       onUpload(data);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';

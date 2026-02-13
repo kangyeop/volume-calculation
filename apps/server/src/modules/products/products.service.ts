@@ -72,12 +72,39 @@ export class ProductsService {
           projectId,
         }),
       );
-      const savedProducts = await queryRunner.manager.save(
-        ProductEntity,
-        products,
-      );
+
+      // Upsert: Conflict on (projectId, sku) should update fields
+      // Use query builder for more control over conflict columns and updated columns
+      await this.productsRepository
+        .createQueryBuilder()
+        .insert()
+        .into(ProductEntity)
+        .values(products)
+        .orUpdate(
+          // Columns to update on conflict
+          [
+            'name',
+            'width',
+            'length',
+            'height',
+            'weight',
+            'inboundDate',
+            'outboundDate',
+            'barcode',
+            'aircap',
+            'remarks',
+          ],
+          // Conflict target columns
+          ['projectId', 'sku'],
+        )
+        .execute();
+
       await queryRunner.commitTransaction();
-      return savedProducts;
+
+      // Return the input DTOs (not fully hydrated entities, but sufficient for bulk response)
+      // Ideally we would fetch them back, but for performance we skip it.
+      // We can map them to partial entities if needed.
+      return products;
     } catch (err) {
       await queryRunner.rollbackTransaction();
       throw err;
