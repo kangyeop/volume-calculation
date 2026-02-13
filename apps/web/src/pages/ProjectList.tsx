@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import { Plus, Folder } from 'lucide-react';
 
-const ProjectList: React.FC = () => {
+export const ProjectList: React.FC = () => {
   const { projects, addProject } = useApp();
   const [newProjectName, setNewProjectName] = useState('');
   const navigate = useNavigate();
@@ -74,4 +74,3 @@ const ProjectList: React.FC = () => {
   );
 };
 
-export default ProjectList;

@@ -4,7 +4,7 @@ import { Calculator, Package, History, Settings } from 'lucide-react';
 import { api } from '@/lib/api';
 import { PackingRecommendation, PackingResult, PackingGroupingOption } from '@wms/types';
 
-const PackingCalculator: React.FC = () => {
+export const PackingCalculator: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PackingRecommendation | null>(null);
@@ -244,4 +244,3 @@ const PackingCalculator: React.FC = () => {
   );
 };
 
-export default PackingCalculator;

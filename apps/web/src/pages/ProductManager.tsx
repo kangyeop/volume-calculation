@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useApp } from '@/store/AppContext';
-import ExcelUpload from '@/components/ExcelUpload';
+import { ExcelUpload } from '@/components/ExcelUpload';
 
-const ProductManager: React.FC = () => {
+export const ProductManager: React.FC = () => {
   const { id: projectId } = useParams<{ id: string }>();
   const { products, fetchProducts, createProducts } = useApp();
 
@@ -28,7 +28,7 @@ const ProductManager: React.FC = () => {
     return undefined;
   };
 
-  const handleUpload = async (rawData: any[], fileName: string) => {
+  const handleUpload = async (rawData: any[], _fileName: string) => {
     if (projectId) {
       try {
         const processedData = rawData.map((item) => {
@@ -161,4 +161,3 @@ const ProductManager: React.FC = () => {
   );
 };
 
-export default ProductManager;

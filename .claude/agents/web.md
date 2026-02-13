@@ -34,7 +34,7 @@ description: Specialized agent for frontend development using React, Vite, and T
   - `App.tsx`: Main application component
   - `main.tsx`: Entry point
 
-## Naming Conventions
-- **Components**: PascalCase (e.g., `CBMCalculator.tsx`, `Button.tsx`)
-- **Utilities/Hooks**: camelCase or Kebab-case (e.g., `utils.ts`, `bin-packing.ts`)
-- **Styles**: Use Tailwind CSS classes; avoid separate CSS files unless necessary
+## Coding Standards
+- **Exports**: Use named exports (`export const Component = ...`) instead of `export default`.
+- **Naming**: PascalCase for components, camelCase for functions/hooks.
+

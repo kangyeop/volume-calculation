@@ -3,7 +3,7 @@ import { NavLink, useParams } from 'react-router-dom';
 import { Package, Send, LayoutDashboard, Calculator, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const Sidebar: React.FC = () => {
+export const Sidebar: React.FC = () => {
   const { id } = useParams<{ id: string }>();
 
   const navItems = [
@@ -83,4 +83,3 @@ const Sidebar: React.FC = () => {
   );
 };
 
-export default Sidebar;

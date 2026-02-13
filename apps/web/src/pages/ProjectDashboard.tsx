@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useApp } from '@/store/AppContext';
 import { Package, Send, TrendingUp } from 'lucide-react';
 
-const ProjectDashboard: React.FC = () => {
+export const ProjectDashboard: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { projects, products, outbounds, fetchProducts, fetchOutbounds, loading } = useApp();
 
@@ -71,4 +71,3 @@ const ProjectDashboard: React.FC = () => {
   );
 };
 
-export default ProjectDashboard;

@@ -1,8 +1,8 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import Sidebar from './Sidebar';
+import { Sidebar } from './Sidebar';
 
-const ProjectLayout: React.FC = () => {
+export const ProjectLayout: React.FC = () => {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
@@ -13,4 +13,3 @@ const ProjectLayout: React.FC = () => {
   );
 };
 
-export default ProjectLayout;

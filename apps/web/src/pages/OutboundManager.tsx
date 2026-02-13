@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useApp } from '@/store/AppContext';
-import ExcelUpload from '@/components/ExcelUpload';
-import { Outbound } from '@wms/types';
+import { ExcelUpload } from '@/components/ExcelUpload';
 import { AlertCircle, CheckCircle2, ChevronRight, Package, Calendar, List, Upload, ArrowLeft, Search, FileSpreadsheet } from 'lucide-react';
 
-const OutboundManager: React.FC = () => {
+export const OutboundManager: React.FC = () => {
   const { id: projectId } = useParams<{ id: string }>();
   const { products, outbounds, batches, fetchProducts, fetchOutbounds, fetchBatches, createOutbound } = useApp();
   const [errors, setErrors] = useState<string[]>([]);
@@ -292,5 +291,4 @@ const OutboundManager: React.FC = () => {
   );
 };
 
-export default OutboundManager;
 

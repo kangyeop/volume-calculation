@@ -8,7 +8,7 @@ interface ExcelUploadProps<T> {
   headerRow?: number; // 0-indexed header row
 }
 
-const ExcelUpload = <T,>({ onUpload, title, headerRow = 0 }: ExcelUploadProps<T>) => {
+export const ExcelUpload = <T,>({ onUpload, title, headerRow = 0 }: ExcelUploadProps<T>) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,4 +47,3 @@ const ExcelUpload = <T,>({ onUpload, title, headerRow = 0 }: ExcelUploadProps<T>
   );
 };
 
-export default ExcelUpload;

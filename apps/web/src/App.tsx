@@ -1,16 +1,16 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppProvider } from './store/AppContext';
-import ProjectLayout from './components/layout/ProjectLayout';
-import ProjectList from './pages/ProjectList';
-import ProjectDashboard from './pages/ProjectDashboard';
-import ProductManager from './pages/ProductManager';
-import OutboundManager from './pages/OutboundManager';
-import PackingCalculator from './pages/PackingCalculator';
-import OutboundGuide from './pages/OutboundGuide';
-import BoxManager from './pages/BoxManager';
+import { ProjectLayout } from './components/layout/ProjectLayout';
+import { ProjectList } from './pages/ProjectList';
+import { ProjectDashboard } from './pages/ProjectDashboard';
+import { ProductManager } from './pages/ProductManager';
+import { OutboundManager } from './pages/OutboundManager';
+import { PackingCalculator } from './pages/PackingCalculator';
+import { OutboundGuide } from './pages/OutboundGuide';
+import { BoxManager } from './pages/BoxManager';
 import './App.css';
 
-function App() {
+export function App() {
   return (
     <AppProvider>
       <BrowserRouter>
@@ -30,4 +30,3 @@ function App() {
   );
 }
 
-export default App;

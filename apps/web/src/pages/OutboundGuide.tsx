@@ -10,7 +10,7 @@ interface GuideItem extends Outbound {
   recommendedBox: string;
 }
 
-const OutboundGuide: React.FC = () => {
+export const OutboundGuide: React.FC = () => {
   const { id: projectId } = useParams<{ id: string }>();
   const { products, fetchProducts, fetchOutbounds, outbounds } = useApp();
   const [recommendation, setRecommendation] = useState<PackingRecommendation | null>(null);
@@ -301,4 +301,3 @@ const OutboundGuide: React.FC = () => {
   );
 };
 
-export default OutboundGuide;

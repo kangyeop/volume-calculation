@@ -3,7 +3,7 @@ import { api } from '@/lib/api';
 import { Box } from '@wms/types';
 import { Trash2, Package } from 'lucide-react';
 
-const BoxManager: React.FC = () => {
+export const BoxManager: React.FC = () => {
   const [boxes, setBoxes] = useState<Box[]>([]);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
@@ -172,4 +172,3 @@ const BoxManager: React.FC = () => {
   );
 };
 
-export default BoxManager;
