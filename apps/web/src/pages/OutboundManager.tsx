@@ -44,14 +44,18 @@ export const OutboundManager: React.FC = () => {
     const newErrors: string[] = [];
     const validData: any[] = [];
 
-    rawData.forEach((item, index) => {
-      const orderId = String(item['쇼핑몰 주문번호'] || item.orderId || '').trim();
-      const productName = String(item['주문서 상품명'] || '').trim();
-      let sku = String(item['연동코드'] || item['상품명 / 매핑수량'] || item.sku || '').trim();
+    console.log(rawData);
+    
 
+    rawData.forEach((item, index) => {
+      const orderId = String(item['쇼핑몰주문번호'] || item.orderId || '').trim();
+      const productName = String(item['주문서상품명'] || '').trim();
+      let sku = String(item['연동코드'] || item['상품명 / 매핑수량'] || item.sku || '').trim();
+      
       if (productName && productSkus.has(productName)) {
         sku = productName;
       }
+
 
       const quantity = Number(item['주문수량'] || item.quantity || 1);
 

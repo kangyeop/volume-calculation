@@ -23,7 +23,10 @@ export class OutboundService {
     return this.outboundRepository.save(outbound);
   }
 
-  async findAll(projectId: string, batchId?: string): Promise<OutboundEntity[]> {
+  async findAll(
+    projectId: string,
+    batchId?: string,
+  ): Promise<OutboundEntity[]> {
     const where: any = { projectId };
     if (batchId) {
       where.batchId = batchId;
@@ -34,7 +37,11 @@ export class OutboundService {
     });
   }
 
-  async findBatches(projectId: string): Promise<{ batchId: string; batchName: string; count: number; createdAt: Date }[]> {
+  async findBatches(
+    projectId: string,
+  ): Promise<
+    { batchId: string; batchName: string; count: number; createdAt: Date }[]
+  > {
     const results = await this.outboundRepository
       .createQueryBuilder('outbound')
       .select('outbound.batchId', 'batchId')
@@ -48,7 +55,7 @@ export class OutboundService {
       .orderBy('createdAt', 'DESC')
       .getRawMany();
 
-    return results.map(r => ({
+    return results.map((r) => ({
       batchId: r.batchId,
       batchName: r.batchName,
       count: parseInt(r.count, 10),
