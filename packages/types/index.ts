@@ -40,14 +40,27 @@ export interface PackingGroup {
   boxes: {
     box: Box;
     count: number;
-    packedSKUs: { skuId: string; quantity: number }[];
+    packedSKUs: { skuId: string; name?: string; quantity: number }[];
   }[];
+  unpackedItems: { skuId: string; name?: string; quantity: number; reason?: string }[];
   totalCBM: number;
   totalEfficiency: number;
 }
 
 export interface PackingRecommendation {
   groups: PackingGroup[];
+  totalCBM: number;
+  totalEfficiency: number;
+  unpackedItems?: { skuId: string; name?: string; quantity: number; reason?: string }[];
+}
+
+export interface PackingCalculationResult {
+  boxes: {
+    box: Box;
+    count: number;
+    packedSKUs: { skuId: string; quantity: number }[];
+  }[];
+  unpackedItems: { skuId: string; quantity: number; reason?: string }[];
   totalCBM: number;
   totalEfficiency: number;
 }

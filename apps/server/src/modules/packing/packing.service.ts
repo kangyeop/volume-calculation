@@ -91,9 +91,31 @@ export class PackingService {
         }
       }
 
+      // Map product names to packedSKUs
+      const boxesWithNames = recommendation.boxes.map(box => ({
+        ...box,
+        packedSKUs: box.packedSKUs.map(sku => {
+          const product = products.find(p => p.id === sku.skuId);
+          return {
+            ...sku,
+            name: product ? product.name : 'Unknown Product'
+          };
+        })
+      }));
+
+      // Map product names to unpackedItems
+      const unpackedWithNames = recommendation.unpackedItems.map(item => {
+        const product = products.find(p => p.id === item.skuId);
+        return {
+          ...item,
+          name: product ? product.name : 'Unknown Product'
+        };
+      });
+
       groups.push({
         groupLabel,
-        boxes: recommendation.boxes,
+        boxes: boxesWithNames,
+        unpackedItems: unpackedWithNames,
         totalCBM: recommendation.totalCBM,
         totalEfficiency: groupAvailableVolume > 0 ? groupUsedVolume / groupAvailableVolume : 0,
       });
@@ -114,7 +136,7 @@ export class PackingService {
         boxId: rb.box.id,
         boxName: rb.box.name,
         packedCount: rb.packedSKUs.reduce((acc, s) => acc + s.quantity, 0),
-        remainingQuantity: 0,
+        remainingQuantity: 0, // We could store unpacked count here but for now it's fine
         efficiency: 0,
         totalCBM: (rb.box.width * rb.box.length * rb.box.height * rb.count) / 1000000,
         groupLabel: rb.groupLabel,
@@ -123,10 +145,14 @@ export class PackingService {
 
     await this.packingResultRepository.save(results);
 
+    // Calculate total unpacked items across all groups if needed, or just let the frontend handle group-level unpacked
+    const allUnpackedItems = groups.flatMap(g => g.unpackedItems || []);
+
     return {
       groups,
       totalCBM: grandTotalCBM,
       totalEfficiency: grandTotalAvailableVolume > 0 ? grandTotalUsedVolume / grandTotalAvailableVolume : 0,
+      unpackedItems: allUnpackedItems // Optional: expose at top level if needed
     };
   }
 

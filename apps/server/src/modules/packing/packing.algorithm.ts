@@ -1,14 +1,13 @@
-import { SKU, Box, PackingGroup } from '@wms/types';
+import { SKU, Box, PackingCalculationResult } from '@wms/types';
 
 const EFFICIENCY_THRESHOLD = 0.9;
-
-type PackingCalculationResult = Omit<PackingGroup, 'groupLabel'>;
 
 export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationResult {
   // Check if we have boxes to pack into
   if (!boxes || boxes.length === 0) {
     return {
       boxes: [],
+      unpackedItems: [],
       totalCBM: 0,
       totalEfficiency: 0,
     };
@@ -23,6 +22,30 @@ export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationR
 
   const largestBox = sortedBoxes[sortedBoxes.length - 1];
 
+  // Create a map for quick SKU details lookup (needed for dimension checks)
+  const skuDetailsMap = new Map<string, SKU>();
+  for (const sku of skus) {
+    skuDetailsMap.set(sku.id, sku);
+  }
+
+  // Helper to check if item physically fits in box (allowing rotation)
+  const doesItemFit = (skuId: string, box: Box): boolean => {
+    const sku = skuDetailsMap.get(skuId);
+    if (!sku) return false;
+
+    // Sort dimensions to simulate "best fit" rotation
+    // We sort both item and box dimensions ascending: [min, mid, max]
+    // If item[0] <= box[0] && item[1] <= box[1] && item[2] <= box[2], it fits.
+    const itemDims = [sku.width, sku.length, sku.height].sort((a, b) => a - b);
+    const boxDims = [box.width, box.length, box.height].sort((a, b) => a - b);
+
+    return (
+      itemDims[0] <= boxDims[0] &&
+      itemDims[1] <= boxDims[1] &&
+      itemDims[2] <= boxDims[2]
+    );
+  };
+
   // Flat list of items to pack, sorted by volume (descending)
   let itemsToPack: { skuId: string; volume: number }[] = [];
   for (const sku of skus) {
@@ -34,6 +57,7 @@ export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationR
   itemsToPack.sort((a, b) => b.volume - a.volume);
 
   const recommendedBoxes: PackingCalculationResult['boxes'] = [];
+  const unpackedItems: PackingCalculationResult['unpackedItems'] = [];
   let totalCBM = 0;
   let totalUsedVolume = 0;
   let totalAvailableVolume = 0;
@@ -47,9 +71,15 @@ export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationR
       const boxVolume = box.width * box.length * box.height;
       const effectiveCapacity = boxVolume * EFFICIENCY_THRESHOLD;
 
+      // Check 1: Volume fit
       if (currentTotalVolume <= effectiveCapacity) {
-        selectedSingleBox = box;
-        break;
+        // Check 2: Physical dimension fit for ALL items
+        const allFitPhysically = itemsToPack.every(item => doesItemFit(item.skuId, box));
+
+        if (allFitPhysically) {
+          selectedSingleBox = box;
+          break;
+        }
       }
     }
 
@@ -85,7 +115,10 @@ export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationR
       const remainingItems: { skuId: string; volume: number }[] = [];
 
       for (const item of itemsToPack) {
-        if (currentBoxUsedVolume + item.volume <= effectiveCapacity) {
+        // Check if individual item fits in the box physically
+        const fitsPhysically = doesItemFit(item.skuId, largestBox);
+
+        if (fitsPhysically && (currentBoxUsedVolume + item.volume <= effectiveCapacity)) {
           currentBoxUsedVolume += item.volume;
           packedInThisBox.push(item);
         } else {
@@ -93,14 +126,26 @@ export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationR
         }
       }
 
-       // Safety check: if largest item is bigger than largest box
+       // Safety check: if no items fit in the largest box
       if (packedInThisBox.length === 0 && itemsToPack.length > 0) {
-        console.warn(`Item ${itemsToPack[0].skuId} is too large for the largest box`);
-        // Force pack it or skip it to avoid infinite loop.
-        // For this requirement, we assume items fit in boxes reasonably.
-        // Let's skip it from calculation but log it.
+        const failedItem = itemsToPack[0];
+        console.warn(`Item ${failedItem.skuId} is too large for the largest box (Volume or Dimensions)`);
+
+        // Add to unpacked items
+        const existingUnpacked = unpackedItems.find(i => i.skuId === failedItem.skuId);
+        if (existingUnpacked) {
+          existingUnpacked.quantity += 1;
+        } else {
+          unpackedItems.push({
+            skuId: failedItem.skuId,
+            quantity: 1,
+            reason: 'Too large for any box',
+          });
+        }
+
+        // Skip this item as it cannot be packed in any available box
+        // We remove the first item from remainingItems (which is effectively itemsToPack since nothing was packed)
         remainingItems.shift();
-         // In production, we might want to return an error or special container.
       } else {
           totalCBM += boxVolume / 1000000;
           totalUsedVolume += currentBoxUsedVolume;
@@ -116,9 +161,10 @@ export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationR
             count: 1,
             packedSKUs: Array.from(skuMap.entries()).map(([skuId, quantity]) => ({ skuId, quantity })),
           });
-
-          itemsToPack = remainingItems;
       }
+
+      // Update for next iteration
+      itemsToPack = remainingItems;
     }
   }
 
@@ -144,6 +190,7 @@ export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationR
 
   return {
     boxes: mergedBoxes,
+    unpackedItems,
     totalCBM,
     totalEfficiency: totalAvailableVolume > 0 ? totalUsedVolume / totalAvailableVolume : 0,
   };

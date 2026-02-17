@@ -5,10 +5,11 @@ import { Upload } from 'lucide-react';
 interface ExcelUploadProps<T> {
   onUpload: (data: T[], fileName: string) => void;
   title: string;
-  headerRow?: number; // 0-indexed header row
+  headerRow?: number; // 0-indexed header row. If headerKey is provided, this is ignored (or used as fallback start)
+  headerKey?: string; // A string that must exist in the header row (e.g. "상품명")
 }
 
-export const ExcelUpload = <T,>({ onUpload, title, headerRow = 0 }: ExcelUploadProps<T>) => {
+export const ExcelUpload = <T,>({ onUpload, title, headerRow = 0, headerKey }: ExcelUploadProps<T>) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -21,7 +22,22 @@ export const ExcelUpload = <T,>({ onUpload, title, headerRow = 0 }: ExcelUploadP
       const wb = XLSX.read(bstr, { type: 'binary' });
       const wsname = wb.SheetNames[0];
       const ws = wb.Sheets[wsname];
-      const data = XLSX.utils.sheet_to_json(ws, { range: headerRow }) as T[];
+
+      let targetHeaderRow = headerRow;
+
+      if (headerKey) {
+        // Search for the row containing the headerKey
+        // Convert sheet to array of arrays to scan
+        const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
+        const foundIndex = rawData.findIndex(row =>
+          row.some(cell => String(cell).includes(headerKey))
+        );
+        if (foundIndex !== -1) {
+          targetHeaderRow = foundIndex;
+        }
+      }
+
+      const data = XLSX.utils.sheet_to_json(ws, { range: targetHeaderRow }) as T[];
       onUpload(data, file.name);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';

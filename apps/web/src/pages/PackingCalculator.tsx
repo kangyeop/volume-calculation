@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Calculator, Package, History, Settings } from 'lucide-react';
+import { Calculator, Package, History, Settings, AlertTriangle } from 'lucide-react';
 import { api } from '@/lib/api';
 import { PackingRecommendation, PackingResult, PackingGroupingOption } from '@wms/types';
 
@@ -170,6 +170,31 @@ export const PackingCalculator: React.FC = () => {
                   </div>
                 </div>
 
+                {group.unpackedItems && group.unpackedItems.length > 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 animate-pulse">
+                    <div className="flex items-center gap-2 text-red-800 font-bold mb-2">
+                      <AlertTriangle className="h-5 w-5" />
+                      <span>Items Not Packed (Too Large)</span>
+                    </div>
+                    <div className="text-sm text-red-700 mb-2">
+                      The following items could not fit into any available box type:
+                    </div>
+                    <ul className="space-y-2">
+                      {group.unpackedItems.map((item, idx) => (
+                        <li key={idx} className="flex justify-between items-center bg-white/50 p-2 rounded border border-red-100">
+                          <div className="flex flex-col">
+                            <span className="font-medium">{item.name || 'Unknown Product'}</span>
+                            <span className="text-xs font-mono opacity-75">{item.skuId}</span>
+                          </div>
+                          <span className="font-bold bg-red-100 px-2 py-0.5 rounded text-red-800">
+                            x{item.quantity}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {group.boxes.map((boxGroup, idx) => (
                     <div key={idx} className="rounded-xl border bg-card p-6 shadow-sm flex flex-col h-full relative overflow-hidden hover:shadow-md transition-shadow">
@@ -177,7 +202,7 @@ export const PackingCalculator: React.FC = () => {
                         <div>
                           <h4 className="font-bold text-lg">{boxGroup.box.name}</h4>
                           <p className="text-sm text-muted-foreground">
-                            {boxGroup.box.length} x {boxGroup.box.width} x {boxGroup.box.height} cm
+                            {boxGroup.box.width} x {boxGroup.box.length} x {boxGroup.box.height} cm
                           </p>
                         </div>
                         <div className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-sm font-bold border border-indigo-100">
@@ -189,10 +214,15 @@ export const PackingCalculator: React.FC = () => {
                         <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wider border-b pb-1">Contents per box</p>
                         <ul className="space-y-2 text-sm overflow-y-auto max-h-40 pr-1">
                           {boxGroup.packedSKUs.map((sku, sIdx) => (
-                            <li key={sIdx} className="flex justify-between items-center group">
-                              <span className="truncate mr-2 font-mono text-gray-700 group-hover:text-indigo-600 transition-colors" title={sku.skuId}>
-                                {sku.skuId}
-                              </span>
+                            <li key={sIdx} className="flex justify-between items-center group border-b border-gray-50 pb-1 last:border-0 last:pb-0">
+                              <div className="flex flex-col overflow-hidden mr-2">
+                                <span className="truncate font-medium text-gray-900 group-hover:text-indigo-600 transition-colors" title={sku.name}>
+                                    {sku.name || 'Unknown Product'}
+                                </span>
+                                <span className="truncate font-mono text-xs text-gray-500" title={sku.skuId}>
+                                    {sku.skuId}
+                                </span>
+                              </div>
                               <span className="font-medium whitespace-nowrap bg-gray-100 px-1.5 py-0.5 rounded text-xs text-gray-600">
                                 qty: {sku.quantity}
                               </span>
@@ -234,11 +264,11 @@ export const PackingCalculator: React.FC = () => {
                     </td>
                     <td className="px-6 py-3 font-medium text-gray-900">{item.boxName}</td>
                     <td className="px-6 py-3 text-right">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${item.efficiency > 0.8 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                        {(item.efficiency * 100).toFixed(1)}%
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${Number(item.efficiency) > 0.8 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                        {(Number(item.efficiency) * 100).toFixed(1)}%
                       </span>
                     </td>
-                    <td className="px-6 py-3 text-right font-mono text-gray-600">{item.totalCBM.toFixed(4)}</td>
+                    <td className="px-6 py-3 text-right font-mono text-gray-600">{Number(item.totalCBM).toFixed(4)}</td>
                     <td className="px-6 py-3 text-right font-mono text-gray-600">{item.packedCount}</td>
                   </tr>
                 ))}

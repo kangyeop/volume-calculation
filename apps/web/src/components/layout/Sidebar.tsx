@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useParams } from 'react-router-dom';
-import { Package, Send, LayoutDashboard, Calculator, BookOpen } from 'lucide-react';
+import { Package, Send, LayoutDashboard, Calculator } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const Sidebar: React.FC = () => {
@@ -27,11 +27,6 @@ export const Sidebar: React.FC = () => {
       to: `/projects/${id}/packing`,
       label: 'Packing / CBM',
       icon: Calculator,
-    },
-    {
-      to: `/projects/${id}/guide`,
-      label: 'Outbound Guide',
-      icon: BookOpen,
     },
   ];
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { Box } from '@wms/types';
-import { Trash2, Package } from 'lucide-react';
+import { Trash2, Package, Plus, Box as BoxIcon, Ruler } from 'lucide-react';
 
 export const BoxManager: React.FC = () => {
   const [boxes, setBoxes] = useState<Box[]>([]);
@@ -31,6 +31,8 @@ export const BoxManager: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.name || !formData.width || !formData.length || !formData.height) return;
+
     try {
       await api.boxes.create({
         name: formData.name,
@@ -47,7 +49,7 @@ export const BoxManager: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure?')) return;
+    if (!confirm('Are you sure you want to delete this box?')) return;
     try {
       await api.boxes.delete(id);
       fetchBoxes();
@@ -57,113 +59,188 @@ export const BoxManager: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-8 max-w-6xl mx-auto p-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Box Management</h1>
-          <p className="text-muted-foreground">Manage standard box sizes for packing algorithms.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Box Management</h1>
+          <p className="text-muted-foreground mt-1">Configure standard box sizes for packing optimization algorithms.</p>
+        </div>
+        <div className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg border border-indigo-100">
+          <Package className="h-5 w-5" />
+          <span className="font-semibold">{boxes.length} Box Types Configured</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1 border p-6 rounded-lg bg-white shadow-sm h-fit">
-          <h2 className="text-lg font-semibold mb-4">Add New Box</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Box Name</label>
-              <input
-                className="w-full border rounded px-3 py-2 text-sm"
-                placeholder="e.g. CO-45"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Form Section */}
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden sticky top-6">
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+              <Plus className="h-5 w-5 text-gray-500" />
+              <h2 className="font-semibold text-gray-900">Add New Box Type</h2>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-5">
               <div>
-                <label className="block text-sm font-medium mb-1">L (cm)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Box Name</label>
                 <input
-                  type="number"
-                  className="w-full border rounded px-3 py-2 text-sm"
-                  value={formData.length}
-                  onChange={(e) => setFormData({ ...formData, length: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                  placeholder="e.g. Standard Large Box (A-1)"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
-                  min="0"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">W (cm)</label>
-                <input
-                  type="number"
-                  className="w-full border rounded px-3 py-2 text-sm"
-                  value={formData.width}
-                  onChange={(e) => setFormData({ ...formData, width: e.target.value })}
-                  required
-                  min="0"
-                />
+
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <Ruler className="h-4 w-4" />
+                  Dimensions (cm)
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm pl-8 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                        value={formData.length}
+                        onChange={(e) => setFormData({ ...formData, length: e.target.value })}
+                        required
+                        min="0"
+                        placeholder="L"
+                      />
+                      <span className="absolute left-3 top-2 text-gray-400 text-xs font-bold">L</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm pl-8 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                        value={formData.width}
+                        onChange={(e) => setFormData({ ...formData, width: e.target.value })}
+                        required
+                        min="0"
+                        placeholder="W"
+                      />
+                      <span className="absolute left-3 top-2 text-gray-400 text-xs font-bold">W</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm pl-8 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                        value={formData.height}
+                        onChange={(e) => setFormData({ ...formData, height: e.target.value })}
+                        required
+                        min="0"
+                        placeholder="H"
+                      />
+                      <span className="absolute left-3 top-2 text-gray-400 text-xs font-bold">H</span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground text-center">Length × Width × Height</p>
               </div>
+
               <div>
-                <label className="block text-sm font-medium mb-1">H (cm)</label>
-                <input
-                  type="number"
-                  className="w-full border rounded px-3 py-2 text-sm"
-                  value={formData.height}
-                  onChange={(e) => setFormData({ ...formData, height: e.target.value })}
-                  required
-                  min="0"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Price (Optional)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2 text-gray-500 text-sm">₩</span>
+                  <input
+                    type="number"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm pl-7 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    min="0"
+                    placeholder="0"
+                  />
+                </div>
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Price (Optional)</label>
-              <input
-                type="number"
-                className="w-full border rounded px-3 py-2 text-sm"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                min="0"
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full bg-black text-white rounded py-2 text-sm font-medium hover:bg-gray-800 transition-colors"
-            >
-              Add Box
-            </button>
-          </form>
+
+              <button
+                type="submit"
+                className="w-full bg-indigo-600 text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-100 transition-all flex items-center justify-center gap-2 shadow-sm"
+              >
+                <Plus className="h-4 w-4" />
+                Add Box Type
+              </button>
+            </form>
+          </div>
         </div>
 
-        <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {boxes.map((box) => (
-            <div key={box.id} className="border rounded-lg p-4 bg-white shadow-sm flex flex-col justify-between">
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex items-center gap-2">
-                    <Package className="h-5 w-5 text-gray-500" />
-                    <h3 className="font-bold">{box.name}</h3>
-                </div>
-                <button
-                  onClick={() => handleDelete(box.id)}
-                  className="text-red-400 hover:text-red-600 p-1"
+        {/* List Section */}
+        <div className="lg:col-span-2">
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {boxes.map((box) => (
+                <div
+                  key={box.id}
+                  className="group bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-200 relative"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="text-sm text-gray-600 mb-2">
-                <div>{box.length} x {box.width} x {box.height} cm</div>
-                <div className="text-xs text-gray-400 mt-1">
-                    Vol: {((box.length * box.width * box.height) / 1000000).toFixed(4)} CBM
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-indigo-50 p-2 rounded-lg text-indigo-600 group-hover:bg-indigo-100 transition-colors">
+                        <BoxIcon className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-900">{box.name}</h3>
+                        <p className="text-xs text-muted-foreground font-mono mt-0.5">ID: {box.id.slice(0, 8)}...</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDelete(box.id)}
+                      className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+                      title="Delete Box"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="bg-gray-50 rounded-lg p-3 grid grid-cols-3 gap-2 text-center border border-gray-100">
+                      <div>
+                        <div className="text-xs text-gray-500 uppercase font-semibold">Length</div>
+                        <div className="font-medium text-gray-900">{box.length} <span className="text-gray-400 text-xs">cm</span></div>
+                      </div>
+                      <div className="border-l border-gray-200">
+                        <div className="text-xs text-gray-500 uppercase font-semibold">Width</div>
+                        <div className="font-medium text-gray-900">{box.width} <span className="text-gray-400 text-xs">cm</span></div>
+                      </div>
+                      <div className="border-l border-gray-200">
+                        <div className="text-xs text-gray-500 uppercase font-semibold">Height</div>
+                        <div className="font-medium text-gray-900">{box.height} <span className="text-gray-400 text-xs">cm</span></div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-1">
+                      <div className="text-xs text-muted-foreground">
+                        Volume: <span className="font-mono font-medium text-gray-700">{((box.length * box.width * box.height) / 1000000).toFixed(4)} CBM</span>
+                      </div>
+                      {box.price && (
+                        <div className="text-sm font-bold text-gray-900">
+                          ₩{box.price.toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              {box.price && (
-                <div className="text-sm font-medium text-green-600 mt-2">
-                  ₩{box.price.toLocaleString()}
+              ))}
+
+              {boxes.length === 0 && (
+                <div className="col-span-full py-16 text-center bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                  <BoxIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <h3 className="text-lg font-medium text-gray-900">No boxes defined</h3>
+                  <p className="text-gray-500 mt-1 max-w-sm mx-auto">
+                    Add standard box sizes to start calculating packing efficiency.
+                  </p>
                 </div>
               )}
-            </div>
-          ))}
-          {boxes.length === 0 && !loading && (
-            <div className="col-span-full py-12 text-center text-gray-400 bg-gray-50 rounded-lg border border-dashed">
-              No boxes defined yet.
             </div>
           )}
         </div>
