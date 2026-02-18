@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PackingController } from './packing.controller';
 import { PackingService } from './packing.service';
+import { PackingResultEntity } from './entities/packing-result.entity';
 import { PackingGroupingOption } from '@wms/types';
 
 describe('PackingController', () => {
@@ -53,7 +54,7 @@ describe('PackingController', () => {
   describe('findAll', () => {
     it('should call packingService.findAll with correct projectId', async () => {
       const projectId = 'test-project';
-      const expectedResult = [];
+      const expectedResult: PackingResultEntity[] = [];
 
       mockPackingService.findAll.mockResolvedValue(expectedResult);
 

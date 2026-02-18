@@ -8,17 +8,17 @@ import { PackingResultEntity } from '../../packing/entities/packing-result.entit
 @Entity('projects')
 export class ProjectEntity extends BaseEntity implements Project {
   @Column()
-  name: string;
+  name!: string;
 
   @Column({ nullable: true })
   description?: string;
 
   @OneToMany(() => ProductEntity, (product) => product.project)
-  products: ProductEntity[];
+  products!: ProductEntity[];
 
   @OneToMany(() => OutboundEntity, (outbound) => outbound.project)
-  outbounds: OutboundEntity[];
+  outbounds!: OutboundEntity[];
 
   @OneToMany(() => PackingResultEntity, (packingResult) => packingResult.project)
-  packingResults: PackingResultEntity[];
+  packingResults!: PackingResultEntity[];
 }

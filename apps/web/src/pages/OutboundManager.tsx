@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useApp } from '@/store/AppContext';
 import { ExcelUpload } from '@/components/ExcelUpload';
+import { Outbound } from '@wms/types';
 import { AlertCircle, CheckCircle2, ChevronRight, Package, Calendar, List, Upload, ArrowLeft, Search, FileSpreadsheet } from 'lucide-react';
 
 export const OutboundManager: React.FC = () => {
@@ -38,11 +39,11 @@ export const OutboundManager: React.FC = () => {
     ? currentOutbound.filter(o => o.batchId === selectedBatchId)
     : [];
 
-  const handleUpload = async (rawData: any[], fileName: string) => {
+  const handleUpload = async (rawData: Record<string, unknown>[], fileName: string) => {
     if (!projectId) return;
 
     const newErrors: string[] = [];
-    const validData: any[] = [];
+    const validData: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[] = [];
 
     console.log(rawData);
     
@@ -70,7 +71,6 @@ export const OutboundManager: React.FC = () => {
           orderId,
           sku,
           quantity,
-          projectId,
           batchName: fileName,
           recipientName: String(item['수취인'] || item.recipientName || '').trim(),
           recipientPhone: String(item['수취인연락처'] || item.recipientPhone || '').trim(),
@@ -192,7 +192,7 @@ export const OutboundManager: React.FC = () => {
               </p>
             </div>
 
-            <ExcelUpload<any>
+            <ExcelUpload<Record<string, unknown>>
               onUpload={handleUpload}
               title="Click or drag Excel file here"
               headerRow={0}

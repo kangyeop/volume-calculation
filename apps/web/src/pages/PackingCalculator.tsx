@@ -145,9 +145,10 @@ export const PackingCalculator: React.FC = () => {
       const data = await api.packing.calculate(id, groupingOption, selectedBatchId || undefined);
       setResult(data);
       loadHistory();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Calculation failed:', error);
-      alert(error.message || '계산에 실패했습니다. 상품 및 출고 목록이 등록되어 있는지 확인해주세요.');
+      const message = error instanceof Error ? error.message : '계산에 실패했습니다. 상품 및 출고 목록이 등록되어 있는지 확인해주세요.';
+      alert(message);
     } finally {
       setLoading(false);
     }

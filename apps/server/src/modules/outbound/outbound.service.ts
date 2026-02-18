@@ -27,7 +27,7 @@ export class OutboundService {
     projectId: string,
     batchId?: string,
   ): Promise<OutboundEntity[]> {
-    const where: any = { projectId };
+    const where: { projectId: string; batchId?: string } = { projectId };
     if (batchId) {
       where.batchId = batchId;
     }

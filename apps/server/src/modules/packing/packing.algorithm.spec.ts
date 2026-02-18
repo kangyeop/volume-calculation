@@ -3,8 +3,8 @@ import { SKU, Box } from '@wms/types';
 
 describe('packingAlgorithm', () => {
   const mockBoxes: Box[] = [
-    { id: '1', name: 'Small', width: 10, length: 10, height: 10, createdAt: new Date() },
-    { id: '2', name: 'Large', width: 20, length: 20, height: 20, createdAt: new Date() },
+    { id: '1', name: 'Small', width: 10, length: 10, height: 10 },
+    { id: '2', name: 'Large', width: 20, length: 20, height: 20 },
   ];
 
   const mockSKUs: SKU[] = [
@@ -26,9 +26,6 @@ describe('packingAlgorithm', () => {
   });
 
   it('should split items into multiple boxes if they do not fit in one', () => {
-    const largeSKUs: SKU[] = [
-      { id: 'p1', name: 'Product 1', width: 15, length: 15, height: 15, quantity: 2 },
-    ];
     // Each item is 3375cm3. Small box is 1000cm3. Large box is 8000cm3.
     // One item fits in Large box (8000 * 0.9 = 7200 capacity).
     // Two items (6750) also fit in one Large box.

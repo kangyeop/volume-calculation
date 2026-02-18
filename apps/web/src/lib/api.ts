@@ -1,4 +1,4 @@
-import { Project, Product, Outbound, PackingRecommendation, PackingResult, PackingGroupingOption } from '@wms/types';
+import { Project, Product, Outbound, PackingRecommendation, PackingResult, PackingGroupingOption, Box } from '@wms/types';
 
 const API_BASE = '/api';
 
@@ -54,9 +54,9 @@ export const api = {
     history: (projectId: string) => fetchJson<PackingResult[]>(`/projects/${projectId}/packing/results`),
   },
   boxes: {
-    list: () => fetchJson<any[]>('/boxes'),
-    create: (data: any) =>
-      fetchJson<any>('/boxes', {
+    list: () => fetchJson<Box[]>('/boxes'),
+    create: (data: Omit<Box, 'id'>) =>
+      fetchJson<Box>('/boxes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),

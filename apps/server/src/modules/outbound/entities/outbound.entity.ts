@@ -5,42 +5,42 @@ import { ProjectEntity } from '../../projects/entities/project.entity';
 @Entity('outbounds')
 export class OutboundEntity extends BaseEntity {
   @Column()
-  orderId: string;
+  orderId!: string;
 
   @Column()
-  sku: string;
+  sku!: string;
 
   @Column()
-  quantity: number;
+  quantity!: number;
 
   @Column({ nullable: true })
-  recipientName: string;
+  recipientName!: string;
 
   @Column({ nullable: true })
-  recipientPhone: string;
+  recipientPhone!: string;
 
   @Column({ nullable: true })
-  zipCode: string;
+  zipCode!: string;
 
   @Column({ nullable: true })
-  address: string;
+  address!: string;
 
   @Column({ nullable: true })
-  detailAddress: string;
+  detailAddress!: string;
 
   @Column({ nullable: true })
-  shippingMemo: string;
+  shippingMemo!: string;
 
   @Column({ nullable: true })
-  batchId: string; // ID to group items from a single upload
+  batchId!: string; // ID to group items from a single upload
 
   @Column({ nullable: true })
-  batchName: string; // e.g., "Upload 2024-03-20"
+  batchName!: string; // e.g., "Upload 2024-03-20"
 
   @Column()
-  projectId: string;
+  projectId!: string;
 
   @ManyToOne(() => ProjectEntity, (project) => project.outbounds)
   @JoinColumn({ name: 'projectId' })
-  project: ProjectEntity;
+  project!: ProjectEntity;
 }

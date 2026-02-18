@@ -2,14 +2,14 @@ import { IsString, IsInt, IsPositive, IsOptional } from 'class-validator';
 
 export class CreateOutboundDto {
   @IsString()
-  orderId: string;
+  orderId!: string;
 
   @IsString()
-  sku: string;
+  sku!: string;
 
   @IsInt()
   @IsPositive()
-  quantity: number;
+  quantity!: number;
 
   @IsOptional()
   @IsString()

@@ -5,16 +5,16 @@ import { ProjectEntity } from '../../projects/entities/project.entity';
 @Entity('packing_results')
 export class PackingResultEntity extends BaseEntity {
   @Column()
-  boxId: string;
+  boxId!: string;
 
   @Column()
-  boxName: string;
+  boxName!: string;
 
   @Column('int')
-  packedCount: number;
+  packedCount!: number;
 
   @Column('int')
-  remainingQuantity: number;
+  remainingQuantity!: number;
 
   @Column('decimal', {
     precision: 10,
@@ -24,7 +24,7 @@ export class PackingResultEntity extends BaseEntity {
       from: (value: string) => parseFloat(value),
     },
   })
-  efficiency: number;
+  efficiency!: number;
 
   @Column('decimal', {
     precision: 10,
@@ -34,14 +34,14 @@ export class PackingResultEntity extends BaseEntity {
       from: (value: string) => parseFloat(value),
     },
   })
-  totalCBM: number;
+  totalCBM!: number;
 
   @Column({ nullable: true })
-  groupLabel: string;
+  groupLabel!: string;
 
   @Column('uuid')
-  projectId: string;
+  projectId!: string;
 
   @ManyToOne(() => ProjectEntity, (project) => project.packingResults)
-  project: ProjectEntity;
+  project!: ProjectEntity;
 }

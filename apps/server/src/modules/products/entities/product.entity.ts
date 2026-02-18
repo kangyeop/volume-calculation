@@ -7,10 +7,10 @@ import { Product } from '@wms/types';
 @Unique(['project', 'sku'])
 export class ProductEntity extends BaseEntity implements Product {
   @Column()
-  sku: string;
+  sku!: string;
 
   @Column()
-  name: string;
+  name!: string;
 
   @Column({
     type: 'decimal',
@@ -21,7 +21,7 @@ export class ProductEntity extends BaseEntity implements Product {
       from: (value: string) => parseFloat(value),
     },
   })
-  width: number;
+  width!: number;
 
   @Column({
     type: 'decimal',
@@ -32,7 +32,7 @@ export class ProductEntity extends BaseEntity implements Product {
       from: (value: string) => parseFloat(value),
     },
   })
-  length: number;
+  length!: number;
 
   @Column({
     type: 'decimal',
@@ -43,7 +43,7 @@ export class ProductEntity extends BaseEntity implements Product {
       from: (value: string) => parseFloat(value),
     },
   })
-  height: number;
+  height!: number;
 
   @Column({
     type: 'decimal',
@@ -54,29 +54,29 @@ export class ProductEntity extends BaseEntity implements Product {
       from: (value: string) => parseFloat(value),
     },
   })
-  weight: number;
+  weight!: number;
 
   @Column()
-  projectId: string;
+  projectId!: string;
 
   @Column({ type: 'date', nullable: true })
-  inboundDate: Date;
+  inboundDate!: Date;
 
   @Column({ type: 'date', nullable: true })
-  outboundDate: Date;
+  outboundDate!: Date;
 
   @Column({ default: false })
-  barcode: boolean;
+  barcode!: boolean;
 
   @Column({ default: false })
-  aircap: boolean;
+  aircap!: boolean;
 
   @Column({ type: 'text', nullable: true })
-  remarks: string;
+  remarks!: string;
 
   @ManyToOne(() => ProjectEntity, (project) => project.products, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'projectId' })
-  project: ProjectEntity;
+  project!: ProjectEntity;
 }

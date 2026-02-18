@@ -3,19 +3,19 @@ import { IsString, IsNotEmpty, IsNumber, Min, IsOptional } from 'class-validator
 export class CreateBoxDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @IsNumber()
   @Min(0)
-  width: number;
+  width!: number;
 
   @IsNumber()
   @Min(0)
-  length: number;
+  length!: number;
 
   @IsNumber()
   @Min(0)
-  height: number;
+  height!: number;
 
   @IsOptional()
   @IsNumber()

@@ -5,7 +5,7 @@ import { Box } from '@wms/types';
 @Entity('boxes')
 export class BoxEntity extends BaseEntity implements Box {
   @Column()
-  name: string;
+  name!: string;
 
   @Column({
     type: 'decimal',
@@ -16,7 +16,7 @@ export class BoxEntity extends BaseEntity implements Box {
       from: (value: string) => parseFloat(value),
     },
   })
-  width: number;
+  width!: number;
 
   @Column({
     type: 'decimal',
@@ -27,7 +27,7 @@ export class BoxEntity extends BaseEntity implements Box {
       from: (value: string) => parseFloat(value),
     },
   })
-  length: number;
+  length!: number;
 
   @Column({
     type: 'decimal',
@@ -38,7 +38,7 @@ export class BoxEntity extends BaseEntity implements Box {
       from: (value: string) => parseFloat(value),
     },
   })
-  height: number;
+  height!: number;
 
   @Column({
     type: 'decimal',
@@ -50,5 +50,5 @@ export class BoxEntity extends BaseEntity implements Box {
       from: (value: string) => parseFloat(value),
     },
   })
-  price: number;
+  price!: number;
 }

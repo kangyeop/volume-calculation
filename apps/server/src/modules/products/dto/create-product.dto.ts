@@ -13,27 +13,27 @@ export class CreateProductDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(1)
-  sku: string;
+  sku!: string;
 
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @IsNumber()
   @Min(0)
-  width: number;
+  width!: number;
 
   @IsNumber()
   @Min(0)
-  length: number;
+  length!: number;
 
   @IsNumber()
   @Min(0)
-  height: number;
+  height!: number;
 
   @IsNumber()
   @Min(0)
-  weight: number;
+  weight!: number;
 
   @IsOptional()
   @IsDateString()

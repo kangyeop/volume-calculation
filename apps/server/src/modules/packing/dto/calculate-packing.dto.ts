@@ -3,7 +3,7 @@ import { PackingGroupingOption } from '@wms/types';
 
 export class CalculatePackingDto {
   @IsEnum(PackingGroupingOption)
-  groupingOption: PackingGroupingOption;
+  groupingOption!: PackingGroupingOption;
 
   @IsOptional()
   @IsString()

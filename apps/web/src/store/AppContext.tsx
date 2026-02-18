@@ -16,8 +16,8 @@ interface AppContextType extends AppState {
   fetchProducts: (projectId: string) => Promise<void>;
   fetchOutbounds: (projectId: string) => Promise<void>;
   fetchBatches: (projectId: string) => Promise<void>;
-  createProducts: (projectId: string, data: any[]) => Promise<void>;
-  createOutbound: (projectId: string, data: any[]) => Promise<void>;
+  createProducts: (projectId: string, data: Omit<Product, 'id' | 'projectId' | 'createdAt' | 'updatedAt'>[]) => Promise<void>;
+  createOutbound: (projectId: string, data: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[]) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -87,7 +87,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const createProducts = async (projectId: string, data: any[]) => {
+  const createProducts = async (projectId: string, data: Omit<Product, 'id' | 'projectId' | 'createdAt' | 'updatedAt'>[]) => {
     setLoading(true);
     try {
       await api.products.createBulk(projectId, data);
@@ -100,7 +100,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const createOutbound = async (projectId: string, data: any[]) => {
+  const createOutbound = async (projectId: string, data: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[]) => {
     setLoading(true);
     try {
       await api.outbound.createBulk(projectId, data);
