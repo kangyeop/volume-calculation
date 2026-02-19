@@ -1,6 +1,23 @@
-import { Controller, Get, Post, Body, Param, Delete, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  UseInterceptors,
+  UploadedFile,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { OutboundService } from './outbound.service';
 import { CreateOutboundDto } from './dto/create-outbound.dto';
+
+interface CreateBulkWithFileDto {
+  createOutboundDtos: CreateOutboundDto[];
+  originalFilename?: string;
+}
 
 @Controller()
 export class OutboundController {
@@ -27,6 +44,29 @@ export class OutboundController {
     @Body() createOutboundDtos: CreateOutboundDto[],
   ) {
     return this.outboundService.createBulk(projectId, createOutboundDtos);
+  }
+
+  @Post('projects/:projectId/outbounds/bulk-with-file')
+  @UseInterceptors(FileInterceptor('file'))
+  async createBulkWithFile(
+    @Param('projectId') projectId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: CreateBulkWithFileDto,
+  ) {
+    let createOutboundDtos: CreateOutboundDto[] = [];
+
+    if (typeof body.createOutboundDtos === 'string') {
+      createOutboundDtos = JSON.parse(body.createOutboundDtos);
+    } else {
+      createOutboundDtos = body.createOutboundDtos || [];
+    }
+
+    return this.outboundService.createBulk({
+      projectId,
+      createOutboundDtos,
+      fileBuffer: file?.buffer,
+      originalFilename: body.originalFilename || file?.originalname,
+    });
   }
 
   @Delete('outbounds/:id')

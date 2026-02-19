@@ -2,6 +2,7 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PackingResultEntity } from './entities/packing-result.entity';
+import { PackingResultDetailEntity } from './entities/packing-result-detail.entity';
 import { OutboundService } from '../outbound/outbound.service';
 import { ProductsService } from '../products/products.service';
 import { BoxesService } from '../boxes/boxes.service';
@@ -16,6 +17,8 @@ export class PackingService {
   constructor(
     @InjectRepository(PackingResultEntity)
     private readonly packingResultRepository: Repository<PackingResultEntity>,
+    @InjectRepository(PackingResultDetailEntity)
+    private readonly packingResultDetailRepository: Repository<PackingResultDetailEntity>,
     private readonly outboundService: OutboundService,
     private readonly productsService: ProductsService,
     private readonly boxesService: BoxesService,
@@ -42,13 +45,14 @@ export class PackingService {
 
     const productMap = new Map(products.map((p) => [p.sku, p]));
 
-    // Group outbounds based on the selected option
     const groupedOutbounds = this.groupOutbounds(outbounds, groupingOption);
 
     const groups: PackingRecommendation['groups'] = [];
     let grandTotalCBM = 0;
     let grandTotalUsedVolume = 0;
     let grandTotalAvailableVolume = 0;
+
+    const detailResults: PackingResultDetailEntity[] = [];
 
     for (const group of groupedOutbounds) {
       if (group.length === 0) continue;
@@ -79,8 +83,10 @@ export class PackingService {
       let groupUsedVolume = 0;
       let groupAvailableVolume = 0;
 
+      const boxVolMap = new Map<string, number>();
       for (const rb of recommendation.boxes) {
         const boxVol = rb.box.width * rb.box.length * rb.box.height;
+        boxVolMap.set(rb.box.id, boxVol);
         groupAvailableVolume += boxVol * rb.count;
         for (const packedSku of rb.packedSKUs) {
           const product = products.find((prod) => prod.id === packedSku.skuId);
@@ -90,7 +96,6 @@ export class PackingService {
         }
       }
 
-      // Map product names to packedSKUs
       const boxesWithNames = recommendation.boxes.map((box) => ({
         ...box,
         packedSKUs: box.packedSKUs.map((sku) => {
@@ -102,7 +107,6 @@ export class PackingService {
         }),
       }));
 
-      // Map product names to unpackedItems
       const unpackedWithNames = recommendation.unpackedItems.map((item) => {
         const product = products.find((p) => p.id === item.skuId);
         return {
@@ -110,6 +114,71 @@ export class PackingService {
           name: product ? product.name : 'Unknown Product',
         };
       });
+
+      let boxIndex = 1;
+      const skuBoxMap = new Map<string, { boxName: string; boxNumber: number; boxIndex: number }>();
+
+      for (const box of boxesWithNames) {
+        for (let i = 0; i < box.count; i++) {
+          box.packedSKUs.forEach(() => {
+            const key = `${groupLabel}_${boxIndex}`;
+            skuBoxMap.set(key, {
+              boxName: box.box.name,
+              boxNumber: i + 1,
+              boxIndex,
+            });
+          });
+          boxIndex++;
+        }
+      }
+
+      for (const outbound of group) {
+        const product = productMap.get(outbound.sku);
+        if (!product) continue;
+
+        const key = `${groupLabel}_${skuBoxMap.size}`;
+        const boxInfo = skuBoxMap.get(key) || {
+          boxName: unpackedWithNames.length > 0 ? 'Unpacked' : 'Unknown',
+          boxNumber: 0,
+          boxIndex: 0,
+        };
+
+        const isUnpacked = unpackedWithNames.some((u) => u.skuId === product.id && u.quantity > 0);
+
+        const unpackedItem = unpackedWithNames.find((u) => u.skuId === product.id);
+
+        const boxCBM = boxInfo.boxIndex > 0 ? (boxVolMap.get(boxInfo.boxName) || 0) / 1000000 : 0;
+
+        const efficiency =
+          boxInfo.boxIndex > 0
+            ? (product.width * product.length * product.height * outbound.quantity) /
+              (boxVolMap.get(boxInfo.boxName) || 1)
+            : 0;
+
+        detailResults.push(
+          this.packingResultDetailRepository.create({
+            projectId,
+            batchId: outbound.batchId,
+            batchName: outbound.batchName,
+            orderId: outbound.orderId,
+            recipientName: outbound.recipientName,
+            recipientPhone: outbound.recipientPhone,
+            zipCode: outbound.zipCode,
+            address: outbound.address,
+            detailAddress: outbound.detailAddress,
+            sku: outbound.sku,
+            productName: product.name,
+            quantity: outbound.quantity,
+            boxName: boxInfo.boxName,
+            boxNumber: boxInfo.boxNumber,
+            boxIndex: boxInfo.boxIndex,
+            boxCBM,
+            efficiency,
+            unpacked: isUnpacked,
+            unpackedReason: unpackedItem?.reason || '',
+          }),
+        );
+      }
 
       groups.push({
         groupLabel,
@@ -124,8 +193,8 @@ export class PackingService {
       grandTotalAvailableVolume += groupAvailableVolume;
     }
 
-    // Save results to history
     await this.packingResultRepository.delete({ projectId });
+    await this.packingResultDetailRepository.delete({ projectId });
 
     const allRecommendedBoxes = groups.flatMap((g) =>
       g.boxes.map((b) => ({ ...b, groupLabel: g.groupLabel })),
@@ -137,7 +206,7 @@ export class PackingService {
         boxId: rb.box.id,
         boxName: rb.box.name,
         packedCount: rb.packedSKUs.reduce((acc, s) => acc + s.quantity, 0),
-        remainingQuantity: 0, // We could store unpacked count here but for now it's fine
+        remainingQuantity: 0,
         efficiency: 0,
         totalCBM: (rb.box.width * rb.box.length * rb.box.height * rb.count) / 1000000,
         groupLabel: rb.groupLabel,
@@ -146,7 +215,10 @@ export class PackingService {
 
     await this.packingResultRepository.save(results);
 
-    // Calculate total unpacked items across all groups if needed, or just let the frontend handle group-level unpacked
+    if (detailResults.length > 0) {
+      await this.packingResultDetailRepository.save(detailResults);
+    }
+
     const allUnpackedItems = groups.flatMap((g) => g.unpackedItems || []);
 
     return {
@@ -154,7 +226,7 @@ export class PackingService {
       totalCBM: grandTotalCBM,
       totalEfficiency:
         grandTotalAvailableVolume > 0 ? grandTotalUsedVolume / grandTotalAvailableVolume : 0,
-      unpackedItems: allUnpackedItems, // Optional: expose at top level if needed
+      unpackedItems: allUnpackedItems,
     };
   }
 

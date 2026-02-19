@@ -31,6 +31,18 @@ export function useCreateOutbounds(projectId: string): UseMutationResult<void, E
   });
 }
 
+export function useCreateOutboundsWithFile(projectId: string): UseMutationResult<void, Error, { file: File; createOutboundDtos: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[] }> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ file, createOutboundDtos }) => api.outbound.createBulkWithFile(projectId, file, createOutboundDtos),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: outbounds.all._def });
+      queryClient.invalidateQueries({ queryKey: outbounds.batches._def });
+    },
+  });
+}
+
 export function useDeleteOutbounds(projectId: string): UseMutationResult<void, Error, void> {
   const queryClient = useQueryClient();
 

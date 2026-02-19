@@ -35,13 +35,29 @@ export const api = {
   },
   outbound: {
     list: (projectId: string) => fetchJson<Outbound[]>(`/projects/${projectId}/outbounds`),
-    listBatches: (projectId: string) => fetchJson<{ batchId: string; batchName: string; count: number; createdAt: string }[]>(`/projects/${projectId}/outbounds/batches`),
+    listBatches: (projectId: string) => fetchJson<{ batchId: string; batchName: string; count: number; createdAt: string; originalFilePath?: string }[]>(`/projects/${projectId}/outbounds/batches`),
     createBulk: (projectId: string, outbounds: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[]) =>
       fetchJson<void>(`/projects/${projectId}/outbounds/bulk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(outbounds),
       }),
+    createBulkWithFile: (projectId: string, file: File, createOutboundDtos: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[]) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('createOutboundDtos', JSON.stringify(createOutboundDtos));
+
+      return fetch(`${API_BASE}/projects/${projectId}/outbounds/bulk-with-file`, {
+        method: 'POST',
+        body: formData,
+      }).then(async (response) => {
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `API Error: ${response.statusText}`);
+        }
+        return response.json();
+      });
+    },
     deleteAll: (projectId: string) => fetchJson<void>(`/projects/${projectId}/outbounds`, { method: 'DELETE' }),
   },
   packing: {
@@ -52,6 +68,25 @@ export const api = {
         body: JSON.stringify({ groupingOption, batchId }),
       }),
     history: (projectId: string) => fetchJson<PackingResult[]>(`/projects/${projectId}/packing/results`),
+    export: (projectId: string, batchId: string) => {
+      return fetch(`${API_BASE}/projects/${projectId}/packing/export?batchId=${encodeURIComponent(batchId)}`, {
+        method: 'GET',
+      }).then(async (response) => {
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `API Error: ${response.statusText}`);
+        }
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `packing_results_${batchId}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      });
+    },
   },
   boxes: {
     list: () => fetchJson<Box[]>('/boxes'),

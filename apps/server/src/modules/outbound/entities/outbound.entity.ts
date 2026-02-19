@@ -37,6 +37,9 @@ export class OutboundEntity extends BaseEntity {
   @Column({ nullable: true })
   batchName!: string; // e.g., "Upload 2024-03-20"
 
+  @Column({ nullable: true })
+  originalFilePath!: string; // Path to original uploaded Excel file
+
   @Column()
   projectId!: string;
 

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Calculator, Package, History, Settings, AlertTriangle, Layers } from 'lucide-react';
-import { useBoxes, useBatches, usePackingHistory, useCalculatePacking } from '@/hooks/queries';
+import { Calculator, Package, History, Settings, AlertTriangle, Layers, Download } from 'lucide-react';
+import { useBoxes, useBatches, usePackingHistory, useCalculatePacking, useExportPacking } from '@/hooks/queries';
 import { PackingGroupingOption, PackingRecommendation } from '@wms/types';
 
 interface PackingCalculationResult {
@@ -33,6 +33,7 @@ export const PackingCalculator: React.FC = () => {
   const { data: batches = [] } = useBatches(id || '');
   const { data: history = [] } = usePackingHistory(id || '');
   const calculatePacking = useCalculatePacking();
+  const exportPacking = useExportPacking();
 
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PackingRecommendation | PackingCalculationResult | null>(
@@ -134,6 +135,24 @@ export const PackingCalculator: React.FC = () => {
     }
   };
 
+  const handleExport = async () => {
+    if (!id) return;
+    if (!selectedBatchId) {
+      alert('배치를 선택해주세요.');
+      return;
+    }
+    try {
+      await exportPacking.mutateAsync({ projectId: id, batchId: selectedBatchId });
+    } catch (error: unknown) {
+      console.error('Export failed:', error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : '엑셀 다운로드에 실패했습니다.';
+      alert(message);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -186,6 +205,20 @@ export const PackingCalculator: React.FC = () => {
               <>
                 <Calculator className="mr-2 h-4 w-4" />
                 Calculate
+              </>
+            )}
+          </button>
+          <button
+            onClick={handleExport}
+            disabled={exportPacking.isPending}
+            className="inline-flex items-center justify-center rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-green-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500 disabled:pointer-events-none disabled:opacity-50 transition-colors"
+          >
+            {exportPacking.isPending ? (
+              'Downloading...'
+            ) : (
+              <>
+                <Download className="mr-2 h-4 w-4" />
+                Download Excel
               </>
             )}
           </button>

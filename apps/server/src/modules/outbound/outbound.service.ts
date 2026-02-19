@@ -3,6 +3,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { OutboundEntity } from './entities/outbound.entity';
 import { CreateOutboundDto } from './dto/create-outbound.dto';
+import { FileStorageService } from '../upload/services/file-storage.service';
+
+interface CreateBulkOptions {
+  projectId: string;
+  createOutboundDtos: CreateOutboundDto[];
+  fileBuffer?: Buffer;
+  originalFilename?: string;
+}
 
 @Injectable()
 export class OutboundService {
@@ -10,6 +18,7 @@ export class OutboundService {
     @InjectRepository(OutboundEntity)
     private readonly outboundRepository: Repository<OutboundEntity>,
     private readonly dataSource: DataSource,
+    private readonly fileStorageService: FileStorageService,
   ) {}
 
   async create(projectId: string, createOutboundDto: CreateOutboundDto): Promise<OutboundEntity> {
@@ -31,19 +40,27 @@ export class OutboundService {
     });
   }
 
-  async findBatches(
-    projectId: string,
-  ): Promise<{ batchId: string; batchName: string; count: number; createdAt: Date }[]> {
+  async findBatches(projectId: string): Promise<
+    {
+      batchId: string;
+      batchName: string;
+      count: number;
+      createdAt: Date;
+      originalFilePath?: string;
+    }[]
+  > {
     const results = await this.outboundRepository
       .createQueryBuilder('outbound')
       .select('outbound.batchId', 'batchId')
       .addSelect('outbound.batchName', 'batchName')
       .addSelect('MIN(outbound.createdAt)', 'createdAt')
       .addSelect('COUNT(*)', 'count')
+      .addSelect('outbound.originalFilePath', 'originalFilePath')
       .where('outbound.projectId = :projectId', { projectId })
       .andWhere('outbound.batchId IS NOT NULL')
       .groupBy('outbound.batchId')
       .addGroupBy('outbound.batchName')
+      .addGroupBy('outbound.originalFilePath')
       .orderBy('createdAt', 'DESC')
       .getRawMany();
 
@@ -52,7 +69,20 @@ export class OutboundService {
       batchName: r.batchName,
       count: parseInt(r.count, 10),
       createdAt: r.createdAt,
+      originalFilePath: r.originalFilePath,
     }));
+  }
+
+  async getBatchFilePath(batchId: string): Promise<string | null> {
+    const result = await this.outboundRepository
+      .createQueryBuilder('outbound')
+      .select('outbound.originalFilePath', 'originalFilePath')
+      .where('outbound.batchId = :batchId', { batchId })
+      .andWhere('outbound.originalFilePath IS NOT NULL')
+      .limit(1)
+      .getRawOne();
+
+    return result?.originalFilePath || null;
   }
 
   async remove(id: string): Promise<void> {
@@ -65,7 +95,28 @@ export class OutboundService {
   async createBulk(
     projectId: string,
     createOutboundDtos: CreateOutboundDto[],
+  ): Promise<OutboundEntity[]>;
+  async createBulk(options: CreateBulkOptions): Promise<OutboundEntity[]>;
+  async createBulk(
+    projectIdOrOptions: string | CreateBulkOptions,
+    createOutboundDtos?: CreateOutboundDto[],
   ): Promise<OutboundEntity[]> {
+    let projectId: string;
+    let dtos: CreateOutboundDto[];
+    let fileBuffer: Buffer | undefined;
+    let originalFilename: string | undefined;
+
+    if (typeof projectIdOrOptions === 'string') {
+      projectId = projectIdOrOptions;
+      dtos = createOutboundDtos || [];
+    } else {
+      const options = projectIdOrOptions;
+      projectId = options.projectId;
+      dtos = options.createOutboundDtos;
+      fileBuffer = options.fileBuffer;
+      originalFilename = options.originalFilename;
+    }
+
     const queryRunner = this.dataSource.createQueryRunner();
 
     await queryRunner.connect();
@@ -74,13 +125,21 @@ export class OutboundService {
     try {
       const batchId = crypto.randomUUID();
       const batchName = `Upload ${new Date().toLocaleString()}`;
+      let originalFilePath: string | undefined;
 
-      const outbounds = createOutboundDtos.map((dto) =>
+      if (fileBuffer && originalFilename) {
+        const ext = originalFilename.split('.').pop();
+        const filename = `${batchId}.${ext || 'xlsx'}`;
+        originalFilePath = await this.fileStorageService.saveFile(fileBuffer, filename);
+      }
+
+      const outbounds = dtos.map((dto) =>
         this.outboundRepository.create({
           ...dto,
           projectId,
           batchId,
           batchName,
+          originalFilePath,
         }),
       );
 

@@ -21,3 +21,9 @@ export function useCalculatePacking(): UseMutationResult<PackingRecommendation, 
     },
   });
 }
+
+export function useExportPacking(): UseMutationResult<void, Error, { projectId: string; batchId?: string }> {
+  return useMutation({
+    mutationFn: ({ projectId, batchId }) => api.packing.export(projectId, batchId!),
+  });
+}
