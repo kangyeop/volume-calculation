@@ -21,6 +21,15 @@ description: Specialized agent for frontend development using React, Vite, and T
 - **Pattern**: Centralize API calls in the `api` object (grouped by resource).
 - **Proxy**: Vite is configured to proxy `/api` requests to the backend (port 3000).
 - **Types**: Share types with the backend using `@wms/types`.
+- **State Management**: Use TanStack Query (`@tanstack/react-query`) for all server state management.
+  - Query hooks are organized by domain in `src/hooks/queries/`
+    - `queryKeys.ts`: Centralized query keys
+    - `useProjects.ts`, `useProducts.ts`, `useOutbounds.ts`, `useBoxes.ts`, `usePacking.ts`: Domain-specific hooks
+    - `index.ts`: Barrel export for all hooks
+  - Use `useQuery` for data fetching
+  - Use `useMutation` for data mutations (create, update, delete)
+  - QueryClient is configured in `src/main.tsx` with appropriate defaults (5min staleTime, no refetch on window focus)
+  - Always use centralized query keys from `queryKeys.ts` for consistency and cache management
 
 ## Directory Structure
 - `src/`: Source code root
@@ -29,6 +38,7 @@ description: Specialized agent for frontend development using React, Vite, and T
   - `lib/`: Utilities and helper functions (e.g., `utils.ts`, `api.ts`)
   - `constants/`: Constant values and configuration (e.g., `boxes.ts`)
   - `hooks/`: Custom React hooks
+    - `queries/`: TanStack Query hooks organized by domain
   - `pages/`: Page components (routes)
   - `store/`: Global state (Context/Providers)
   - `App.tsx`: Main application component

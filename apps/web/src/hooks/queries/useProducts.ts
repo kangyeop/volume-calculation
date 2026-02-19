@@ -1,0 +1,34 @@
+import { useMutation, useQuery, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { products } from './queryKeys';
+import type { Product } from '@wms/types';
+
+export function useProducts(projectId: string) {
+  return useQuery({
+    ...products.all(projectId),
+    queryFn: () => api.products.list(projectId),
+    enabled: !!projectId,
+  });
+}
+
+export function useCreateProducts(projectId: string): UseMutationResult<void, Error, Omit<Product, 'id' | 'projectId' | 'createdAt' | 'updatedAt'>[]> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data) => api.products.createBulk(projectId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: products.all._def });
+    },
+  });
+}
+
+export function useDeleteProduct(): UseMutationResult<void, Error, string> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => api.products.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: products.all._def });
+    },
+  });
+}

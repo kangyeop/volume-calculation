@@ -1,30 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useApp } from '@/store/AppContext';
+import { useProducts, useCreateProducts } from '@/hooks/queries';
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { Product } from '@wms/types';
 import { AlertCircle } from 'lucide-react';
 
 export const ProductManager: React.FC = () => {
   const { id: projectId } = useParams<{ id: string }>();
-  const { products, fetchProducts, createProducts } = useApp();
+  const { data: products = [] } = useProducts(projectId || '');
+  const createProducts = useCreateProducts(projectId || '');
   const [errors, setErrors] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (projectId) {
-      fetchProducts(projectId);
-    }
-  }, [projectId, fetchProducts]);
-
-  const currentProducts = products[projectId || ''] || [];
 
   const excelDateToISOString = (serial: string | number | undefined | null): string | undefined => {
     if (!serial) return undefined;
-    // If it's already a string looking like a date
     if (typeof serial === 'string' && serial.includes('-')) return serial;
-    // If it's a number (Excel serial date)
     if (typeof serial === 'number') {
-      // Excel base date: Dec 30, 1899
       const date = new Date(Math.round((serial - 25569) * 86400 * 1000));
       return date.toISOString().split('T')[0];
     }
@@ -43,17 +33,13 @@ export const ProductManager: React.FC = () => {
           const productName = String(item['상품명'] || item.name || '').trim();
 
           if (!productName) {
-            // Skip empty rows
             return;
           }
 
-          // Parse dimensions from format "가로30*세로37" or "가로10*세로10*높이32"
           let width = 0;
           let length = 0;
           let height = 0;
 
-          // 1. Try explicit columns first (Korean/English)
-          // Handle various possible column names
           const findValue = (keys: string[]) => {
             for (const key of keys) {
               if (
@@ -88,23 +74,18 @@ export const ProductManager: React.FC = () => {
           let weight = 0;
           if (weightVal) weight = parseFloat(String(weightVal));
 
-          // 2. If dimensions are missing, try parsing '체적정보'
           const volumeStr = String(item['체적정보'] || '');
           if ((!width || !length || !height) && volumeStr) {
-            // Extract numbers for width (가로), length (세로), height (높이)
-            // Support formats like: "가로30", "가로 30", "가로:30", "W30", "Width: 30"
             const widthMatch = volumeStr.match(/(?:가로|Width|W)\s*[:-]?\s*(\d+(\.\d+)?)/i);
             const lengthMatch = volumeStr.match(
               /(?:세로|Length|L|Depth|D)\s*[:-]?\s*(\d+(\.\d+)?)/i,
             );
             const heightMatch = volumeStr.match(/(?:높이|Height|H)\s*[:-]?\s*(\d+(\.\d+)?)/i);
 
-            // Only overwrite if not already found from explicit columns
             if (!width && widthMatch) width = parseFloat(widthMatch[1]);
             if (!length && lengthMatch) length = parseFloat(lengthMatch[1]);
             if (!height && heightMatch) height = parseFloat(heightMatch[1]);
 
-            // Fallback: if no labels found but string looks like "10*20*30" or "10x20x30"
             if (!width && !length && !height) {
               const dimensions = volumeStr.match(
                 /(\d+(\.\d+)?)\s*[*xX]\s*(\d+(\.\d+)?)\s*[*xX]\s*(\d+(\.\d+)?)/,
@@ -117,7 +98,6 @@ export const ProductManager: React.FC = () => {
             }
           }
 
-          // Validation
           const missingFields = [];
           if (!width || width <= 0) missingFields.push('Width (가로)');
           if (!length || length <= 0) missingFields.push('Length (세로)');
@@ -129,14 +109,13 @@ export const ProductManager: React.FC = () => {
             );
           } else {
             validData.push({
-              sku: productName, // Using name as SKU for now if SKU not explicit
+              sku: productName,
               name: productName,
               width,
               length,
               height,
               weight: weight || 0,
 
-              // Handle Dates - Convert to ISO string for backend validation
               inboundDate: excelDateToISOString(
                 (item['입고일'] as string | number | undefined) ??
                   (item.inboundDate as string | number | undefined),
@@ -146,7 +125,6 @@ export const ProductManager: React.FC = () => {
                   (item.outboundDate as string | number | undefined),
               ),
 
-              // Handle Booleans (ㅇ/x mapping)
               barcode: ['ㅇ', 'o', 'true', 'yes', 'y'].includes(
                 String(item['바코드'] || item.barcode).toLowerCase(),
               ),
@@ -165,16 +143,17 @@ export const ProductManager: React.FC = () => {
         }
 
         if (validData.length > 0) {
-          await createProducts(projectId, validData);
+          await createProducts.mutateAsync(validData);
           alert(`Successfully imported ${validData.length} products.`);
         }
       } catch (err) {
-        // Error is handled in context
         console.error('Upload failed:', err);
         alert('Failed to upload products. Please checks the console for details.');
       }
     }
   };
+
+  const currentProducts = products || [];
 
   return (
     <div className="space-y-6">

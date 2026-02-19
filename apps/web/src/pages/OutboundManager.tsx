@@ -1,33 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useApp } from '@/store/AppContext';
+import { useProducts, useOutbounds, useBatches, useCreateOutbounds } from '@/hooks/queries';
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { Outbound } from '@wms/types';
 import { AlertCircle, CheckCircle2, ChevronRight, Package, Calendar, List, Upload, ArrowLeft, Search, FileSpreadsheet } from 'lucide-react';
 
 export const OutboundManager: React.FC = () => {
   const { id: projectId } = useParams<{ id: string }>();
-  const { products, outbounds, batches, fetchProducts, fetchOutbounds, fetchBatches, createOutbound } = useApp();
+  const { data: products = [] } = useProducts(projectId || '');
+  const { data: outbounds = [] } = useOutbounds(projectId || '');
+  const { data: batches = [] } = useBatches(projectId || '');
+  const createOutbound = useCreateOutbounds(projectId || '');
+
   const [errors, setErrors] = useState<string[]>([]);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    if (projectId) {
-      fetchProducts(projectId);
-      fetchOutbounds(projectId);
-      fetchBatches(projectId);
-    }
-  }, [projectId]);
-
-  const currentOutbound = outbounds[projectId || ''] || [];
-  const currentProducts = products[projectId || ''] || [];
-  const currentBatches = (batches[projectId || ''] || []).sort((a, b) =>
+  const currentBatches = batches.sort((a, b) =>
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
-  const productSkus = new Set(currentProducts.map((p) => p.sku));
+  const productSkus = new Set(products.map((p) => p.sku));
 
   const filteredBatches = currentBatches.filter(batch =>
     batch.batchName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -36,7 +30,7 @@ export const OutboundManager: React.FC = () => {
   const selectedBatch = currentBatches.find(b => b.batchId === selectedBatchId);
 
   const filteredOutbounds = selectedBatchId
-    ? currentOutbound.filter(o => o.batchId === selectedBatchId)
+    ? outbounds.filter(o => o.batchId === selectedBatchId)
     : [];
 
   const handleUpload = async (rawData: Record<string, unknown>[], fileName: string) => {
@@ -46,17 +40,15 @@ export const OutboundManager: React.FC = () => {
     const validData: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[] = [];
 
     console.log(rawData);
-    
 
     rawData.forEach((item, index) => {
       const orderId = String(item['쇼핑몰주문번호'] || item.orderId || '').trim();
       const productName = String(item['주문서상품명'] || '').trim();
       let sku = String(item['연동코드'] || item['상품명 / 매핑수량'] || item.sku || '').trim();
-      
+
       if (productName && productSkus.has(productName)) {
         sku = productName;
       }
-
 
       const quantity = Number(item['주문수량'] || item.quantity || 1);
 
@@ -86,10 +78,10 @@ export const OutboundManager: React.FC = () => {
 
     if (validData.length > 0) {
       try {
-        await createOutbound(projectId, validData);
+        await createOutbound.mutateAsync(validData);
         setIsUploading(false);
-      } catch {
-        // Error handled in context
+      } catch (err) {
+        console.error('Failed to upload outbounds:', err);
       }
     }
   };
@@ -294,5 +286,3 @@ export const OutboundManager: React.FC = () => {
     </div>
   );
 };
-
-

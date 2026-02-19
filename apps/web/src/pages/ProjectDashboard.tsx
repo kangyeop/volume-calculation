@@ -1,30 +1,24 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useParams } from 'react-router-dom';
-import { useApp } from '@/store/AppContext';
+import { useProject, useProducts, useOutbounds } from '@/hooks/queries';
 import { Package, Send, TrendingUp } from 'lucide-react';
 
 export const ProjectDashboard: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { projects, products, outbounds, fetchProducts, fetchOutbounds, loading } = useApp();
+  const { data: project, isLoading } = useProject(id || '');
+  const { data: products = [] } = useProducts(id || '');
+  const { data: outbounds = [] } = useOutbounds(id || '');
 
-  useEffect(() => {
-    if (id) {
-      fetchProducts(id);
-      fetchOutbounds(id);
-    }
-  }, [id]);
-
-  const project = projects.find((p) => p.id === id);
-  const productCount = products[id || '']?.length || 0;
-  const outboundCount = outbounds[id || '']?.length || 0;
-
-  if (loading && !project) {
+  if (isLoading && !project) {
     return <div>Loading...</div>;
   }
 
   if (!project) {
     return <div>Project not found</div>;
   }
+
+  const productCount = products.length || 0;
+  const outboundCount = outbounds.length || 0;
 
   return (
     <div className="space-y-8">

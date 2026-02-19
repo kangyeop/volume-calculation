@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
-import { Box } from '@wms/types';
+import React, { useState } from 'react';
+import { useBoxes, useCreateBox, useDeleteBox } from '@/hooks/queries';
 import { Trash2, Package, Plus, Box as BoxIcon, Ruler } from 'lucide-react';
 
 export const BoxManager: React.FC = () => {
-  const [boxes, setBoxes] = useState<Box[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: boxes = [], isLoading } = useBoxes();
+  const createBox = useCreateBox();
+  const deleteBox = useDeleteBox();
+
   const [formData, setFormData] = useState({
     name: '',
     width: '',
@@ -14,27 +15,12 @@ export const BoxManager: React.FC = () => {
     price: '',
   });
 
-  const fetchBoxes = async () => {
-    try {
-      const data = await api.boxes.list();
-      setBoxes(data);
-    } catch {
-      console.error('Failed to fetch boxes');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchBoxes();
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.width || !formData.length || !formData.height) return;
 
     try {
-      await api.boxes.create({
+      await createBox.mutateAsync({
         name: formData.name,
         width: Number(formData.width),
         length: Number(formData.length),
@@ -42,7 +28,6 @@ export const BoxManager: React.FC = () => {
         price: formData.price ? Number(formData.price) : undefined,
       });
       setFormData({ name: '', width: '', length: '', height: '', price: '' });
-      fetchBoxes();
     } catch {
       alert('Failed to create box');
     }
@@ -51,8 +36,7 @@ export const BoxManager: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this box?')) return;
     try {
-      await api.boxes.delete(id);
-      fetchBoxes();
+      await deleteBox.mutateAsync(id);
     } catch {
       alert('Failed to delete box');
     }
@@ -72,7 +56,6 @@ export const BoxManager: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Form Section */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden sticky top-6">
             <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex items-center gap-2">
@@ -161,7 +144,8 @@ export const BoxManager: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full bg-indigo-600 text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-100 transition-all flex items-center justify-center gap-2 shadow-sm"
+                disabled={createBox.isPending}
+                className="w-full bg-indigo-600 text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-100 transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="h-4 w-4" />
                 Add Box Type
@@ -170,9 +154,8 @@ export const BoxManager: React.FC = () => {
           </div>
         </div>
 
-        {/* List Section */}
         <div className="lg:col-span-2">
-          {loading ? (
+          {isLoading ? (
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
             </div>
@@ -195,7 +178,8 @@ export const BoxManager: React.FC = () => {
                     </div>
                     <button
                       onClick={() => handleDelete(box.id)}
-                      className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+                      disabled={deleteBox.isPending}
+                      className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
                       title="Delete Box"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -248,4 +232,3 @@ export const BoxManager: React.FC = () => {
     </div>
   );
 };
-

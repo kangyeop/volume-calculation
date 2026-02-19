@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Calculator, Package, History, Settings, AlertTriangle, Layers } from 'lucide-react';
-import { api } from '@/lib/api';
-import { PackingResult, PackingGroupingOption, PackingRecommendation } from '@wms/types';
+import { useBoxes, useBatches, usePackingHistory, useCalculatePacking } from '@/hooks/queries';
+import { PackingGroupingOption, PackingRecommendation } from '@wms/types';
 
 interface PackingCalculationResult {
   boxes: {
@@ -29,17 +29,18 @@ interface NormalizedBoxGroup {
 
 export const PackingCalculator: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { data: boxes = [] } = useBoxes();
+  const { data: batches = [] } = useBatches(id || '');
+  const { data: history = [] } = usePackingHistory(id || '');
+  const calculatePacking = useCalculatePacking();
+
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PackingRecommendation | PackingCalculationResult | null>(
     null,
   );
-  const [history, setHistory] = useState<PackingResult[]>([]);
   const [groupingOption, setGroupingOption] = useState<PackingGroupingOption>(
     PackingGroupingOption.ORDER,
   );
-  const [batches, setBatches] = useState<
-    { batchId: string; batchName: string; count: number; createdAt: string }[]
-  >([]);
   const [selectedBatchId, setSelectedBatchId] = useState<string>('');
 
   const normalizedBoxes = useMemo((): NormalizedBoxGroup[] => {
@@ -109,48 +110,18 @@ export const PackingCalculator: React.FC = () => {
     return [];
   }, [result]);
 
-  useEffect(() => {
-    if (id) {
-      loadHistory();
-      loadBatches();
-    }
-  }, [id]);
-
-  const loadBatches = async () => {
-    try {
-      const data = await api.outbound.listBatches(id!);
-      setBatches(data);
-      if (data.length > 0) {
-        setSelectedBatchId(data[0].batchId);
-      }
-    } catch (error) {
-      console.error('Failed to load batches:', error);
-    }
-  };
-
-  const loadHistory = async () => {
-    try {
-      const data = await api.packing.history(id!);
-      setHistory(data);
-    } catch (error) {
-      console.error('Failed to load history:', error);
-    }
-  };
-
   const handleCalculate = async () => {
     if (!id) return;
     setLoading(true);
     try {
-      const boxes = await api.boxes.list();
       if (!boxes || boxes.length === 0) {
         alert('등록된 박스가 없습니다. 박스 관리 메뉴에서 박스를 먼저 등록해주세요.');
         setLoading(false);
         return;
       }
 
-      const data = await api.packing.calculate(id, groupingOption, selectedBatchId || undefined);
+      const data = await calculatePacking.mutateAsync({ projectId: id, groupingOption, batchId: selectedBatchId || undefined });
       setResult(data);
-      loadHistory();
     } catch (error: unknown) {
       console.error('Calculation failed:', error);
       const message =
@@ -206,10 +177,10 @@ export const PackingCalculator: React.FC = () => {
           </select>
           <button
             onClick={handleCalculate}
-            disabled={loading}
+            disabled={loading || calculatePacking.isPending}
             className="inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 disabled:pointer-events-none disabled:opacity-50 transition-colors"
           >
-            {loading ? (
+            {loading || calculatePacking.isPending ? (
               'Calculating...'
             ) : (
               <>
