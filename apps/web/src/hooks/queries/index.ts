@@ -4,3 +4,4 @@ export * from './useProducts';
 export * from './useOutbounds';
 export * from './useBoxes';
 export * from './usePacking';
+export * from './useUpload';

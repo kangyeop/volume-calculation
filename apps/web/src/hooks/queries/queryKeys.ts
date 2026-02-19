@@ -21,3 +21,9 @@ export const boxes = createQueryKeys('boxes', {
 export const packing = createQueryKeys('packing', {
   history: (projectId: string) => [projectId, 'history'],
 });
+
+export const upload = createQueryKeys('upload', {
+  parse: null,
+  confirm: null,
+  session: (sessionId: string) => [sessionId],
+});

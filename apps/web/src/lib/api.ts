@@ -4,10 +4,31 @@ const API_BASE = '/api';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${url}`, options);
+
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `API Error: ${response.statusText}`);
+    // 에러 응답 처리
+    let errorMessage = `API Error: ${response.statusText}`;
+    let errorDetails = '';
+
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorMessage;
+      errorDetails = errorData.error || '';
+    } catch {
+      // JSON 파싱 실패 시
+      if (response.status === 413) {
+        errorMessage = '요청이 너무 큽니다. 파일 크기를 확인해주세요.';
+      } else if (response.status === 429) {
+        errorMessage = '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
+      }
+    }
+
+    const error = new Error(errorMessage);
+    (error as any).status = response.status;
+    (error as any).details = errorDetails;
+    throw error;
   }
+
   return response.json();
 }
 
@@ -97,5 +118,36 @@ export const api = {
         body: JSON.stringify(data),
       }),
     delete: (id: string) => fetchJson<void>(`/boxes/${id}`, { method: 'DELETE' }),
+  },
+  upload: {
+    parse: (file: File, type: 'outbound' | 'product', projectId: string) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', type);
+      formData.append('projectId', projectId);
+
+      return fetch(`${API_BASE}/upload/parse`, {
+        method: 'POST',
+        body: formData,
+      }).then(async (response) => {
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `API Error: ${response.statusText}`);
+        }
+        return response.json();
+      });
+    },
+    confirm: (sessionId: string, mapping: Record<string, string | null>) => {
+      return fetchJson(`/upload/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, mapping }),
+      });
+    },
+    deleteSession: (sessionId: string) => {
+      return fetchJson<void>(`/upload/${sessionId}`, {
+        method: 'DELETE',
+      });
+    },
   },
 };

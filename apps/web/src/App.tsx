@@ -6,6 +6,7 @@ import { ProductManager } from './pages/ProductManager';
 import { OutboundManager } from './pages/OutboundManager';
 import { PackingCalculator } from './pages/PackingCalculator';
 import { BoxManager } from './pages/BoxManager';
+import { Toaster } from './hooks/useToast';
 import './App.css';
 
 export function App() {
@@ -21,6 +22,7 @@ export function App() {
           <Route path="packing" element={<PackingCalculator />} />
         </Route>
       </Routes>
+      <Toaster />
     </BrowserRouter>
   );
 }

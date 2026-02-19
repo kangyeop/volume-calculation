@@ -7,14 +7,42 @@ interface ExcelUploadProps<T> {
   title: string;
   headerRow?: number; // 0-indexed header row. If headerKey is provided, this is ignored (or used as fallback start)
   headerKey?: string; // A string that must exist in the header row (e.g. "상품명")
+  maxSize?: number; // in MB
+  allowedExtensions?: string[];
 }
 
-export const ExcelUpload = <T,>({ onUpload, title, headerRow = 0, headerKey }: ExcelUploadProps<T>) => {
+export const ExcelUpload = <T,>({
+  onUpload,
+  title,
+  headerRow = 0,
+  headerKey,
+  maxSize = 10,
+  allowedExtensions = ['.xlsx', '.xls', '.csv']
+}: ExcelUploadProps<T>) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // 파일 크기 검증
+    if (file.size > maxSize * 1024 * 1024) {
+      alert(`파일 크기는 ${maxSize}MB를 초과할 수 없습니다.`);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    // 파일 확장자 검증
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!allowedExtensions.includes(fileExtension)) {
+      alert(`허용되는 파일 형식: ${allowedExtensions.join(', ')}`);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = (evt) => {
