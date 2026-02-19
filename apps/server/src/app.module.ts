@@ -7,6 +7,7 @@ import { ProductsModule } from './modules/products/products.module';
 import { OutboundModule } from './modules/outbound/outbound.module';
 import { PackingModule } from './modules/packing/packing.module';
 import { BoxesModule } from './modules/boxes/boxes.module';
+import { UploadModule } from './modules/upload/upload.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { BoxesModule } from './modules/boxes/boxes.module';
     OutboundModule,
     PackingModule,
     BoxesModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],

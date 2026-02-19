@@ -11,8 +11,9 @@
     "dev:server": "turbo run dev --filter=server"
   },
   "devDependencies": {
-    "turbo": "latest",
-    "prettier": "latest"
+    "@eslint/compat": "^2.0.2",
+    "prettier": "latest",
+    "turbo": "latest"
   },
   "packageManager": "pnpm@9.0.0",
   "engines": {

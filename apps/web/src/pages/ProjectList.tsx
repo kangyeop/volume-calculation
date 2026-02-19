@@ -15,7 +15,7 @@ export const ProjectList: React.FC = () => {
       const project = await addProject(newProjectName);
       setNewProjectName('');
       navigate(`/projects/${project.id}`);
-    } catch (err) {
+    } catch {
       // Error is handled in context
     }
   };

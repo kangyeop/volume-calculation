@@ -107,3 +107,51 @@ export interface Outbound {
   batchName?: string;
   createdAt: Date | string;
 }
+
+export type UploadType = 'outbound' | 'product';
+
+export interface ColumnMapping {
+  columnName: string;
+  confidence: number;
+}
+
+export interface MappingResult {
+  confidence: number;
+  mapping: Record<string, ColumnMapping | null>;
+  unmappedColumns: string[];
+  notes?: string;
+}
+
+export interface ParseUploadResponse {
+  sessionId: string;
+  type: UploadType;
+  headers: string[];
+  sampleData: Record<string, unknown>[];
+  mapping: MappingResult;
+  rowCount: number;
+  fileName: string;
+}
+
+export interface ConfirmUploadRequest {
+  sessionId: string;
+  mapping: Record<string, string | null>;
+}
+
+export interface ValidationError {
+  row: number;
+  field: string;
+  message: string;
+}
+
+export interface ConfirmUploadResponse {
+  success: boolean;
+  created: number;
+  updated: number;
+  errors: ValidationError[];
+  warnings?: string[];
+}
+
+export interface UploadRemapRequest {
+  sessionId: string;
+  forceAI?: boolean;
+}

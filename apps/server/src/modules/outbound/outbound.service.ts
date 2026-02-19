@@ -12,10 +12,7 @@ export class OutboundService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async create(
-    projectId: string,
-    createOutboundDto: CreateOutboundDto,
-  ): Promise<OutboundEntity> {
+  async create(projectId: string, createOutboundDto: CreateOutboundDto): Promise<OutboundEntity> {
     const outbound = this.outboundRepository.create({
       ...createOutboundDto,
       projectId,
@@ -23,10 +20,7 @@ export class OutboundService {
     return this.outboundRepository.save(outbound);
   }
 
-  async findAll(
-    projectId: string,
-    batchId?: string,
-  ): Promise<OutboundEntity[]> {
+  async findAll(projectId: string, batchId?: string): Promise<OutboundEntity[]> {
     const where: { projectId: string; batchId?: string } = { projectId };
     if (batchId) {
       where.batchId = batchId;
@@ -39,9 +33,7 @@ export class OutboundService {
 
   async findBatches(
     projectId: string,
-  ): Promise<
-    { batchId: string; batchName: string; count: number; createdAt: Date }[]
-  > {
+  ): Promise<{ batchId: string; batchName: string; count: number; createdAt: Date }[]> {
     const results = await this.outboundRepository
       .createQueryBuilder('outbound')
       .select('outbound.batchId', 'batchId')

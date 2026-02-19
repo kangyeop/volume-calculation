@@ -28,7 +28,7 @@ export const ExcelUpload = <T,>({ onUpload, title, headerRow = 0, headerKey }: E
       if (headerKey) {
         // Search for the row containing the headerKey
         // Convert sheet to array of arrays to scan
-        const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
+        const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 }) as unknown[][];
         const foundIndex = rawData.findIndex(row =>
           row.some(cell => String(cell).includes(headerKey))
         );

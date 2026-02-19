@@ -88,7 +88,7 @@ export const OutboundManager: React.FC = () => {
       try {
         await createOutbound(projectId, validData);
         setIsUploading(false);
-      } catch (err) {
+      } catch {
         // Error handled in context
       }
     }

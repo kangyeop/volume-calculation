@@ -65,13 +65,13 @@ describe('PackingService', () => {
   it('should throw BadRequestException if no boxes are found', async () => {
     jest.spyOn(boxesService, 'findAll').mockResolvedValue([]);
 
-    await expect(
-      service.calculate('project-id', PackingGroupingOption.ORDER),
-    ).rejects.toThrow(BadRequestException);
+    await expect(service.calculate('project-id', PackingGroupingOption.ORDER)).rejects.toThrow(
+      BadRequestException,
+    );
 
-    await expect(
-      service.calculate('project-id', PackingGroupingOption.ORDER),
-    ).rejects.toThrow('등록된 박스가 없습니다. 박스 관리 메뉴에서 박스를 먼저 등록해주세요.');
+    await expect(service.calculate('project-id', PackingGroupingOption.ORDER)).rejects.toThrow(
+      '등록된 박스가 없습니다. 박스 관리 메뉴에서 박스를 먼저 등록해주세요.',
+    );
   });
 
   it('should calculate packing when boxes exist', async () => {
@@ -79,10 +79,26 @@ describe('PackingService', () => {
       { id: '1', name: 'Box 1', width: 100, length: 100, height: 100, createdAt: new Date() },
     ];
     const mockProducts = [
-      { id: 'p1', sku: 'SKU1', name: 'Product 1', width: 10, length: 10, height: 10, projectId: 'project-id', createdAt: new Date() },
+      {
+        id: 'p1',
+        sku: 'SKU1',
+        name: 'Product 1',
+        width: 10,
+        length: 10,
+        height: 10,
+        projectId: 'project-id',
+        createdAt: new Date(),
+      },
     ];
     const mockOutbounds = [
-      { id: 'o1', sku: 'SKU1', quantity: 1, orderId: 'ord1', projectId: 'project-id', createdAt: new Date() },
+      {
+        id: 'o1',
+        sku: 'SKU1',
+        quantity: 1,
+        orderId: 'ord1',
+        projectId: 'project-id',
+        createdAt: new Date(),
+      },
     ];
 
     jest.spyOn(boxesService, 'findAll').mockResolvedValue(mockBoxes as any);

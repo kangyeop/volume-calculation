@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
-  Delete,
-  HttpCode,
-  HttpStatus,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, HttpCode, HttpStatus } from '@nestjs/common';
 import { OutboundService } from './outbound.service';
 import { CreateOutboundDto } from './dto/create-outbound.dto';
 
@@ -16,10 +7,7 @@ export class OutboundController {
   constructor(private readonly outboundService: OutboundService) {}
 
   @Post('projects/:projectId/outbounds')
-  create(
-    @Param('projectId') projectId: string,
-    @Body() createOutboundDto: CreateOutboundDto,
-  ) {
+  create(@Param('projectId') projectId: string, @Body() createOutboundDto: CreateOutboundDto) {
     return this.outboundService.create(projectId, createOutboundDto);
   }
 

@@ -13,10 +13,7 @@ export class ProductsService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async create(
-    projectId: string,
-    createProductDto: CreateProductDto,
-  ): Promise<ProductEntity> {
+  async create(projectId: string, createProductDto: CreateProductDto): Promise<ProductEntity> {
     const product = this.productsRepository.create({
       ...createProductDto,
       projectId,
@@ -41,10 +38,7 @@ export class ProductsService {
     return product;
   }
 
-  async update(
-    id: string,
-    updateProductDto: UpdateProductDto,
-  ): Promise<ProductEntity> {
+  async update(id: string, updateProductDto: UpdateProductDto): Promise<ProductEntity> {
     const product = await this.findOne(id);
     Object.assign(product, updateProductDto);
     return await this.productsRepository.save(product);

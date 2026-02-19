@@ -2,10 +2,7 @@ import { SKU, Box, PackingCalculationResult } from '@wms/types';
 
 const EFFICIENCY_THRESHOLD = 0.9;
 
-export function calculatePacking(
-  skus: SKU[],
-  boxes: Box[],
-): PackingCalculationResult {
+export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationResult {
   // Check if we have boxes to pack into
   if (!boxes || boxes.length === 0) {
     return {
@@ -42,11 +39,7 @@ export function calculatePacking(
     const itemDims = [sku.width, sku.length, sku.height].sort((a, b) => a - b);
     const boxDims = [box.width, box.length, box.height].sort((a, b) => a - b);
 
-    return (
-      itemDims[0] <= boxDims[0] &&
-      itemDims[1] <= boxDims[1] &&
-      itemDims[2] <= boxDims[2]
-    );
+    return itemDims[0] <= boxDims[0] && itemDims[1] <= boxDims[1] && itemDims[2] <= boxDims[2];
   };
 
   // Flat list of items to pack, sorted by volume (descending)
@@ -67,10 +60,7 @@ export function calculatePacking(
 
   while (itemsToPack.length > 0) {
     // Check if remaining items fit into any single box (checking from smallest to largest)
-    const currentTotalVolume = itemsToPack.reduce(
-      (sum, item) => sum + item.volume,
-      0,
-    );
+    const currentTotalVolume = itemsToPack.reduce((sum, item) => sum + item.volume, 0);
     let selectedSingleBox: Box | null = null;
 
     for (const box of sortedBoxes) {
@@ -80,9 +70,7 @@ export function calculatePacking(
       // Check 1: Volume fit
       if (currentTotalVolume <= effectiveCapacity) {
         // Check 2: Physical dimension fit for ALL items
-        const allFitPhysically = itemsToPack.every((item) =>
-          doesItemFit(item.skuId, box),
-        );
+        const allFitPhysically = itemsToPack.every((item) => doesItemFit(item.skuId, box));
 
         if (allFitPhysically) {
           selectedSingleBox = box;
@@ -93,10 +81,7 @@ export function calculatePacking(
 
     if (selectedSingleBox) {
       // All remaining items fit into this box
-      const boxVol =
-        selectedSingleBox.width *
-        selectedSingleBox.length *
-        selectedSingleBox.height;
+      const boxVol = selectedSingleBox.width * selectedSingleBox.length * selectedSingleBox.height;
       totalCBM += boxVol / 1000000; // cm3 to m3
       totalUsedVolume += currentTotalVolume;
       totalAvailableVolume += boxVol;
@@ -121,8 +106,7 @@ export function calculatePacking(
     } else {
       // Items do not fit in any single box (even the largest).
       // We must split. Strategy: Fill the largest box (Box 5) and recurse.
-      const boxVolume =
-        largestBox.width * largestBox.length * largestBox.height;
+      const boxVolume = largestBox.width * largestBox.length * largestBox.height;
       const effectiveCapacity = boxVolume * EFFICIENCY_THRESHOLD;
 
       let currentBoxUsedVolume = 0;
@@ -133,10 +117,7 @@ export function calculatePacking(
         // Check if individual item fits in the box physically
         const fitsPhysically = doesItemFit(item.skuId, largestBox);
 
-        if (
-          fitsPhysically &&
-          currentBoxUsedVolume + item.volume <= effectiveCapacity
-        ) {
+        if (fitsPhysically && currentBoxUsedVolume + item.volume <= effectiveCapacity) {
           currentBoxUsedVolume += item.volume;
           packedInThisBox.push(item);
         } else {
@@ -152,9 +133,7 @@ export function calculatePacking(
         );
 
         // Add to unpacked items
-        const existingUnpacked = unpackedItems.find(
-          (i) => i.skuId === failedItem.skuId,
-        );
+        const existingUnpacked = unpackedItems.find((i) => i.skuId === failedItem.skuId);
         if (existingUnpacked) {
           existingUnpacked.quantity += 1;
         } else {
@@ -201,9 +180,7 @@ export function calculatePacking(
       existing.count += 1;
       // Merge packedSKUs
       for (const ps of rb.packedSKUs) {
-        const existingSKU = existing.packedSKUs.find(
-          (s) => s.skuId === ps.skuId,
-        );
+        const existingSKU = existing.packedSKUs.find((s) => s.skuId === ps.skuId);
         if (existingSKU) {
           existingSKU.quantity += ps.quantity;
         } else {
@@ -219,7 +196,6 @@ export function calculatePacking(
     boxes: mergedBoxes,
     unpackedItems,
     totalCBM,
-    totalEfficiency:
-      totalAvailableVolume > 0 ? totalUsedVolume / totalAvailableVolume : 0,
+    totalEfficiency: totalAvailableVolume > 0 ? totalUsedVolume / totalAvailableVolume : 0,
   };
 }

@@ -21,9 +21,7 @@ export class PackingController {
   }
 
   @Get('results')
-  async findAll(
-    @Param('projectId') projectId: string,
-  ): Promise<PackingResultEntity[]> {
+  async findAll(@Param('projectId') projectId: string): Promise<PackingResultEntity[]> {
     return this.packingService.findAll(projectId);
   }
 }

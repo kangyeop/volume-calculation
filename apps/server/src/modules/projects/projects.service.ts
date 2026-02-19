@@ -31,10 +31,7 @@ export class ProjectsService {
     return project;
   }
 
-  async update(
-    id: string,
-    updateProjectDto: UpdateProjectDto,
-  ): Promise<ProjectEntity> {
+  async update(id: string, updateProjectDto: UpdateProjectDto): Promise<ProjectEntity> {
     const project = await this.findOne(id);
     Object.assign(project, updateProjectDto);
     return await this.projectRepository.save(project);

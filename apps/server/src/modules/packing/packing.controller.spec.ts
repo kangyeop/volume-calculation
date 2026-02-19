@@ -42,11 +42,7 @@ describe('PackingController', () => {
 
       const result = await controller.calculate(projectId, dto);
 
-      expect(service.calculate).toHaveBeenCalledWith(
-        projectId,
-        dto.groupingOption,
-        dto.batchId,
-      );
+      expect(service.calculate).toHaveBeenCalledWith(projectId, dto.groupingOption, dto.batchId);
       expect(result).toEqual(expectedResult);
     });
   });

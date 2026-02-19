@@ -18,8 +18,8 @@ export const BoxManager: React.FC = () => {
     try {
       const data = await api.boxes.list();
       setBoxes(data);
-    } catch (error) {
-      console.error('Failed to fetch boxes', error);
+    } catch {
+      console.error('Failed to fetch boxes');
     } finally {
       setLoading(false);
     }
@@ -43,7 +43,7 @@ export const BoxManager: React.FC = () => {
       });
       setFormData({ name: '', width: '', length: '', height: '', price: '' });
       fetchBoxes();
-    } catch (error) {
+    } catch {
       alert('Failed to create box');
     }
   };
@@ -53,7 +53,7 @@ export const BoxManager: React.FC = () => {
     try {
       await api.boxes.delete(id);
       fetchBoxes();
-    } catch (error) {
+    } catch {
       alert('Failed to delete box');
     }
   };

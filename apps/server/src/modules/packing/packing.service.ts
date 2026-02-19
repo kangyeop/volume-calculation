@@ -85,30 +85,29 @@ export class PackingService {
         for (const packedSku of rb.packedSKUs) {
           const product = products.find((prod) => prod.id === packedSku.skuId);
           if (product) {
-            groupUsedVolume +=
-              product.width * product.length * product.height * packedSku.quantity;
+            groupUsedVolume += product.width * product.length * product.height * packedSku.quantity;
           }
         }
       }
 
       // Map product names to packedSKUs
-      const boxesWithNames = recommendation.boxes.map(box => ({
+      const boxesWithNames = recommendation.boxes.map((box) => ({
         ...box,
-        packedSKUs: box.packedSKUs.map(sku => {
-          const product = products.find(p => p.id === sku.skuId);
+        packedSKUs: box.packedSKUs.map((sku) => {
+          const product = products.find((p) => p.id === sku.skuId);
           return {
             ...sku,
-            name: product ? product.name : 'Unknown Product'
+            name: product ? product.name : 'Unknown Product',
           };
-        })
+        }),
       }));
 
       // Map product names to unpackedItems
-      const unpackedWithNames = recommendation.unpackedItems.map(item => {
-        const product = products.find(p => p.id === item.skuId);
+      const unpackedWithNames = recommendation.unpackedItems.map((item) => {
+        const product = products.find((p) => p.id === item.skuId);
         return {
           ...item,
-          name: product ? product.name : 'Unknown Product'
+          name: product ? product.name : 'Unknown Product',
         };
       });
 
@@ -128,7 +127,9 @@ export class PackingService {
     // Save results to history
     await this.packingResultRepository.delete({ projectId });
 
-    const allRecommendedBoxes = groups.flatMap(g => g.boxes.map(b => ({ ...b, groupLabel: g.groupLabel })));
+    const allRecommendedBoxes = groups.flatMap((g) =>
+      g.boxes.map((b) => ({ ...b, groupLabel: g.groupLabel })),
+    );
 
     const results = allRecommendedBoxes.map((rb) =>
       this.packingResultRepository.create({
@@ -146,13 +147,14 @@ export class PackingService {
     await this.packingResultRepository.save(results);
 
     // Calculate total unpacked items across all groups if needed, or just let the frontend handle group-level unpacked
-    const allUnpackedItems = groups.flatMap(g => g.unpackedItems || []);
+    const allUnpackedItems = groups.flatMap((g) => g.unpackedItems || []);
 
     return {
       groups,
       totalCBM: grandTotalCBM,
-      totalEfficiency: grandTotalAvailableVolume > 0 ? grandTotalUsedVolume / grandTotalAvailableVolume : 0,
-      unpackedItems: allUnpackedItems // Optional: expose at top level if needed
+      totalEfficiency:
+        grandTotalAvailableVolume > 0 ? grandTotalUsedVolume / grandTotalAvailableVolume : 0,
+      unpackedItems: allUnpackedItems, // Optional: expose at top level if needed
     };
   }
 
@@ -172,9 +174,7 @@ export class PackingService {
           key = `${outbound.recipientName || ''}_${outbound.address || ''}`;
           break;
         case PackingGroupingOption.ORDER_RECIPIENT:
-          key = `${outbound.orderId}_${outbound.recipientName || ''}_${
-            outbound.address || ''
-          }`;
+          key = `${outbound.orderId}_${outbound.recipientName || ''}_${outbound.address || ''}`;
           break;
         default:
           key = 'default';
@@ -189,10 +189,7 @@ export class PackingService {
     return Array.from(groups.values());
   }
 
-  private generateGroupLabel(
-    outbound: OutboundEntity,
-    option: PackingGroupingOption,
-  ): string {
+  private generateGroupLabel(outbound: OutboundEntity, option: PackingGroupingOption): string {
     switch (option) {
       case PackingGroupingOption.ORDER:
         return `Order: ${outbound.orderId}`;
@@ -201,9 +198,7 @@ export class PackingService {
           outbound.address || 'No Address'
         })`;
       case PackingGroupingOption.ORDER_RECIPIENT:
-        return `Order: ${outbound.orderId} - ${
-          outbound.recipientName || 'Unknown'
-        }`;
+        return `Order: ${outbound.orderId} - ${outbound.recipientName || 'Unknown'}`;
       default:
         return 'Default Group';
     }
