@@ -5,8 +5,8 @@ import { Upload } from 'lucide-react';
 interface ExcelUploadProps<T> {
   onUpload: (data: T[], fileName: string) => void;
   title: string;
-  headerRow?: number; // 0-indexed header row. If headerKey is provided, this is ignored (or used as fallback start)
-  headerKey?: string; // A string that must exist in the header row (e.g. "상품명")
+  headerRow?: number;
+  headerKey?: string;
   maxSize?: number; // in MB
   allowedExtensions?: string[];
 }
@@ -25,8 +25,7 @@ export const ExcelUpload = <T,>({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 파일 크기 검증
-    if (file.size > maxSize * 1024 * 1024) {
+      if (file.size > maxSize * 1024 * 1024) {
       alert(`파일 크기는 ${maxSize}MB를 초과할 수 없습니다.`);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -34,8 +33,7 @@ export const ExcelUpload = <T,>({
       return;
     }
 
-    // 파일 확장자 검증
-    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
     if (!allowedExtensions.includes(fileExtension)) {
       alert(`허용되는 파일 형식: ${allowedExtensions.join(', ')}`);
       if (fileInputRef.current) {
@@ -54,9 +52,7 @@ export const ExcelUpload = <T,>({
       let targetHeaderRow = headerRow;
 
       if (headerKey) {
-        // Search for the row containing the headerKey
-        // Convert sheet to array of arrays to scan
-        const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 }) as unknown[][];
+          const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 }) as unknown[][];
         const foundIndex = rawData.findIndex(row =>
           row.some(cell => String(cell).includes(headerKey))
         );

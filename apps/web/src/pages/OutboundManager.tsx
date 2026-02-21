@@ -48,8 +48,7 @@ export const OutboundManager: React.FC = () => {
     setErrors([]);
 
     try {
-      // AI로 엑셀 파일 파싱
-      const response = await uploadParse.mutateAsync({
+        const response = await uploadParse.mutateAsync({
         file,
         type: 'outbound',
         projectId: projectId,
@@ -61,8 +60,7 @@ export const OutboundManager: React.FC = () => {
       }
     } catch (error) {
       console.error('AI parsing failed:', error);
-      // AI 실패 시 기존 방식으로 폴백
-      await fallbackUpload(file);
+          await fallbackUpload(file);
     }
   };
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, X, AlertCircle } from 'lucide-react';
+import { Check, AlertCircle } from 'lucide-react';
 import { ColumnSelector } from './ColumnSelector';
 import { ConfidenceIndicator } from './ConfidenceIndicator';
 import { DataPreview } from './DataPreview';
@@ -82,7 +82,7 @@ const productFields: ProductFieldMapping = {
 
 export const MappingConfirmation: React.FC<MappingConfirmationProps> = ({
   type,
-  sessionId,
+  _: sessionId,
   headers,
   mapping,
   sampleRows,

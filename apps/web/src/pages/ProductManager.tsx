@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useParams } from 'react-router-dom';
-import { useProducts, useCreateProducts } from '@/hooks/queries';
+import { useProducts } from '@/hooks/queries';
 import { useUploadParse, useUploadConfirm } from '@/hooks/queries';
+import { useProductUpload } from '@/hooks/useProductUpload';
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { MappingConfirmation } from '@/components/upload/MappingConfirmation';
 import { Product } from '@wms/types';
@@ -10,34 +11,18 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 export const ProductManager: React.FC = () => {
   const { id: projectId } = useParams<{ id: string }>();
   const { data: products = [] } = useProducts(projectId || '');
-  const createProducts = useCreateProducts(projectId || '');
   const uploadParse = useUploadParse();
   const uploadConfirm = useUploadConfirm();
-  const [errors, setErrors] = useState<string[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadSession, setUploadSession] = useState<any>(null);
-  const [showMappingUI, setShowMappingUI] = useState(false);
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-
-  const excelDateToISOString = (serial: string | number | undefined | null): string | undefined => {
-    if (!serial) return undefined;
-    if (typeof serial === 'string' && serial.includes('-')) return serial;
-    if (typeof serial === 'number') {
-      const date = new Date(Math.round((serial - 25569) * 86400 * 1000));
-      return date.toISOString().split('T')[0];
-    }
-    return undefined;
-  };
+  const uploadState = useProductUpload(projectId || '');
 
   const handleUpload = async (file: File) => {
     if (!projectId) return;
 
-    setUploadFile(file);
-    setIsUploading(true);
-    setErrors([]);
+    uploadState.uploadState.setUploadFile(file);
+    uploadState.setUploading(true);
+    uploadState.uploadState.setErrors([]);
 
     try {
-      // AI로 엑셀 파일 파싱
       const response = await uploadParse.mutateAsync({
         file,
         type: 'product',
@@ -45,210 +30,48 @@ export const ProductManager: React.FC = () => {
       });
 
       if (response.success) {
-        setUploadSession(response.data);
-        setShowMappingUI(true);
+        uploadState.uploadState.setUploadSession(response.data);
+        uploadState.uploadState.setShowMappingUI(true);
       }
     } catch (error) {
       console.error('AI parsing failed:', error);
-      // AI 실패 시 기존 방식으로 폴백
-      await fallbackUpload(file);
+      await uploadState.fallbackUpload(file);
     }
   };
 
-  const fallbackUpload = async (file: File) => {
-    try {
-      const reader = new FileReader();
-      reader.onload = async (evt) => {
-        const bstr = evt.target?.result;
-        const wb = (window as any).XLSX.read(bstr, { type: 'binary' });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const rawData = (window as any).XLSX.utils.sheet_to_json(ws, { header: 1 }) as unknown[][];
-
-        if (rawData.length > 0) {
-          // 헤더가 3행 뒤에 있다고 가정 (headerKey="상품명")
-          let headerRow = 2;
-          const dataRows = rawData.slice(headerRow).map(row => {
-            const item: Record<string, unknown> = {};
-            const headers = rawData[headerRow] as string[];
-            headers.forEach((header, index) => {
-              item[header] = (row as any[])[index];
-            });
-            return item;
-          }) as Record<string, unknown>[];
-
-          await processWithHardcodedMapping(dataRows);
-        }
-      };
-      reader.readAsBinaryString(file);
-    } catch (error) {
-      console.error('Fallback upload failed:', error);
-      setErrors(['파일 처리 중 오류가 발생했습니다.']);
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const processWithHardcodedMapping = async (rawData: Record<string, unknown>[]) => {
-    const newErrors: string[] = [];
-    const validData: Omit<Product, 'id' | 'projectId' | 'createdAt' | 'updatedAt'>[] = [];
-
-    try {
-      rawData.forEach((item, index) => {
-        const rowNum = index + 1;
-        const productName = String(item['상품명'] || item.name || '').trim();
-
-        if (!productName) {
-          return;
-        }
-
-        let width = 0;
-        let length = 0;
-        let height = 0;
-
-        const findValue = (keys: string[]) => {
-          for (const key of keys) {
-            if (
-              item[key] !== undefined &&
-              item[key] !== null &&
-              String(item[key]).trim() !== ''
-            ) {
-              return item[key];
-            }
-          }
-          return undefined;
-        };
-
-        const wVal = findValue(['가로', 'width', 'Width', 'W', 'w']);
-        const lVal = findValue([
-          '세로',
-          'length',
-          'Length',
-          'L',
-          'l',
-          'depth',
-          'Depth',
-          'D',
-          'd',
-        ]);
-        const hVal = findValue(['높이', 'height', 'Height', 'H', 'h']);
-        const weightVal = findValue(['무게', 'weight', 'Weight', 'Kg', 'kg', 'KG']);
-
-        if (wVal) width = parseFloat(String(wVal));
-        if (lVal) length = parseFloat(String(lVal));
-        if (hVal) height = parseFloat(String(hVal));
-        let weight = 0;
-        if (weightVal) weight = parseFloat(String(weightVal));
-
-        const volumeStr = String(item['체적정보'] || '');
-        if ((!width || !length || !height) && volumeStr) {
-          const widthMatch = volumeStr.match(/(?:가로|Width|W)\s*[:-]?\s*(\d+(\.\d+)?)/i);
-          const lengthMatch = volumeStr.match(
-            /(?:세로|Length|L|Depth|D)\s*[:-]?\s*(\d+(\.\d+)?)/i,
-          );
-          const heightMatch = volumeStr.match(/(?:높이|Height|H)\s*[:-]?\s*(\d+(\.\d+)?)/i);
-
-          if (!width && widthMatch) width = parseFloat(widthMatch[1]);
-          if (!length && lengthMatch) length = parseFloat(lengthMatch[1]);
-          if (!height && heightMatch) height = parseFloat(heightMatch[1]);
-
-          if (!width && !length && !height) {
-            const dimensions = volumeStr.match(
-              /(\d+(\.\d+)?)\s*[*xX]\s*(\d+(\.\d+)?)\s*[*xX]\s*(\d+(\.\d+)?)/,
-            );
-            if (dimensions) {
-              width = parseFloat(dimensions[1]);
-              length = parseFloat(dimensions[3]);
-              height = parseFloat(dimensions[5]);
-            }
-          }
-        }
-
-        const missingFields = [];
-        if (!width || width <= 0) missingFields.push('Width (가로)');
-        if (!length || length <= 0) missingFields.push('Length (세로)');
-        if (!height || height <= 0) missingFields.push('Height (높이)');
-
-        if (missingFields.length > 0) {
-          newErrors.push(
-            `Row ${rowNum} (${productName}): Missing or invalid dimensions - ${missingFields.join(', ')}`,
-          );
-        } else {
-          validData.push({
-            sku: productName,
-            name: productName,
-            width,
-            length,
-            height,
-            weight: weight || 0,
-
-            inboundDate: excelDateToISOString(
-              (item['입고일'] as string | number | undefined) ??
-                (item.inboundDate as string | number | undefined),
-            ),
-            outboundDate: excelDateToISOString(
-              (item['출고일'] as string | number | undefined) ??
-                (item.outboundDate as string | number | undefined),
-            ),
-
-            barcode: ['ㅇ', 'o', 'true', 'yes', 'y'].includes(
-              String(item['바코드'] || item.barcode).toLowerCase(),
-            ),
-            aircap: ['ㅇ', 'o', 'true', 'yes', 'y'].includes(
-              String(item['에어캡'] || item.aircap).toLowerCase(),
-            ),
-
-            remarks: (item['비고'] || item.remarks) as string | undefined,
-          });
-        }
-      });
-
-      if (newErrors.length > 0) {
-        setErrors(newErrors);
-        return;
-      }
-
-      if (validData.length > 0) {
-        await createProducts.mutateAsync(validData);
-        alert(`Successfully imported ${validData.length} products.`);
-      }
-    } catch (err) {
-      console.error('Upload failed:', err);
-      alert('Failed to upload products. Please check the console for details.');
-    }
-  };
+    };
 
   const handleAIConfirm = async (mapping: Record<string, string | null>) => {
-    if (!uploadSession || !projectId) return;
+    if (!uploadState.uploadSession || !projectId) return;
 
     try {
       await uploadConfirm.mutateAsync({
-        sessionId: uploadSession.sessionId,
+        sessionId: uploadState.uploadSession.sessionId,
         mapping,
       });
 
       // 성공 시 알림 표시
       alert(`Successfully imported products.`);
-      setShowMappingUI(false);
-      setUploadSession(null);
+      uploadState.setShowMappingUI(false);
+      uploadState.setUploadSession(null);
     } catch (error) {
       console.error('Failed to confirm mapping:', error);
-      setErrors(['매핑 확인 중 오류가 발생했습니다.']);
+      uploadState.setErrors(['매핑 확인 중 오류가 발생했습니다.']);
     }
   };
 
   const handleFallback = async () => {
-    if (uploadFile) {
-      setShowMappingUI(false);
-      await fallbackUpload(uploadFile);
+    if (uploadState.uploadFile) {
+      uploadState.setShowMappingUI(false);
+      await fallbackUpload(uploadState.uploadFile);
     }
   };
 
   const handleCancelMapping = () => {
-    setShowMappingUI(false);
-    setUploadSession(null);
-    setUploadFile(null);
-    setIsUploading(false);
+    uploadState.setShowMappingUI(false);
+    uploadState.setUploadSession(null);
+    uploadState.setUploadFile(null);
+    uploadState.setUploading(false);
   };
 
   const currentProducts = products || [];
@@ -262,14 +85,14 @@ export const ProductManager: React.FC = () => {
         </div>
       </div>
 
-      {showMappingUI && uploadSession && (
+      {uploadState.showMappingUI && uploadState.uploadSession && (
         <div className="max-w-6xl mx-auto py-8 animate-in zoom-in-95 duration-300">
           <MappingConfirmation
             type="product"
-            sessionId={uploadSession.sessionId}
-            headers={uploadSession.headers}
-            mapping={uploadSession.mapping}
-            sampleRows={uploadSession.sampleRows}
+            sessionId={uploadState.uploadSession.sessionId}
+            headers={uploadState.uploadSession.headers}
+            mapping={uploadState.uploadSession.mapping}
+            sampleRows={uploadState.uploadSession.sampleRows}
             onConfirm={handleAIConfirm}
             onFallback={handleFallback}
             onCancel={handleCancelMapping}
@@ -279,7 +102,7 @@ export const ProductManager: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1">
-          {isUploading && !showMappingUI ? (
+          {uploadState.isUploading && !uploadState.showMappingUI ? (
             <div className="bg-white border rounded-xl p-8 shadow-sm space-y-6">
               <div className="text-center space-y-2">
                 <div className="bg-blue-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -314,14 +137,14 @@ export const ProductManager: React.FC = () => {
                 </div>
               )}
 
-              {errors.length > 0 && (
+              {uploadState.errors.length > 0 && (
                 <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg animate-in fade-in slide-in-from-top-2">
                   <div className="flex items-center gap-2 text-red-700 font-bold mb-3">
                     <AlertCircle className="h-4 w-4" />
-                    <span>Validation Errors ({errors.length})</span>
+                    <span>Validation Errors ({uploadState.errors.length})</span>
                   </div>
                   <ul className="text-xs text-red-600 space-y-2 max-h-60 overflow-y-auto">
-                    {errors.map((err, i) => (
+                    {uploadState.errors.map((err, i) => (
                       <li key={i} className="flex gap-2">
                         <span className="opacity-50">•</span>
                         {err}
@@ -340,14 +163,14 @@ export const ProductManager: React.FC = () => {
             />
           )}
 
-          {!isUploading && errors.length > 0 && (
+          {!uploadState.uploadState.isUploading && uploadState.uploadState.errors.length > 0 && (
             <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg animate-in fade-in slide-in-from-top-2">
               <div className="flex items-center gap-2 text-red-700 font-bold mb-3">
                 <AlertCircle className="h-4 w-4" />
-                <span>Validation Errors ({errors.length})</span>
+                <span>Validation Errors ({uploadState.uploadState.errors.length})</span>
               </div>
               <ul className="text-xs text-red-600 space-y-2 max-h-60 overflow-y-auto">
-                {errors.map((err, i) => (
+                {uploadState.uploadState.errors.map((err, i) => (
                   <li key={i} className="flex gap-2">
                     <span className="opacity-50">•</span>
                     {err}

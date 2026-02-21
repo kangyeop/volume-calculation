@@ -6,8 +6,7 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${url}`, options);
 
   if (!response.ok) {
-    // 에러 응답 처리
-    let errorMessage = `API Error: ${response.statusText}`;
+      let errorMessage = `API Error: ${response.statusText}`;
     let errorDetails = '';
 
     try {
@@ -15,7 +14,6 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
       errorMessage = errorData.message || errorMessage;
       errorDetails = errorData.error || '';
     } catch {
-      // JSON 파싱 실패 시
       if (response.status === 413) {
         errorMessage = '요청이 너무 큽니다. 파일 크기를 확인해주세요.';
       } else if (response.status === 429) {
@@ -24,8 +22,8 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     }
 
     const error = new Error(errorMessage);
-    (error as any).status = response.status;
-    (error as any).details = errorDetails;
+    (error as unknown as { status: number; details: string }).status = response.status;
+    (error as unknown as { status: number; details: string }).details = errorDetails;
     throw error;
   }
 

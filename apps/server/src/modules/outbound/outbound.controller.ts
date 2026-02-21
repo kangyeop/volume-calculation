@@ -14,7 +14,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { OutboundService } from './outbound.service';
 import { CreateOutboundDto } from './dto/create-outbound.dto';
 
-interface CreateBulkWithFileDto {
+interface CreateBulkWithFileBody {
   createOutboundDtos: CreateOutboundDto[];
   originalFilename?: string;
 }
@@ -51,15 +51,11 @@ export class OutboundController {
   async createBulkWithFile(
     @Param('projectId') projectId: string,
     @UploadedFile() file: Express.Multer.File,
-    @Body() body: CreateBulkWithFileDto,
+    @Body() body: CreateBulkWithFileBody,
   ) {
-    let createOutboundDtos: CreateOutboundDto[] = [];
-
-    if (typeof body.createOutboundDtos === 'string') {
-      createOutboundDtos = JSON.parse(body.createOutboundDtos);
-    } else {
-      createOutboundDtos = body.createOutboundDtos || [];
-    }
+    const createOutboundDtos = typeof body.createOutboundDtos === 'string'
+      ? JSON.parse(body.createOutboundDtos)
+      : body.createOutboundDtos || [];
 
     return this.outboundService.createBulk({
       projectId,
