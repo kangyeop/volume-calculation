@@ -125,6 +125,10 @@ export class UploadController {
         },
       };
     } else {
+      const originalMapping = session.originalMapping as any;
+      const dimensionMapping = originalMapping?.mapping?.dimensions;
+      const separator = dimensionMapping?.separator || '*';
+
       const products = mappedRows
         .filter((row) => row.sku && row.name)
         .map((row) => {
@@ -134,13 +138,13 @@ export class UploadController {
 
           if (row.dimensions) {
             const dims = String(row.dimensions).trim();
-            const match = dims.match(
-              /^(\d+(?:\.\d+)?)\s*[*xX]\s*(\d+(?:\.\d+)?)\s*[*xX]\s*(\d+(?:\.\d+)?)$/,
-            );
-            if (match) {
-              width = parseFloat(match[1]) || 0;
-              length = parseFloat(match[2]) || 0;
-              height = parseFloat(match[3]) || 0;
+            const cleaned = dims.replace(/(cm|mm|m|in|inch)$/i, '').trim();
+            const parts = cleaned.split(separator).map((p) => parseFloat(p.trim()));
+
+            if (parts.length >= 2) {
+              width = parts[0] || 0;
+              length = parts[1] || 0;
+              height = parts[2] ?? 1;
             }
           }
 

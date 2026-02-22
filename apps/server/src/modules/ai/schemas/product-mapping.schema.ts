@@ -19,11 +19,16 @@ export const ProductMappingSchema = z.object({
       .object({
         columnName: z.string(),
         confidence: z.number().min(0).max(1),
+        separator: z
+          .string()
+          .describe(
+            'The separator used between dimension values. One of: "*", "x", "X", " ", "," or combination',
+          )
+          .optional(),
       })
       .nullable(),
   }),
   unmappedColumns: z.array(z.string()),
-  notes: z.string().optional(),
 });
 
 export type ProductMappingResult = z.infer<typeof ProductMappingSchema>;

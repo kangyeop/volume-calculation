@@ -6,6 +6,7 @@ export interface UploadSession {
   projectId: string;
   headers: string[];
   mapping?: Record<string, unknown>;
+  originalMapping?: Record<string, unknown>;
   rows: Record<string, unknown>[];
   fileName: string;
   createdAt: Date;
@@ -36,6 +37,7 @@ export class UploadSessionService {
       projectId: data.projectId,
       headers: data.headers,
       mapping: data.mapping,
+      originalMapping: data.mapping,
       rows: data.rows,
       fileName: data.fileName,
       createdAt: new Date(),

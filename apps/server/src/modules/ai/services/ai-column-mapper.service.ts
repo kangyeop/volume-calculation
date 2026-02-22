@@ -111,10 +111,22 @@ Required fields to map:
 - sku: Product SKU or product code
 - name: Product name or description
 - dimensions: Combined dimensions in a single column
-  Supported formats: "10*20*30", "10x20x30", "10X20X30", "10 x 20 x 30"
-  Order: width x length x height (가로 x 세로 x 높이)
   Korean column names: 규격, 사이즈, dimension, 치수
-  Example values: "30*40*20", "10x20x30", "100X200X50"
+  Example formats: "30*40*20", "10x20x30cm", "6*8cm", "10x20mm", "100X200X50", "30 40 20"
+
+For dimensions, identify the SEPARATOR used between values.
+- Common separators: *, x, X, space, comma
+- Example: "30*40*20" -> separator is "*"
+- Example: "10x20x30" -> separator is "x"
+- Example: "30 40 20" -> separator is " " (space)
+- Example: "30,40,20" -> separator is ","
+
+The parsing code will:
+1. Remove unit suffix (cm, mm, m, in, inch) if present
+2. Split by the identified separator
+3. Parse values: 2 values = (width, length, height=0), 3 values = (width, length, height)
+
+Analyze the sample data and provide the separator character.
 
 Return a mapping with confidence scores (0-1) for each field. Set to null if no matching column is found.`;
   }
