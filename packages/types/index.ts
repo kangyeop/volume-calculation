@@ -123,13 +123,15 @@ export interface MappingResult {
 }
 
 export interface ParseUploadResponse {
-  sessionId: string;
-  type: UploadType;
-  headers: string[];
-  sampleData: Record<string, unknown>[];
-  mapping: MappingResult;
-  rowCount: number;
-  fileName: string;
+  success: boolean;
+  data: {
+    sessionId: string;
+    headers: string[];
+    rowCount: number;
+    sampleRows: Record<string, unknown>[];
+    mapping: MappingResult;
+    fileName: string;
+  };
 }
 
 export interface ConfirmUploadRequest {
@@ -137,18 +139,18 @@ export interface ConfirmUploadRequest {
   mapping: Record<string, string | null>;
 }
 
+export interface ConfirmUploadResponse {
+  success: boolean;
+  data: {
+    imported: number;
+    batchId?: string;
+  };
+}
+
 export interface ValidationError {
   row: number;
   field: string;
   message: string;
-}
-
-export interface ConfirmUploadResponse {
-  success: boolean;
-  created: number;
-  updated: number;
-  errors: ValidationError[];
-  warnings?: string[];
 }
 
 export interface UploadRemapRequest {
