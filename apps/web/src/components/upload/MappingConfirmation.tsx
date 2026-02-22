@@ -82,7 +82,7 @@ const productFields: ProductFieldMapping = {
 
 export const MappingConfirmation: React.FC<MappingConfirmationProps> = ({
   type,
-  sessionId,
+  sessionId: _sessionId,
   headers,
   mapping,
   sampleRows,

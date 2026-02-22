@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Calculator, Package, History, Settings, AlertTriangle, Layers, Download } from 'lucide-react';
+import { toast } from 'sonner';
 import { useBoxes, useBatches, usePackingHistory, useCalculatePacking, useExportPacking } from '@/hooks/queries';
 import { PackingGroupingOption, PackingRecommendation } from '@wms/types';
 
@@ -116,7 +117,9 @@ export const PackingCalculator: React.FC = () => {
     setLoading(true);
     try {
       if (!boxes || boxes.length === 0) {
-        alert('등록된 박스가 없습니다. 박스 관리 메뉴에서 박스를 먼저 등록해주세요.');
+        toast.error('박스가 없습니다', {
+          description: '박스 관리 메뉴에서 박스를 먼저 등록해주세요.',
+        });
         setLoading(false);
         return;
       }
@@ -129,7 +132,7 @@ export const PackingCalculator: React.FC = () => {
         error instanceof Error
           ? error.message
           : '계산에 실패했습니다. 상품 및 출고 목록이 등록되어 있는지 확인해주세요.';
-      alert(message);
+      toast.error('계산 실패', { description: message });
     } finally {
       setLoading(false);
     }
@@ -138,7 +141,7 @@ export const PackingCalculator: React.FC = () => {
   const handleExport = async () => {
     if (!id) return;
     if (!selectedBatchId) {
-      alert('배치를 선택해주세요.');
+      toast.warning('배치 선택 필요', { description: '내보낼 배치를 선택해주세요.' });
       return;
     }
     try {
@@ -149,7 +152,7 @@ export const PackingCalculator: React.FC = () => {
         error instanceof Error
           ? error.message
           : '엑셀 다운로드에 실패했습니다.';
-      alert(message);
+      toast.error('내보내기 실패', { description: message });
     }
   };
 

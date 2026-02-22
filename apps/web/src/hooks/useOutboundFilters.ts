@@ -14,8 +14,8 @@ export const useOutboundFilters = (
   const [filters, setFilters] = useState<FilterOptions>({});
 
   const currentBatches = useMemo(() => {
-    return batches.sort((a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    return [...batches].sort((a, b) =>
+      b.batchName.localeCompare(a.batchName)
     );
   }, [batches]);
 
@@ -31,7 +31,7 @@ export const useOutboundFilters = (
         return false;
       }
       if (filters.sku) {
-        return outbound.productSku.toLowerCase().includes(filters.sku.toLowerCase());
+        return outbound.sku.toLowerCase().includes(filters.sku.toLowerCase());
       }
       return true;
     });

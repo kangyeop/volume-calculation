@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import { useBoxes, useCreateBox, useDeleteBox } from '@/hooks/queries';
 import { Trash2, Package, Plus, Box as BoxIcon, Ruler } from 'lucide-react';
 
@@ -28,8 +29,9 @@ export const BoxManager: React.FC = () => {
         price: formData.price ? Number(formData.price) : undefined,
       });
       setFormData({ name: '', width: '', length: '', height: '', price: '' });
+      toast.success('박스 생성 완료', { description: '새로운 박스가 추가되었습니다.' });
     } catch {
-      alert('Failed to create box');
+      toast.error('생성 실패', { description: '박스 생성에 실패했습니다.' });
     }
   };
 
@@ -37,8 +39,9 @@ export const BoxManager: React.FC = () => {
     if (!confirm('Are you sure you want to delete this box?')) return;
     try {
       await deleteBox.mutateAsync(id);
+      toast.success('삭제 완료', { description: '박스가 삭제되었습니다.' });
     } catch {
-      alert('Failed to delete box');
+      toast.error('삭제 실패', { description: '박스 삭제에 실패했습니다.' });
     }
   };
 

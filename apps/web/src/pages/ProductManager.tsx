@@ -1,5 +1,6 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useProducts } from '@/hooks/queries';
 import { useUploadParse, useUploadConfirm } from '@/hooks/queries';
 import { useProductUpload } from '@/hooks/useProductUpload';
@@ -47,8 +48,7 @@ export const ProductManager: React.FC = () => {
         mapping,
       });
 
-      // 성공 시 알림 표시
-      alert(`Successfully imported products.`);
+      toast.success('가져오기 완료', { description: '상품이 성공적으로 등록되었습니다.' });
       uploadState.setShowMappingUI(false);
       uploadState.setUploadSession(null);
     } catch (error) {
