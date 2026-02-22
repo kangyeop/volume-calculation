@@ -11,7 +11,7 @@ import { FallbackMapperService } from './services/fallback-mapper.service';
       provide: 'LLM_PROVIDER',
       useFactory: (configService: ConfigService) => {
         return new ChatOpenAI({
-          modelName: configService.get('AI_MODEL', 'gpt-4o'),
+          modelName: configService.get('AI_MODEL', 'gpt-4.1-nano'),
           temperature: configService.get('AI_TEMPERATURE', 0),
           maxTokens: configService.get('AI_MAX_TOKENS', 2000),
           timeout: configService.get('AI_TIMEOUT', 30000),
