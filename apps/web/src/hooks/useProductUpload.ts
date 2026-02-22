@@ -1,11 +1,9 @@
 import { useCreateProducts } from '@/hooks/queries';
 import { useUploadState } from './useUploadState';
-import { useExcelDateConversion } from './useExcelDateConversion';
 import { Product } from '@wms/types';
 
 export const useProductUpload = (projectId: string) => {
   const createProducts = useCreateProducts(projectId);
-  const { excelDateToISOString } = useExcelDateConversion();
   const uploadState = useUploadState();
 
   const processWithHardcodedMapping = async (rawData: Record<string, unknown>[]) => {
@@ -50,13 +48,10 @@ export const useProductUpload = (projectId: string) => {
         'd',
       ]);
       const hVal = findValue(['높이', 'height', 'Height', 'H', 'h']);
-      const weightVal = findValue(['무게', 'weight', 'Weight', 'Kg', 'kg', 'KG']);
 
       if (wVal) width = parseFloat(String(wVal));
       if (lVal) length = parseFloat(String(lVal));
       if (hVal) height = parseFloat(String(hVal));
-      let weight = 0;
-      if (weightVal) weight = parseFloat(String(weightVal));
 
       const volumeStr = String(item['체적정보'] || '');
       if ((!width || !length || !height) && volumeStr) {
@@ -98,22 +93,6 @@ export const useProductUpload = (projectId: string) => {
           width,
           length,
           height,
-          weight: weight || 0,
-          inboundDate: excelDateToISOString(
-            (item['입고일'] as string | number | undefined) ??
-              (item.inboundDate as string | number | undefined),
-          ),
-          outboundDate: excelDateToISOString(
-            (item['출고일'] as string | number | undefined) ??
-              (item.outboundDate as string | number | undefined),
-          ),
-          barcode: ['ㅇ', 'o', 'true', 'yes', 'y'].includes(
-            String(item['바코드'] || item.barcode).toLowerCase(),
-          ),
-          aircap: ['ㅇ', 'o', 'true', 'yes', 'y'].includes(
-            String(item['에어캡'] || item.aircap).toLowerCase(),
-          ),
-          remarks: (item['비고'] || item.remarks) as string | undefined,
         });
       }
     });

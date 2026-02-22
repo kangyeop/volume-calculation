@@ -75,20 +75,7 @@ export class ProductsService {
         .into(ProductEntity)
         .values(products)
         .orUpdate(
-          // Columns to update on conflict
-          [
-            'name',
-            'width',
-            'length',
-            'height',
-            'weight',
-            'inboundDate',
-            'outboundDate',
-            'barcode',
-            'aircap',
-            'remarks',
-          ],
-          // Conflict target columns
+          ['name', 'width', 'length', 'height'],
           ['projectId', 'sku'],
         )
         .execute();

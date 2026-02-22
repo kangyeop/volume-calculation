@@ -45,34 +45,8 @@ export class ProductEntity extends BaseEntity implements Product {
   })
   height!: number;
 
-  @Column({
-    type: 'decimal',
-    precision: 10,
-    scale: 2,
-    transformer: {
-      to: (value: number) => value,
-      from: (value: string) => parseFloat(value),
-    },
-  })
-  weight!: number;
-
   @Column()
   projectId!: string;
-
-  @Column({ type: 'date', nullable: true })
-  inboundDate!: Date;
-
-  @Column({ type: 'date', nullable: true })
-  outboundDate!: Date;
-
-  @Column({ default: false })
-  barcode!: boolean;
-
-  @Column({ default: false })
-  aircap!: boolean;
-
-  @Column({ type: 'text', nullable: true })
-  remarks!: string;
 
   @ManyToOne(() => ProjectEntity, (project) => project.products, {
     onDelete: 'CASCADE',

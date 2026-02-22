@@ -81,12 +81,6 @@ export interface Product {
   width: number;
   length: number;
   height: number;
-  weight: number;
-  inboundDate?: Date | string;
-  outboundDate?: Date | string;
-  barcode?: boolean;
-  aircap?: boolean;
-  remarks?: string;
   createdAt: Date | string;
   updatedAt: Date | string;
 }
