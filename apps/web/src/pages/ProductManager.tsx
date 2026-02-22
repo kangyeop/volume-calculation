@@ -39,8 +39,6 @@ export const ProductManager: React.FC = () => {
     }
   };
 
-    };
-
   const handleAIConfirm = async (mapping: Record<string, string | null>) => {
     if (!uploadState.uploadSession || !projectId) return;
 

@@ -1,14 +1,15 @@
-import js from '@eslint/js'
-import tseslint from 'typescript-eslint'
-import { fileURLToPath } from 'url'
-import { dirname } from 'path'
+// @ts-check
+import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.js', 'dist'],
+    ignores: ['eslint.config.mjs', 'dist'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -23,4 +24,4 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'error',
     },
   },
-)
+);

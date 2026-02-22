@@ -53,9 +53,10 @@ export class OutboundController {
     @UploadedFile() file: Express.Multer.File,
     @Body() body: CreateBulkWithFileBody,
   ) {
-    const createOutboundDtos = typeof body.createOutboundDtos === 'string'
-      ? JSON.parse(body.createOutboundDtos)
-      : body.createOutboundDtos || [];
+    const createOutboundDtos =
+      typeof body.createOutboundDtos === 'string'
+        ? JSON.parse(body.createOutboundDtos)
+        : body.createOutboundDtos || [];
 
     return this.outboundService.createBulk({
       projectId,

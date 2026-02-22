@@ -1,7 +1,6 @@
 // @ts-check
 import eslint from '@eslint/js';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
-import globals from 'globals';
 import tseslint from 'typescript-eslint';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -19,8 +18,8 @@ export default tseslint.config(
   {
     languageOptions: {
       globals: {
-        ...globals.node,
-        ...globals.jest,
+        node: true,
+        jest: true,
       },
       sourceType: 'commonjs',
       parserOptions: {
@@ -28,17 +27,13 @@ export default tseslint.config(
         tsconfigRootDir: __dirname,
       },
     },
-  },
-  {
     rules: {
-      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn',
-      "prettier/prettier": ["error", { endOfLine: "auto" }],
+      'prettier/prettier': ['error', { endOfLine: 'auto' }],
     },
   },
   {
-    files: ['src/modules/ai/**/*.ts', 'src/modules/upload/**/*.ts', 'src/modules/outbound/**/*.ts', '**/*.spec.ts'],
+    files: ['src/**/*.ts'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',

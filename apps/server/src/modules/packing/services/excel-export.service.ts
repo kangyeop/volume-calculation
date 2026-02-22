@@ -34,7 +34,7 @@ export class ExcelExportService {
 
     const originalWorkbook = new ExcelJS.Workbook();
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  await originalWorkbook.xlsx.load(fileBuffer as any);
+    await originalWorkbook.xlsx.load(fileBuffer as any);
 
     const results = await this.packingResultDetailRepository
       .createQueryBuilder('result')

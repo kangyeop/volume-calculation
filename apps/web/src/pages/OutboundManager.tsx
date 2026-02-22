@@ -329,7 +329,8 @@ export const OutboundManager: React.FC = () => {
               </div>
             )}
           </div>
-        </div>}
+        </div>
+      )}
       ) : (
         <div className="space-y-4">
           <div className="relative">
