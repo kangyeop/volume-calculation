@@ -114,11 +114,6 @@ Required fields to map:
 - length: Product length
 - height: Product height
 - weight: Product weight
-- inboundDate: Inbound date or received date
-- outboundDate: Outbound date or shipped date
-- barcode: Product barcode or EAN/UPC
-- aircap: Air cap quantity or packaging bubble wrap
-- remarks: Product remarks or notes
 
 Return a mapping with confidence scores (0-1) for each field. Set to null if no matching column is found.`;
   }

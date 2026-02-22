@@ -15,19 +15,17 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ExcelParserService } from './services/excel-parser.service';
 import { UploadSessionService } from './services/upload-session.service';
 import { AIColumnMapperService } from '../ai/services/ai-column-mapper.service';
-import { FallbackMapperService } from '../ai/services/fallback-mapper.service';
 import { OutboundService } from '../outbound/outbound.service';
 import { ProductsService } from '../products/products.service';
 import { ParseUploadDto } from './dto/parse-upload.dto';
 import { ConfirmUploadDto } from './dto/confirm-upload.dto';
 
-@Controller('api/upload')
+@Controller('upload')
 export class UploadController {
   constructor(
     private readonly excelParserService: ExcelParserService,
     private readonly uploadSessionService: UploadSessionService,
     private readonly aiColumnMapperService: AIColumnMapperService,
-    private readonly fallbackMapperService: FallbackMapperService,
     private readonly outboundService: OutboundService,
     private readonly productsService: ProductsService,
   ) {}
@@ -47,29 +45,15 @@ export class UploadController {
 
     let mappingResult;
     if (query.type === 'outbound') {
-      try {
-        mappingResult = await this.aiColumnMapperService.mapOutboundColumns(
-          parseResult.headers,
-          parseResult.sampleRows,
-        );
-      } catch (error) {
-        mappingResult = this.fallbackMapperService.mapOutboundColumns(
-          parseResult.headers,
-          parseResult.sampleRows,
-        );
-      }
+      mappingResult = await this.aiColumnMapperService.mapOutboundColumns(
+        parseResult.headers,
+        parseResult.sampleRows,
+      );
     } else {
-      try {
-        mappingResult = await this.aiColumnMapperService.mapProductColumns(
-          parseResult.headers,
-          parseResult.sampleRows,
-        );
-      } catch (error) {
-        mappingResult = this.fallbackMapperService.mapProductColumns(
-          parseResult.headers,
-          parseResult.sampleRows,
-        );
-      }
+      mappingResult = await this.aiColumnMapperService.mapProductColumns(
+        parseResult.headers,
+        parseResult.sampleRows,
+      );
     }
 
     const sessionId = this.uploadSessionService.createSession({
@@ -149,12 +133,6 @@ export class UploadController {
           width: parseFloat(row.width || '0') || 0,
           length: parseFloat(row.length || '0') || 0,
           height: parseFloat(row.height || '0') || 0,
-          weight: parseFloat(row.weight || '0') || 0,
-          inboundDate: row.inboundDate || undefined,
-          outboundDate: row.outboundDate || undefined,
-          barcode: row.barcode === true || row.barcode === 'true',
-          aircap: row.aircap === true || row.aircap === 'true',
-          remarks: row.remarks || undefined,
         }));
 
       const results = await this.productsService.createBulk(session.projectId, products);

@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ChatOpenAI } from '@langchain/openai';
 import { AIColumnMapperService } from './services/ai-column-mapper.service';
-import { FallbackMapperService } from './services/fallback-mapper.service';
 
 @Module({
   imports: [ConfigModule],
@@ -22,8 +21,7 @@ import { FallbackMapperService } from './services/fallback-mapper.service';
       inject: [ConfigService],
     },
     AIColumnMapperService,
-    FallbackMapperService,
   ],
-  exports: ['LLM_PROVIDER', AIColumnMapperService, FallbackMapperService],
+  exports: ['LLM_PROVIDER', AIColumnMapperService],
 })
 export class AIModule {}

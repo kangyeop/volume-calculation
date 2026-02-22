@@ -121,10 +121,9 @@ export const api = {
     parse: (file: File, type: 'outbound' | 'product', projectId: string) => {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('type', type);
-      formData.append('projectId', projectId);
 
-      return fetch(`${API_BASE}/upload/parse`, {
+      const params = new URLSearchParams({ type, projectId });
+      return fetch(`${API_BASE}/upload/parse?${params}`, {
         method: 'POST',
         body: formData,
       }).then(async (response) => {

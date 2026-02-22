@@ -1,9 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { join } from 'path';
-import { randomUUID } from 'crypto';
-import * as fs from 'fs';
+import { memoryStorage } from 'multer';
 import { AIModule } from '../ai/ai.module';
 import { OutboundModule } from '../outbound/outbound.module';
 import { ProductsModule } from '../products/products.module';
@@ -18,21 +15,7 @@ import { UploadController } from './upload.controller';
     forwardRef(() => OutboundModule),
     ProductsModule,
     MulterModule.register({
-      storage: diskStorage({
-        destination: (_req, _file, callback) => {
-          const uploadsDir = join(process.cwd(), 'uploads', 'temp');
-          if (fs.existsSync(uploadsDir)) {
-            callback(null, uploadsDir);
-          } else {
-            fs.mkdirSync(uploadsDir, { recursive: true });
-            callback(null, uploadsDir);
-          }
-        },
-        filename: (_req, _file, callback) => {
-          const ext = _file.originalname.split('.').pop();
-          callback(null, `${randomUUID()}.${ext || 'xlsx'}`);
-        },
-      }),
+      storage: memoryStorage(),
       limits: {
         fileSize: 10 * 1024 * 1024,
       },
