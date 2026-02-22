@@ -17,28 +17,10 @@ export class OutboundEntity extends BaseEntity {
   recipientName!: string;
 
   @Column({ nullable: true })
-  recipientPhone!: string;
+  batchId!: string;
 
   @Column({ nullable: true })
-  zipCode!: string;
-
-  @Column({ nullable: true })
-  address!: string;
-
-  @Column({ nullable: true })
-  detailAddress!: string;
-
-  @Column({ nullable: true })
-  shippingMemo!: string;
-
-  @Column({ nullable: true })
-  batchId!: string; // ID to group items from a single upload
-
-  @Column({ nullable: true })
-  batchName!: string; // e.g., "Upload 2024-03-20"
-
-  @Column({ nullable: true })
-  originalFilePath!: string; // Path to original uploaded Excel file
+  batchName!: string;
 
   @Column()
   projectId!: string;

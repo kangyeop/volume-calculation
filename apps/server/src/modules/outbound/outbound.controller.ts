@@ -8,7 +8,6 @@ import {
   HttpCode,
   HttpStatus,
   UseInterceptors,
-  UploadedFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { OutboundService } from './outbound.service';
@@ -50,7 +49,6 @@ export class OutboundController {
   @UseInterceptors(FileInterceptor('file'))
   async createBulkWithFile(
     @Param('projectId') projectId: string,
-    @UploadedFile() file: Express.Multer.File,
     @Body() body: CreateBulkWithFileBody,
   ) {
     const createOutboundDtos =
@@ -58,12 +56,7 @@ export class OutboundController {
         ? JSON.parse(body.createOutboundDtos)
         : body.createOutboundDtos || [];
 
-    return this.outboundService.createBulk({
-      projectId,
-      createOutboundDtos,
-      fileBuffer: file?.buffer,
-      originalFilename: body.originalFilename || file?.originalname,
-    });
+    return this.outboundService.createBulk(projectId, createOutboundDtos);
   }
 
   @Delete('outbounds/:id')

@@ -162,10 +162,6 @@ export class PackingService {
             batchName: outbound.batchName,
             orderId: outbound.orderId,
             recipientName: outbound.recipientName,
-            recipientPhone: outbound.recipientPhone,
-            zipCode: outbound.zipCode,
-            address: outbound.address,
-            detailAddress: outbound.detailAddress,
             sku: outbound.sku,
             productName: product.name,
             quantity: outbound.quantity,
@@ -243,10 +239,10 @@ export class PackingService {
           key = outbound.orderId;
           break;
         case PackingGroupingOption.RECIPIENT:
-          key = `${outbound.recipientName || ''}_${outbound.address || ''}`;
+          key = outbound.recipientName || 'Unknown';
           break;
         case PackingGroupingOption.ORDER_RECIPIENT:
-          key = `${outbound.orderId}_${outbound.recipientName || ''}_${outbound.address || ''}`;
+          key = `${outbound.orderId}_${outbound.recipientName || 'Unknown'}`;
           break;
         default:
           key = 'default';
@@ -266,9 +262,7 @@ export class PackingService {
       case PackingGroupingOption.ORDER:
         return `Order: ${outbound.orderId}`;
       case PackingGroupingOption.RECIPIENT:
-        return `Recipient: ${outbound.recipientName || 'Unknown'} (${
-          outbound.address || 'No Address'
-        })`;
+        return `Recipient: ${outbound.recipientName || 'Unknown'}`;
       case PackingGroupingOption.ORDER_RECIPIENT:
         return `Order: ${outbound.orderId} - ${outbound.recipientName || 'Unknown'}`;
       default:

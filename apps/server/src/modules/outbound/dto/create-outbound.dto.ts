@@ -14,24 +14,4 @@ export class CreateOutboundDto {
   @IsOptional()
   @IsString()
   recipientName?: string;
-
-  @IsOptional()
-  @IsString()
-  recipientPhone?: string;
-
-  @IsOptional()
-  @IsString()
-  zipCode?: string;
-
-  @IsOptional()
-  @IsString()
-  address?: string;
-
-  @IsOptional()
-  @IsString()
-  detailAddress?: string;
-
-  @IsOptional()
-  @IsString()
-  shippingMemo?: string;
 }

@@ -92,11 +92,6 @@ export interface Outbound {
   sku: string;
   quantity: number;
   recipientName?: string;
-  recipientPhone?: string;
-  zipCode?: string;
-  address?: string;
-  detailAddress?: string;
-  shippingMemo?: string;
   batchId?: string;
   batchName?: string;
   createdAt: Date | string;

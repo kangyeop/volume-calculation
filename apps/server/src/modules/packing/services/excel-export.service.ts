@@ -155,10 +155,6 @@ export class ExcelExportService {
       const row = worksheet.addRow({
         orderId: result.orderId,
         recipientName: result.recipientName,
-        recipientPhone: result.recipientPhone,
-        zipCode: result.zipCode,
-        address: result.address,
-        detailAddress: result.detailAddress,
         sku: result.sku,
         productName: result.productName,
         quantity: result.quantity,

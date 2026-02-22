@@ -19,6 +19,17 @@ export function useBatches(projectId: string) {
   });
 }
 
+export function useCreateOutbound(projectId: string): UseMutationResult<Outbound, Error, Omit<Outbound, 'id' | 'projectId' | 'createdAt'>> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data) => api.outbound.create(projectId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: outbounds.all._def });
+    },
+  });
+}
+
 export function useCreateOutbounds(projectId: string): UseMutationResult<void, Error, Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[]> {
   const queryClient = useQueryClient();
 

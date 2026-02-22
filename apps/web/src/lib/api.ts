@@ -55,6 +55,12 @@ export const api = {
   outbound: {
     list: (projectId: string) => fetchJson<Outbound[]>(`/projects/${projectId}/outbounds`),
     listBatches: (projectId: string) => fetchJson<{ batchId: string; batchName: string; count: number; createdAt: string; originalFilePath?: string }[]>(`/projects/${projectId}/outbounds/batches`),
+    create: (projectId: string, outbound: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>) =>
+      fetchJson<Outbound>(`/projects/${projectId}/outbounds`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(outbound),
+      }),
     createBulk: (projectId: string, outbounds: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[]) =>
       fetchJson<void>(`/projects/${projectId}/outbounds/bulk`, {
         method: 'POST',
