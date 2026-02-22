@@ -1,10 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { api } from '@/lib/api';
 
 export function useUploadWithErrorHandling() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   const uploadParse = useMutation({
     mutationFn: ({ file, type, projectId }: { file: File; type: 'outbound' | 'product'; projectId: string }) => {
@@ -23,16 +22,13 @@ export function useUploadWithErrorHandling() {
       return api.upload.parse(file, type, projectId);
     },
     onMutate: () => {
-      toast({
-        title: '파일 분석 중...',
+      toast.loading('파일 분석 중...', {
         description: 'AI가 엑셀 파일을 분석하고 있습니다.',
       });
     },
     onSuccess: (data) => {
-      toast({
-        title: '분석 완료',
+      toast.success('분석 완료', {
         description: `AI가 ${data.data.rowCount}개의 데이터를 분석했습니다.`,
-        variant: 'default',
       });
     },
     onError: (error, variables) => {
@@ -48,21 +44,14 @@ export function useUploadWithErrorHandling() {
         }
       }
 
-      toast({
-        title: '오류',
+      toast.error('오류', {
         description: errorMessage,
-        variant: 'destructive',
-        action: (
-          <button
-            onClick={() => {
-              // 재시도 로직
-              uploadParse.mutate(variables);
-            }}
-            className="text-sm underline"
-          >
-            재시도
-          </button>
-        ),
+        action: {
+          label: '재시도',
+          onClick: () => {
+            uploadParse.mutate(variables);
+          },
+        },
       });
 
       throw error;

@@ -5,7 +5,6 @@ import { useUploadParse, useUploadConfirm } from '@/hooks/queries';
 import { useProductUpload } from '@/hooks/useProductUpload';
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { MappingConfirmation } from '@/components/upload/MappingConfirmation';
-import { Product } from '@wms/types';
 import { AlertCircle, Loader2 } from 'lucide-react';
 
 export const ProductManager: React.FC = () => {
@@ -18,9 +17,9 @@ export const ProductManager: React.FC = () => {
   const handleUpload = async (file: File) => {
     if (!projectId) return;
 
-    uploadState.uploadState.setUploadFile(file);
+    uploadState.setUploadFile(file);
     uploadState.setUploading(true);
-    uploadState.uploadState.setErrors([]);
+    uploadState.setErrors([]);
 
     try {
       const response = await uploadParse.mutateAsync({
@@ -30,8 +29,8 @@ export const ProductManager: React.FC = () => {
       });
 
       if (response.success) {
-        uploadState.uploadState.setUploadSession(response.data);
-        uploadState.uploadState.setShowMappingUI(true);
+        uploadState.setUploadSession(response.data);
+        uploadState.setShowMappingUI(true);
       }
     } catch (error) {
       console.error('AI parsing failed:', error);
@@ -61,7 +60,7 @@ export const ProductManager: React.FC = () => {
   const handleFallback = async () => {
     if (uploadState.uploadFile) {
       uploadState.setShowMappingUI(false);
-      await fallbackUpload(uploadState.uploadFile);
+      await uploadState.fallbackUpload(uploadState.uploadFile);
     }
   };
 
@@ -116,11 +115,9 @@ export const ProductManager: React.FC = () => {
                 </p>
               </div>
 
-              <ExcelUpload<Record<string, unknown>>
+              <ExcelUpload
                 onUpload={handleUpload}
                 title="Click or drag Excel file here"
-                headerRow={2}
-                headerKey="상품명"
               />
 
               {uploadParse.isError && (
@@ -130,7 +127,8 @@ export const ProductManager: React.FC = () => {
                     <span>AI 분석 실패</span>
                   </div>
                   <p className="text-sm text-yellow-600">
-                    AI가 파일을 분석하지 못했습니다. 파일을 다시 시도하거나 기존 방식으로 업로드하세요.
+                    AI가 파일을 분석하지 못했습니다. 파일을 다시 시도하거나 기존 방식으로
+                    업로드하세요.
                   </p>
                 </div>
               )}
@@ -153,22 +151,20 @@ export const ProductManager: React.FC = () => {
               )}
             </div>
           ) : (
-            <ExcelUpload<Record<string, unknown>>
+            <ExcelUpload
               onUpload={handleUpload}
               title="Import Products via Excel"
-              headerRow={2}
-              headerKey="상품명"
             />
           )}
 
-          {!uploadState.uploadState.isUploading && uploadState.uploadState.errors.length > 0 && (
+          {!uploadState.isUploading && uploadState.errors.length > 0 && (
             <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg animate-in fade-in slide-in-from-top-2">
               <div className="flex items-center gap-2 text-red-700 font-bold mb-3">
                 <AlertCircle className="h-4 w-4" />
-                <span>Validation Errors ({uploadState.uploadState.errors.length})</span>
+                <span>Validation Errors ({uploadState.errors.length})</span>
               </div>
               <ul className="text-xs text-red-600 space-y-2 max-h-60 overflow-y-auto">
-                {uploadState.uploadState.errors.map((err, i) => (
+                {uploadState.errors.map((err: string, i: number) => (
                   <li key={i} className="flex gap-2">
                     <span className="opacity-50">•</span>
                     {err}

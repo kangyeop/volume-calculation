@@ -1,31 +1,26 @@
 import React, { useRef } from 'react';
-import * as XLSX from 'xlsx';
 import { Upload } from 'lucide-react';
 
-interface ExcelUploadProps<T> {
-  onUpload: (data: T[], fileName: string) => void;
+interface ExcelUploadProps {
+  onUpload: (file: File) => void;
   title: string;
-  headerRow?: number;
-  headerKey?: string;
-  maxSize?: number; // in MB
+  maxSize?: number;
   allowedExtensions?: string[];
 }
 
-export const ExcelUpload = <T,>({
+export const ExcelUpload = ({
   onUpload,
   title,
-  headerRow = 0,
-  headerKey,
   maxSize = 10,
-  allowedExtensions = ['.xlsx', '.xls', '.csv']
-}: ExcelUploadProps<T>) => {
+  allowedExtensions = ['.xlsx', '.xls', '.csv'],
+}: ExcelUploadProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-      if (file.size > maxSize * 1024 * 1024) {
+    if (file.size > maxSize * 1024 * 1024) {
       alert(`파일 크기는 ${maxSize}MB를 초과할 수 없습니다.`);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -33,7 +28,7 @@ export const ExcelUpload = <T,>({
       return;
     }
 
-      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
     if (!allowedExtensions.includes(fileExtension)) {
       alert(`허용되는 파일 형식: ${allowedExtensions.join(', ')}`);
       if (fileInputRef.current) {
@@ -42,37 +37,17 @@ export const ExcelUpload = <T,>({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const bstr = evt.target?.result;
-      const wb = XLSX.read(bstr, { type: 'binary' });
-      const wsname = wb.SheetNames[0];
-      const ws = wb.Sheets[wsname];
-
-      let targetHeaderRow = headerRow;
-
-      if (headerKey) {
-          const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 }) as unknown[][];
-        const foundIndex = rawData.findIndex(row =>
-          row.some(cell => String(cell).includes(headerKey))
-        );
-        if (foundIndex !== -1) {
-          targetHeaderRow = foundIndex;
-        }
-      }
-
-      const data = XLSX.utils.sheet_to_json(ws, { range: targetHeaderRow }) as T[];
-      onUpload(data, file.name);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    };
-    reader.readAsBinaryString(file);
+    onUpload(file);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
-         onClick={() => fileInputRef.current?.click()}>
+    <div
+      className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
+      onClick={() => fileInputRef.current?.click()}
+    >
       <input
         type="file"
         ref={fileInputRef}
@@ -86,4 +61,3 @@ export const ExcelUpload = <T,>({
     </div>
   );
 };
-

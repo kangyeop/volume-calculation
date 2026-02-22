@@ -1,6 +1,15 @@
 export interface UploadSession {
   sessionId: string;
-  data: Record<string, unknown>[];
+  headers: string[];
+  rowCount: number;
+  sampleRows: Record<string, unknown>[];
+  mapping: {
+    confidence: number;
+    mapping: Record<string, { columnName: string; confidence: number } | null>;
+    unmappedColumns: string[];
+    notes?: string;
+  };
+  fileName: string;
 }
 
 export interface UploadResponse {

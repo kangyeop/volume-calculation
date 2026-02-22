@@ -1,10 +1,12 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import { AIModule } from '../ai/ai.module';
+import { OutboundModule } from '../outbound/outbound.module';
+import { ProductsModule } from '../products/products.module';
 import { ExcelParserService } from './services/excel-parser.service';
 import { UploadSessionService } from './services/upload-session.service';
 import { FileStorageService } from './services/file-storage.service';
@@ -13,6 +15,8 @@ import { UploadController } from './upload.controller';
 @Module({
   imports: [
     AIModule,
+    forwardRef(() => OutboundModule),
+    ProductsModule,
     MulterModule.register({
       storage: diskStorage({
         destination: (_req, _file, callback) => {

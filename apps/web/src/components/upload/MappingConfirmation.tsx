@@ -82,7 +82,7 @@ const productFields: ProductFieldMapping = {
 
 export const MappingConfirmation: React.FC<MappingConfirmationProps> = ({
   type,
-  _: sessionId,
+  sessionId,
   headers,
   mapping,
   sampleRows,
@@ -114,7 +114,7 @@ export const MappingConfirmation: React.FC<MappingConfirmationProps> = ({
   const getMappingForSubmit = (): Record<string, string | null> => {
     const result: Record<string, string | null> = {};
     fieldMappings.forEach(field => {
-      result[field.fieldName] = field.userMapping;
+      result[field.fieldName] = field.userMapping ?? null;
     });
     return result;
   };

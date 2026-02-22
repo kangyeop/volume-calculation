@@ -30,14 +30,12 @@ export class OutboundService {
   }
 
   async findAll(projectId: string, batchId?: string): Promise<OutboundEntity[]> {
-    const where: { projectId: string; batchId?: string } = { projectId };
+    const query = this.outboundRepository.createQueryBuilder('outbound')
+      .where('outbound.projectId = :projectId', { projectId });
     if (batchId) {
-      where.batchId = batchId;
+      query.andWhere('outbound.batchId = :batchId', { batchId });
     }
-    return this.outboundRepository.find({
-      where,
-      order: { createdAt: 'DESC' },
-    });
+    return query.orderBy('outbound.id', 'DESC').getMany();
   }
 
   async findBatches(projectId: string): Promise<

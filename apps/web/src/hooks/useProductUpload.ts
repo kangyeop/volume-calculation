@@ -128,11 +128,12 @@ export const useProductUpload = (projectId: string) => {
   const fallbackUpload = async (file: File) => {
     const reader = new FileReader();
     reader.onload = async (evt) => {
-      const bstr = evt.target?.result;
-      const wb = (window as unknown as { XLSX: { read: any } }).XLSX.read(bstr, { type: 'binary' });
+      const bstr = evt.target?.result as ArrayBuffer;
+      const XLSX = (window as unknown as { XLSX: { read: any; utils: { sheet_to_json: any } } }).XLSX;
+      const wb = XLSX.read(bstr, { type: 'array' });
       const wsname = wb.SheetNames[0];
       const ws = wb.Sheets[wsname];
-      const rawData = (window as unknown as { XLSX: { utils: { sheet_to_json: any } } }).XLSX.utils.sheet_to_json(ws, { header: 1 }) as unknown[][];
+      const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 }) as unknown[][];
 
       if (rawData.length > 0) {
         const headerRow = 2;
@@ -148,7 +149,7 @@ export const useProductUpload = (projectId: string) => {
         await processWithHardcodedMapping(dataRows);
       }
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   };
 
   return {

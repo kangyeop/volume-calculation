@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
@@ -10,7 +10,7 @@ import { UploadModule } from '../upload/upload.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([OutboundEntity]),
-    UploadModule,
+    forwardRef(() => UploadModule),
     MulterModule.register({
       storage: memoryStorage(),
       limits: {
