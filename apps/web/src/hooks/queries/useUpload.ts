@@ -42,9 +42,6 @@ export function useUploadParse() {
 
       return api.upload.parse(file, type, projectId);
     },
-    onMutate: () => {
-      toast.loading('파일 분석 중...', { description: 'AI가 엑셀 파일을 분석하고 있습니다.' });
-    },
     onSuccess: (data) => {
       toast.success('분석 완료', { description: `AI가 ${data.data.rowCount}개의 데이터를 분석했습니다.` });
     },

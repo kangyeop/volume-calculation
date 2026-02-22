@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useProducts } from '@/hooks/queries';
 import { useUploadParse, useUploadConfirm } from '@/hooks/queries';
 import { useProductUpload } from '@/hooks/useProductUpload';
 import { ExcelUpload } from '@/components/ExcelUpload';
-import { MappingConfirmation } from '@/components/upload/MappingConfirmation';
 import { AlertCircle, Loader2 } from 'lucide-react';
+
+const PRODUCT_FIELDS = ['sku', 'name', 'dimensions'];
 
 export const ProductManager: React.FC = () => {
   const { id: projectId } = useParams<{ id: string }>();
@@ -14,6 +15,7 @@ export const ProductManager: React.FC = () => {
   const uploadParse = useUploadParse();
   const uploadConfirm = useUploadConfirm();
   const uploadState = useProductUpload(projectId || '');
+  const [isAutoConfirming, setIsAutoConfirming] = useState(false);
 
   const handleUpload = async (file: File) => {
     if (!projectId) return;
@@ -31,7 +33,7 @@ export const ProductManager: React.FC = () => {
 
       if (response.success) {
         uploadState.setUploadSession(response.data);
-        uploadState.setShowMappingUI(true);
+        await autoConfirmProductMapping(response.data);
       }
     } catch (error) {
       console.error('AI parsing failed:', error);
@@ -39,12 +41,25 @@ export const ProductManager: React.FC = () => {
     }
   };
 
-  const handleAIConfirm = async (mapping: Record<string, string | null>) => {
-    if (!uploadState.uploadSession || !projectId) return;
+  const autoConfirmProductMapping = async (uploadSession: {
+    sessionId: string;
+    mapping: {
+      mapping: Record<string, { columnName: string; confidence: number } | null>;
+    };
+  }) => {
+    setIsAutoConfirming(true);
+    uploadState.setShowMappingUI(true);
 
     try {
+      const mapping: Record<string, string | null> = {};
+
+      PRODUCT_FIELDS.forEach((field) => {
+        const fieldMapping = uploadSession.mapping.mapping[field];
+        mapping[field] = fieldMapping?.columnName || null;
+      });
+
       await uploadConfirm.mutateAsync({
-        sessionId: uploadState.uploadSession.sessionId,
+        sessionId: uploadSession.sessionId,
         mapping,
       });
 
@@ -52,23 +67,12 @@ export const ProductManager: React.FC = () => {
       uploadState.setShowMappingUI(false);
       uploadState.setUploadSession(null);
     } catch (error) {
-      console.error('Failed to confirm mapping:', error);
+      console.error('Failed to auto-confirm mapping:', error);
       uploadState.setErrors(['매핑 확인 중 오류가 발생했습니다.']);
+    } finally {
+      setIsAutoConfirming(false);
+      uploadState.setUploading(false);
     }
-  };
-
-  const handleFallback = async () => {
-    if (uploadState.uploadFile) {
-      uploadState.setShowMappingUI(false);
-      await uploadState.fallbackUpload(uploadState.uploadFile);
-    }
-  };
-
-  const handleCancelMapping = () => {
-    uploadState.setShowMappingUI(false);
-    uploadState.setUploadSession(null);
-    uploadState.setUploadFile(null);
-    uploadState.setUploading(false);
   };
 
   const currentProducts = products || [];
@@ -82,28 +86,13 @@ export const ProductManager: React.FC = () => {
         </div>
       </div>
 
-      {uploadState.showMappingUI && uploadState.uploadSession && (
-        <div className="max-w-6xl mx-auto py-8 animate-in zoom-in-95 duration-300">
-          <MappingConfirmation
-            type="product"
-            sessionId={uploadState.uploadSession.sessionId}
-            headers={uploadState.uploadSession.headers}
-            mapping={uploadState.uploadSession.mapping}
-            sampleRows={uploadState.uploadSession.sampleRows}
-            onConfirm={handleAIConfirm}
-            onFallback={handleFallback}
-            onCancel={handleCancelMapping}
-          />
-        </div>
-      )}
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1">
-          {uploadState.isUploading && !uploadState.showMappingUI ? (
+          {(uploadState.isUploading || isAutoConfirming) && !uploadState.showMappingUI ? (
             <div className="bg-white border rounded-xl p-8 shadow-sm space-y-6">
               <div className="text-center space-y-2">
                 <div className="bg-blue-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  {uploadParse.isPending ? (
+                  {(uploadParse.isPending || isAutoConfirming) ? (
                     <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
                   ) : (
                     <div className="text-blue-600 font-bold">XLS</div>
@@ -111,7 +100,7 @@ export const ProductManager: React.FC = () => {
                 </div>
                 <h2 className="text-xl font-bold">Import Products</h2>
                 <p className="text-muted-foreground text-sm">
-                  Upload your Excel file containing product information.
+                  {isAutoConfirming ? 'Processing products...' : 'Upload your Excel file containing product information.'}
                 </p>
               </div>
 
@@ -157,7 +146,7 @@ export const ProductManager: React.FC = () => {
             />
           )}
 
-          {!uploadState.isUploading && uploadState.errors.length > 0 && (
+          {!uploadState.isUploading && !isAutoConfirming && uploadState.errors.length > 0 && (
             <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg animate-in fade-in slide-in-from-top-2">
               <div className="flex items-center gap-2 text-red-700 font-bold mb-3">
                 <AlertCircle className="h-4 w-4" />
@@ -178,7 +167,7 @@ export const ProductManager: React.FC = () => {
             <ul className="list-disc ml-4 space-y-1">
               <li>sku (String)</li>
               <li>name (String)</li>
-              <li>width, length, height (cm)</li>
+              <li>dimensions (예: 10*20*30 또는 10x20x30)</li>
             </ul>
           </div>
         </div>

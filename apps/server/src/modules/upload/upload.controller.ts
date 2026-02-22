@@ -127,13 +127,31 @@ export class UploadController {
     } else {
       const products = mappedRows
         .filter((row) => row.sku && row.name)
-        .map((row) => ({
-          sku: String(row.sku || ''),
-          name: String(row.name || ''),
-          width: parseFloat(row.width || '0') || 0,
-          length: parseFloat(row.length || '0') || 0,
-          height: parseFloat(row.height || '0') || 0,
-        }));
+        .map((row) => {
+          let width = 0;
+          let length = 0;
+          let height = 0;
+
+          if (row.dimensions) {
+            const dims = String(row.dimensions).trim();
+            const match = dims.match(
+              /^(\d+(?:\.\d+)?)\s*[*xX]\s*(\d+(?:\.\d+)?)\s*[*xX]\s*(\d+(?:\.\d+)?)$/,
+            );
+            if (match) {
+              width = parseFloat(match[1]) || 0;
+              length = parseFloat(match[2]) || 0;
+              height = parseFloat(match[3]) || 0;
+            }
+          }
+
+          return {
+            sku: String(row.sku || ''),
+            name: String(row.name || ''),
+            width,
+            length,
+            height,
+          };
+        });
 
       const results = await this.productsService.createBulk(session.projectId, products);
 

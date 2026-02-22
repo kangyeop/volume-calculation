@@ -15,19 +15,7 @@ export const ProductMappingSchema = z.object({
         confidence: z.number().min(0).max(1),
       })
       .nullable(),
-    width: z
-      .object({
-        columnName: z.string(),
-        confidence: z.number().min(0).max(1),
-      })
-      .nullable(),
-    length: z
-      .object({
-        columnName: z.string(),
-        confidence: z.number().min(0).max(1),
-      })
-      .nullable(),
-    height: z
+    dimensions: z
       .object({
         columnName: z.string(),
         confidence: z.number().min(0).max(1),

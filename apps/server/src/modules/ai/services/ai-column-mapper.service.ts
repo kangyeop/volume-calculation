@@ -110,10 +110,11 @@ ${sampleData}
 Required fields to map:
 - sku: Product SKU or product code
 - name: Product name or description
-- width: Product width
-- length: Product length
-- height: Product height
-- weight: Product weight
+- dimensions: Combined dimensions in a single column
+  Supported formats: "10*20*30", "10x20x30", "10X20X30", "10 x 20 x 30"
+  Order: width x length x height (가로 x 세로 x 높이)
+  Korean column names: 규격, 사이즈, dimension, 치수
+  Example values: "30*40*20", "10x20x30", "100X200X50"
 
 Return a mapping with confidence scores (0-1) for each field. Set to null if no matching column is found.`;
   }
