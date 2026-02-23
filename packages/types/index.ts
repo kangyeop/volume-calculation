@@ -146,3 +146,116 @@ export interface UploadRemapRequest {
   sessionId: string;
   forceAI?: boolean;
 }
+
+export interface AlternativeMatch {
+  id: string;
+  sku: string;
+  name: string;
+  confidence: number;
+}
+
+export interface ProductMatchResult {
+  outboundItemIndex: number;
+  outboundSku: string;
+  outboundName?: string;
+  matchedProduct?: {
+    id: string;
+    sku: string;
+    name: string;
+  };
+  confidence: number;
+  matchReason: string;
+  needsReview: boolean;
+  alternativeMatches?: AlternativeMatch[];
+}
+
+export interface ProductMappingSession {
+  sessionId: string;
+  projectId: string;
+  totalItems: number;
+  matchedItems: number;
+  unmatchedItems: number;
+  needsReview: number;
+  results: ProductMatchResult[];
+}
+
+export interface ProductMappingData {
+  totalItems: number;
+  matchedItems: number;
+  needsReview: number;
+  results: ProductMatchResult[];
+}
+
+export interface ParseMappingUploadResponse {
+  success: boolean;
+  data: {
+    sessionId: string;
+    headers: string[];
+    rowCount: number;
+    sampleRows: Record<string, unknown>[];
+    columnMapping: MappingResult;
+    productMapping?: ProductMappingData;
+    fileName: string;
+  };
+}
+
+export interface ConfirmMappingUploadRequest {
+  sessionId: string;
+  columnMapping: Record<string, string | null>;
+  productMapping?: Record<number, string | null>;
+}
+
+export interface ConfirmMappingUploadResponse {
+  success: boolean;
+  data: {
+    imported: number;
+    batchId?: string;
+    mappedCount: number;
+    unmappedCount: number;
+  };
+}
+
+export interface OutboundWithProduct extends Outbound {
+  productId?: string | null;
+  mappingConfidence?: number | null;
+  product?: Product;
+}
+
+export type Rotation = 'none' | '90' | '180' | '270';
+
+export interface ItemPlacement {
+  x: number;
+  y: number;
+  z: number;
+  rotation: Rotation;
+}
+
+export interface PackedItem3D {
+  skuId: string;
+  name?: string;
+  quantity: number;
+  placements: ItemPlacement[];
+}
+
+export interface PackedBox3D {
+  boxId: string;
+  boxName: string;
+  boxNumber: number;
+  width: number;
+  length: number;
+  height: number;
+  items: PackedItem3D[];
+  totalCBM: number;
+  efficiency: number;
+  usedVolume: number;
+  availableVolume: number;
+}
+
+export interface PackingResult3D {
+  orderId: string;
+  groupLabel?: string;
+  boxes: PackedBox3D[];
+  unpackedItems: { skuId: string; name?: string; quantity: number; reason: string }[];
+  totalCBM: number;
+  totalEfficiency: number;
+}

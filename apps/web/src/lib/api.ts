@@ -1,4 +1,4 @@
-import { Project, Product, Outbound, PackingRecommendation, PackingResult, PackingGroupingOption, Box } from '@wms/types';
+import { Project, Product, Outbound, PackingRecommendation, PackingResult, PackingGroupingOption, Box, PackingResult3D, ConfirmMappingUploadResponse } from '@wms/types';
 
 const API_BASE = '/api';
 
@@ -92,6 +92,13 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ groupingOption, batchId }),
       }),
+    calculateOrder: async (projectId: string, orderId: string, groupLabel?: string) => {
+      return fetchJson<PackingResult3D>(`/projects/${projectId}/packing/calculate-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, groupLabel }),
+      });
+    },
     history: (projectId: string) => fetchJson<PackingResult[]>(`/projects/${projectId}/packing/results`),
     export: (projectId: string, batchId: string) => {
       return fetch(`${API_BASE}/projects/${projectId}/packing/export?batchId=${encodeURIComponent(batchId)}`, {
@@ -140,11 +147,40 @@ export const api = {
         return response.json();
       });
     },
+    parseMapping: async (file: File, type: 'outbound' | 'product', projectId: string) => {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const params = new URLSearchParams({ type, projectId });
+      const response = await fetch(`${API_BASE}/upload/parse-mapping?${params}`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `API Error: ${response.statusText}`);
+      }
+      return response.json();
+    },
     confirm: (sessionId: string, mapping: Record<string, string | null>) => {
       return fetchJson(`/upload/confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, mapping }),
+      });
+    },
+    confirmMapping: (sessionId: string, columnMapping: Record<string, string | null>, productMapping?: Record<number, string | null>) => {
+      return fetchJson<{ success: boolean; data: ConfirmMappingUploadResponse['data'] }>(`/upload/confirm-mapping`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, columnMapping, productMapping }),
+      });
+    },
+    updateMapping: async (sessionId: string, columnMapping: Record<string, string | null>) => {
+      return fetchJson<{ success: boolean; data: { productMapping: { totalItems: number; matchedItems: number; needsReview: number; results: any[] } } }>(`/upload/update-mapping`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, columnMapping }),
       });
     },
     deleteSession: (sessionId: string) => {

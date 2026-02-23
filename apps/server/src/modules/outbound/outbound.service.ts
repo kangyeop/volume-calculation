@@ -84,6 +84,8 @@ export class OutboundService {
           projectId,
           batchId,
           batchName,
+          productId: dto.productId ?? null,
+          mappingConfidence: dto.mappingConfidence ?? null,
         }),
       );
 

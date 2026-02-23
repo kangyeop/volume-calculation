@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ChatOpenAI } from '@langchain/openai';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ProductEntity } from '../products/entities/product.entity';
 import { AIColumnMapperService } from './services/ai-column-mapper.service';
+import { AIProductMapperService } from './services/ai-product-mapper.service';
 
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigModule, TypeOrmModule.forFeature([ProductEntity])],
   providers: [
     {
       provide: 'LLM_PROVIDER',
@@ -18,7 +21,8 @@ import { AIColumnMapperService } from './services/ai-column-mapper.service';
       inject: [ConfigService],
     },
     AIColumnMapperService,
+    AIProductMapperService,
   ],
-  exports: ['LLM_PROVIDER', AIColumnMapperService],
+  exports: ['LLM_PROVIDER', AIColumnMapperService, AIProductMapperService],
 })
 export class AIModule {}

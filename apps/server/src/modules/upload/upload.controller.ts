@@ -15,10 +15,12 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ExcelParserService } from './services/excel-parser.service';
 import { UploadSessionService } from './services/upload-session.service';
 import { AIColumnMapperService } from '../ai/services/ai-column-mapper.service';
+import { AIProductMapperService } from '../ai/services/ai-product-mapper.service';
 import { OutboundService } from '../outbound/outbound.service';
 import { ProductsService } from '../products/products.service';
 import { ParseUploadDto } from './dto/parse-upload.dto';
 import { ConfirmUploadDto } from './dto/confirm-upload.dto';
+import { ConfirmMappingUploadDto, ProductMappingItem } from './dto/confirm-mapping-upload.dto';
 
 @Controller('upload')
 export class UploadController {
@@ -26,6 +28,7 @@ export class UploadController {
     private readonly excelParserService: ExcelParserService,
     private readonly uploadSessionService: UploadSessionService,
     private readonly aiColumnMapperService: AIColumnMapperService,
+    private readonly aiProductMapperService: AIProductMapperService,
     private readonly outboundService: OutboundService,
     private readonly productsService: ProductsService,
   ) {}
@@ -169,6 +172,195 @@ export class UploadController {
         },
       };
     }
+  }
+
+  @Post('parse-mapping')
+  @UseInterceptors(FileInterceptor('file'))
+  async parseMapping(@UploadedFile() file: Express.Multer.File, @Query() query: ParseUploadDto) {
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
+
+    if (!query.type || !query.projectId) {
+      throw new BadRequestException('Type and projectId are required');
+    }
+
+    if (query.type !== 'outbound') {
+      throw new BadRequestException('Product mapping is only available for outbound uploads');
+    }
+
+    const parseResult = this.excelParserService.parseExcelFile(file);
+
+    const columnMapping = await this.aiColumnMapperService.mapOutboundColumns(
+      parseResult.headers,
+      parseResult.sampleRows,
+    );
+
+    const mappedRows = parseResult.rows.map((row) => {
+      const result: any = {};
+      for (const [field, columnMappingInfo] of Object.entries(columnMapping.mapping)) {
+        const columnName = columnMappingInfo?.columnName;
+        if (columnName) {
+          result[field] = row[columnName] ?? '';
+        }
+      }
+      return result;
+    });
+
+    const outboundItems = mappedRows
+      .filter((row) => row.orderId)
+      .map((row) => ({
+        availableFields: row,
+      }));
+
+    const productMapping = await this.aiProductMapperService.mapOutboundItemsToProducts(
+      query.projectId,
+      outboundItems,
+    );
+
+    const sessionId = this.uploadSessionService.createSession({
+      type: query.type,
+      projectId: query.projectId,
+      headers: parseResult.headers,
+      mapping: columnMapping,
+      rows: parseResult.rows,
+      fileName: file.originalname,
+    });
+
+    return {
+      success: true,
+      data: {
+        sessionId,
+        headers: parseResult.headers,
+        rowCount: parseResult.rowCount,
+        sampleRows: parseResult.sampleRows,
+        columnMapping,
+        productMapping: {
+          totalItems: productMapping.totalItems,
+          matchedItems: productMapping.matchedItems,
+          needsReview: productMapping.needsReview,
+          results: productMapping.results,
+        },
+        fileName: file.originalname,
+      },
+    };
+  }
+
+  @Post('confirm-mapping')
+  async confirmMapping(@Body() confirmMappingUploadDto: ConfirmMappingUploadDto) {
+    const session = this.uploadSessionService.getSession(confirmMappingUploadDto.sessionId);
+    if (!session) {
+      throw new BadRequestException('Session not found or expired');
+    }
+
+    this.uploadSessionService.updateMapping(confirmMappingUploadDto.sessionId, confirmMappingUploadDto.columnMapping);
+
+    const mapping = confirmMappingUploadDto.columnMapping;
+    const mappedRows = session.rows.map((row) => {
+      const result: any = {};
+      for (const [field, columnName] of Object.entries(mapping)) {
+        if (columnName) {
+          result[field] = row[columnName] ?? '';
+        }
+      }
+      return result;
+    });
+
+    const productMapping = confirmMappingUploadDto.productMapping || {};
+
+    const outbounds = mappedRows
+      .filter((row) => row.orderId && row.sku)
+      .map((row, index) => {
+        const mappingItem: ProductMappingItem | undefined = productMapping[index];
+        return {
+          orderId: String(row.orderId || ''),
+          sku: String(row.sku || ''),
+          quantity: parseInt(row.quantity || '1', 10) || 1,
+          recipientName: row.recipientName || undefined,
+          recipientPhone: row.recipientPhone || undefined,
+          zipCode: row.zipCode || undefined,
+          address: row.address || undefined,
+          detailAddress: row.detailAddress || undefined,
+          shippingMemo: row.shippingMemo || undefined,
+          productId: mappingItem?.productId ?? null,
+          mappingConfidence: mappingItem?.confidence ?? (mappingItem?.productId ? 1.0 : null),
+        };
+      });
+
+    const results = await this.outboundService.createBulk(session.projectId, outbounds);
+
+    const mappedCount = results.filter((r) => r.productId !== null).length;
+    const unmappedCount = results.length - mappedCount;
+
+    this.uploadSessionService.deleteSession(confirmMappingUploadDto.sessionId);
+
+    return {
+      success: true,
+      data: {
+        imported: results.length,
+        batchId: results[0]?.batchId,
+        mappedCount,
+        unmappedCount,
+      },
+    };
+  }
+
+  @Post('update-mapping')
+  async updateMapping(@Body() body: { sessionId: string; columnMapping: Record<string, string | null> }) {
+    const session = this.uploadSessionService.getSession(body.sessionId);
+    if (!session) {
+      throw new BadRequestException('Session not found or expired');
+    }
+
+    const sessionMapping = session.mapping as { mapping?: Record<string, { columnName: string; confidence: number }> } | undefined;
+    const originalMapping = sessionMapping?.mapping ?? {};
+
+    const updatedMapping: { mapping: Record<string, { columnName: string; confidence: number }> } = { mapping: {} };
+    for (const [field, columnName] of Object.entries(body.columnMapping)) {
+      if (columnName) {
+        const originalFieldMapping = originalMapping[field];
+        updatedMapping.mapping[field] = {
+          columnName,
+          confidence: originalFieldMapping?.confidence ?? 0.5,
+        };
+      }
+    }
+
+    session.mapping = updatedMapping;
+
+    const mappedRows = session.rows.map((row) => {
+      const result: any = {};
+      for (const [field, columnMappingInfo] of Object.entries(updatedMapping.mapping)) {
+        const columnName = columnMappingInfo?.columnName;
+        if (columnName) {
+          result[field] = row[columnName] ?? '';
+        }
+      }
+      return result;
+    });
+
+    const outboundItems = mappedRows
+      .filter((row) => row.orderId)
+      .map((row) => ({
+        availableFields: row,
+      }));
+
+    const productMapping = await this.aiProductMapperService.mapOutboundItemsToProducts(
+      session.projectId,
+      outboundItems,
+    );
+
+    return {
+      success: true,
+      data: {
+        productMapping: {
+          totalItems: productMapping.totalItems,
+          matchedItems: productMapping.matchedItems,
+          needsReview: productMapping.needsReview,
+          results: productMapping.results,
+        },
+      },
+    };
   }
 
   @Delete(':id')

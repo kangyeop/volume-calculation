@@ -7,7 +7,8 @@ import { OutboundService } from '../outbound/outbound.service';
 import { ProductsService } from '../products/products.service';
 import { BoxesService } from '../boxes/boxes.service';
 import { calculatePacking } from './packing.algorithm';
-import { SKU, PackingRecommendation, PackingGroupingOption } from '@wms/types';
+import { calculateOrderPacking3D } from './packing.3d.algorithm';
+import { SKU, PackingRecommendation, PackingGroupingOption, PackingResult3D } from '@wms/types';
 import { OutboundEntity } from '../outbound/entities/outbound.entity';
 
 @Injectable()
@@ -275,5 +276,98 @@ export class PackingService {
       where: { projectId },
       order: { createdAt: 'DESC' },
     });
+  }
+
+  async calculateOrderPacking(
+    projectId: string,
+    orderId: string,
+    groupLabel?: string,
+  ): Promise<PackingResult3D> {
+    this.logger.log(`Calculating 3D packing for order: ${orderId}`);
+
+    const outbounds = await this.outboundService.findAll(projectId);
+    const products = await this.productsService.findAll(projectId);
+    const boxes = await this.boxesService.findAll();
+
+    if (boxes.length === 0) {
+      throw new BadRequestException(
+        '등록된 박스가 없습니다. 박스 관리 메뉴에서 박스를 먼저 등록해주세요.',
+      );
+    }
+
+    const productMap = new Map(products.map((p) => [p.sku, p]));
+
+    const orderOutbounds = outbounds.filter((o) => o.orderId === orderId);
+
+    if (orderOutbounds.length === 0) {
+      throw new BadRequestException(`주문 ID ${orderId}에 대한 출고 정보가 없습니다.`);
+    }
+
+    const skuMap = new Map<string, SKU>();
+
+    for (const outbound of orderOutbounds) {
+      const product = productMap.get(outbound.sku);
+      if (!product) {
+        this.logger.warn(`Product not found for SKU: ${outbound.sku}`);
+        continue;
+      }
+
+      const existing = skuMap.get(product.id);
+      if (existing) {
+        existing.quantity += outbound.quantity;
+      } else {
+        skuMap.set(product.id, {
+          id: product.id,
+          name: product.name,
+          width: product.width,
+          length: product.length,
+          height: product.height,
+          quantity: outbound.quantity,
+        });
+      }
+    }
+
+    const skus = Array.from(skuMap.values());
+
+    const result = calculateOrderPacking3D(orderId, skus, boxes, groupLabel);
+
+    await this.savePackingResults3D(projectId, result);
+
+    return result;
+  }
+
+  async findByOrderId(projectId: string, orderId: string): Promise<PackingResultEntity[]> {
+    return this.packingResultRepository.find({
+      where: { projectId, orderId },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  private async savePackingResults3D(projectId: string, result: PackingResult3D) {
+    await this.packingResultRepository.delete({ projectId, orderId: result.orderId });
+
+    for (const box of result.boxes) {
+      await this.packingResultRepository.save({
+        projectId,
+        orderId: result.orderId,
+        boxId: box.boxId,
+        boxName: box.boxName,
+        boxNumber: box.boxNumber,
+        packedCount: box.items.reduce((acc, item) => acc + item.quantity, 0),
+        remainingQuantity: 0,
+        efficiency: box.efficiency,
+        totalCBM: box.totalCBM,
+        groupLabel: result.groupLabel,
+        placements: box.items.flatMap((item) =>
+          item.placements.map((p) => ({
+            skuId: item.skuId,
+            x: p.x,
+            y: p.y,
+            z: p.z,
+            rotation: p.rotation,
+          })),
+        ),
+      });
+    }
   }
 }

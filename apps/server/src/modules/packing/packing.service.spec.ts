@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { PackingService } from './packing.service';
 import { PackingResultEntity } from './entities/packing-result.entity';
+import { PackingResultDetailEntity } from './entities/packing-result-detail.entity';
 import { OutboundService } from '../outbound/outbound.service';
 import { ProductsService } from '../products/products.service';
 import { BoxesService } from '../boxes/boxes.service';
@@ -13,6 +14,13 @@ describe('PackingService', () => {
   let boxesService: BoxesService;
 
   const mockPackingResultRepository = {
+    create: jest.fn().mockImplementation((dto) => dto),
+    save: jest.fn().mockImplementation((dto) => Promise.resolve(dto)),
+    delete: jest.fn().mockResolvedValue({ affected: 1 }),
+    find: jest.fn().mockResolvedValue([]),
+  };
+
+  const mockPackingResultDetailRepository = {
     create: jest.fn().mockImplementation((dto) => dto),
     save: jest.fn().mockImplementation((dto) => Promise.resolve(dto)),
     delete: jest.fn().mockResolvedValue({ affected: 1 }),
@@ -38,6 +46,10 @@ describe('PackingService', () => {
         {
           provide: getRepositoryToken(PackingResultEntity),
           useValue: mockPackingResultRepository,
+        },
+        {
+          provide: getRepositoryToken(PackingResultDetailEntity),
+          useValue: mockPackingResultDetailRepository,
         },
         {
           provide: OutboundService,

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PackingController } from './packing.controller';
 import { PackingService } from './packing.service';
+import { ExcelExportService } from './services/excel-export.service';
 import { PackingResultEntity } from './entities/packing-result.entity';
 import { PackingGroupingOption } from '@wms/types';
 
@@ -11,6 +12,12 @@ describe('PackingController', () => {
   const mockPackingService = {
     calculate: jest.fn(),
     findAll: jest.fn(),
+    calculateOrderPacking: jest.fn(),
+    findByOrderId: jest.fn(),
+  };
+
+  const mockExcelExportService = {
+    exportPackingResults: jest.fn().mockResolvedValue(Buffer.from('')),
   };
 
   beforeEach(async () => {
@@ -20,6 +27,10 @@ describe('PackingController', () => {
         {
           provide: PackingService,
           useValue: mockPackingService,
+        },
+        {
+          provide: ExcelExportService,
+          useValue: mockExcelExportService,
         },
       ],
     }).compile();

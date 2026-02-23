@@ -64,52 +64,89 @@ export class AIColumnMapperService {
   }
 
   private buildOutboundPrompt(headers: string[], sampleRows: any[]): string {
-    const headersList = headers.map((h, i) => `${i + 1}. ${h}`).join('\n');
-    const sampleData = sampleRows
-      .slice(0, 3)
-      .map((row) => headers.map((h) => `${h}: ${row[h] ?? ''}`).join(' | '))
-      .join('\n');
+    const fullData = sampleRows.map(row =>
+      Object.fromEntries(
+        headers.map(h => [h, row[h] ?? ''])
+      )
+    );
 
-    return `Please analyze the following CSV headers and sample data to map columns to outbound order fields.
+    return `Analyze the following Excel data and map columns to outbound order fields.
 
-Headers:
-${headersList}
+Headers: ${headers.join(', ')}
 
-Sample Data (${sampleRows.length} rows, showing first 3):
-${sampleData}
+Complete Data (JSON format, ${sampleRows.length} rows):
+${JSON.stringify(fullData, null, 2)}
 
 Required fields to map:
-- orderId: Order ID or order number
-- sku: Product SKU or product code
-- quantity: Order quantity or amount
-- recipientName: Recipient name or customer name
+- orderId: 쇼핑몰 주문번호, 주문번호, 오더번호, 주문ID
+  Pattern: Long numeric string
 
-Return a mapping with confidence scores (0-1) for each field. Set to null if no matching column is found.`;
+- sku: 연동코드, 상품코드, SKU, 상품번호
+  Pattern: Product identifier, may contain parentheses
+
+- quantity: 주문수량, 수량, 개수, quantity
+  Pattern: Number
+
+- recipientName: 수취인, 받는분, 고객명, 이름
+  Pattern: Person's name
+
+- recipientPhone: 수취인연락처, 휴대폰, 연락처, 전화번호
+  Pattern: Phone number
+
+- zipCode: 우편번호, 우편, zip
+  Pattern: 5-digit code
+
+- address: 주소, 배송지, 주소1
+  Pattern: Main address
+
+- detailAddress: 상세주소, 배송상세주소, 주소2
+  Pattern: Additional address info
+
+- shippingMemo: 비고, 메모, 배송메모, 요청사항
+  Pattern: Free text, may be empty
+
+- orderProductName: 주문서 상품명
+  Pattern: Product name from order sheet
+
+- optionName: 옵션명
+  Pattern: Option name with variant details
+
+Mapping Rules:
+1. Prefer columns with exact Korean field names (수취인, 주문수량, etc.)
+2. Look for common patterns in the actual data values
+3. Ignore system/internal fields (출고주문상태, 매핑여부, 수집일, 수집차단여부)
+4. Ignore aggregate fields (총 주문수량, 총 금액) - use per-item fields instead
+5. Ignore complex/formatted columns (상품명 / 매핑수량)
+
+Return mapping with confidence scores (0-1). Set to null if no matching column found.`;
   }
 
   private buildProductPrompt(headers: string[], sampleRows: any[]): string {
-    const headersList = headers.map((h, i) => `${i + 1}. ${h}`).join('\n');
-    const sampleData = sampleRows
-      .slice(0, 3)
-      .map((row) => headers.map((h) => `${h}: ${row[h] ?? ''}`).join(' | '))
-      .join('\n');
+    const fullData = sampleRows.map(row =>
+      Object.fromEntries(
+        headers.map(h => [h, row[h] ?? ''])
+      )
+    );
 
-    return `Please analyze the following CSV headers and sample data to map columns to product fields.
+    return `Analyze the following Excel data and map columns to product fields.
 
-Headers:
-${headersList}
+Headers: ${headers.join(', ')}
 
-Sample Data (${sampleRows.length} rows, showing first 3):
-${sampleData}
+Complete Data (JSON format, ${sampleRows.length} rows):
+${JSON.stringify(fullData, null, 2)}
 
 Required fields to map:
-- sku: Product SKU or product code
-- name: Product name or description
-- dimensions: Combined dimensions in a single column
+- sku: 상품코드, SKU, 제품코드, 연동코드
+  Pattern: Product identifier
+
+- name: 상품명, 제품명, 상품이름
+  Pattern: Product name or description
+
+- dimensions: 규격, 사이즈, dimension, 치수
   Korean column names: 규격, 사이즈, dimension, 치수
   Example formats: "30*40*20", "10x20x30cm", "6*8cm", "10x20mm", "100X200X50", "30 40 20"
 
-For dimensions, identify the SEPARATOR used between values.
+For dimensions, identify: SEPARATOR used between values:
 - Common separators: *, x, X, space, comma
 - Example: "30*40*20" -> separator is "*"
 - Example: "10x20x30" -> separator is "x"
@@ -121,8 +158,6 @@ The parsing code will:
 2. Split by the identified separator
 3. Parse values: 2 values = (width, length, height=0), 3 values = (width, length, height)
 
-Analyze the sample data and provide the separator character.
-
-Return a mapping with confidence scores (0-1) for each field. Set to null if no matching column is found.`;
+Return mapping with confidence scores (0-1). Set to null if no matching column found.`;
   }
 }

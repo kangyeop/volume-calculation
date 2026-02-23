@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useParams } from 'react-router-dom';
-import { Package, Send, LayoutDashboard, Calculator } from 'lucide-react';
+import { Package, LayoutDashboard, Calculator, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const Sidebar: React.FC = () => {
@@ -20,13 +20,8 @@ export const Sidebar: React.FC = () => {
     },
     {
       to: `/projects/${id}/outbound`,
-      label: 'Outbound',
-      icon: Send,
-    },
-    {
-      to: `/projects/${id}/packing`,
-      label: 'Packing / CBM',
-      icon: Calculator,
+      label: 'Outbound Wizard',
+      icon: Wand2,
     },
   ];
 
@@ -45,7 +40,7 @@ export const Sidebar: React.FC = () => {
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100',
-                  isActive ? 'bg-gray-100 text-primary' : 'text-muted-foreground'
+                  isActive ? 'bg-gray-100 text-primary' : 'text-muted-foreground',
                 )
               }
             >
@@ -60,7 +55,7 @@ export const Sidebar: React.FC = () => {
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100',
-                isActive ? 'bg-gray-100 text-primary' : 'text-muted-foreground'
+                isActive ? 'bg-gray-100 text-primary' : 'text-muted-foreground',
               )
             }
           >
@@ -77,4 +72,3 @@ export const Sidebar: React.FC = () => {
     </aside>
   );
 };
-

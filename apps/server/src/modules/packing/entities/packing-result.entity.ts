@@ -2,6 +2,14 @@ import { Entity, Column, ManyToOne } from 'typeorm';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { ProjectEntity } from '../../projects/entities/project.entity';
 
+interface PlacementData {
+  skuId: string;
+  x: number;
+  y: number;
+  z: number;
+  rotation: 'none' | '90' | '180' | '270';
+}
+
 @Entity('packing_results')
 export class PackingResultEntity extends BaseEntity {
   @Column()
@@ -41,6 +49,15 @@ export class PackingResultEntity extends BaseEntity {
 
   @Column('uuid')
   projectId!: string;
+
+  @Column({ type: 'json', nullable: true })
+  placements!: PlacementData[] | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  orderId!: string | null;
+
+  @Column({ type: 'int', nullable: true })
+  boxNumber!: number | null;
 
   @ManyToOne(() => ProjectEntity, (project) => project.packingResults)
   project!: ProjectEntity;
