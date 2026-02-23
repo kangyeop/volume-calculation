@@ -1,23 +1,25 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useProducts, useOutbounds, useCreateOutbounds, useDeleteOutbounds } from '@/hooks/queries';
-import { ExcelUpload } from '@/components/ExcelUpload';
-import { Outbound } from '@wms/types';
-import { Trash2, Package, Search, Upload, FileSpreadsheet, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import { useOutbounds, useDeleteOutbounds } from '@/hooks/queries';
+import { useUploadParse, useUploadConfirm } from '@/hooks/queries';
+import { useOutboundUpload } from '@/hooks/useOutboundUpload';
+import { ExcelUpload } from '@/components/ExcelUpload';
+import { AlertCircle, Loader2, Trash2, Package, Search, Upload, FileSpreadsheet, ArrowLeft } from 'lucide-react';
+
+const OUTBOUND_FIELDS = ['orderId', 'sku', 'quantity', 'recipientName'];
 
 export const OutboundManager: React.FC = () => {
   const { id: projectId } = useParams<{ id: string }>();
-  const { data: products = [] } = useProducts(projectId || '');
   const { data: outbounds = [] } = useOutbounds(projectId || '');
-  const createOutbounds = useCreateOutbounds(projectId || '');
   const deleteOutbounds = useDeleteOutbounds(projectId || '');
+  const uploadParse = useUploadParse();
+  const uploadConfirm = useUploadConfirm();
+  const uploadState = useOutboundUpload(projectId || '');
+  const [isAutoConfirming, setIsAutoConfirming] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showUpload, setShowUpload] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-
-  const productSkus = products.map((p) => p.sku);
 
   const filteredOutbounds = outbounds.filter(
     (o) =>
@@ -29,82 +31,59 @@ export const OutboundManager: React.FC = () => {
   const handleUpload = async (file: File) => {
     if (!projectId) return;
 
-    setIsUploading(true);
+    uploadState.setUploadFile(file);
+    uploadState.setUploading(true);
+    uploadState.setErrors([]);
 
     try {
-      const reader = new FileReader();
-      reader.onload = async (evt) => {
-        const bstr = evt.target?.result as ArrayBuffer;
-        const XLSX = (window as unknown as { XLSX: { read: any; utils: { sheet_to_json: any } } }).XLSX;
-        const wb = XLSX.read(bstr, { type: 'array' });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 }) as unknown[][];
+      const response = await uploadParse.mutateAsync({
+        file,
+        type: 'outbound',
+        projectId: projectId,
+      });
 
-        if (rawData.length > 0) {
-          const headers = rawData[0] as string[];
-          const data = rawData.slice(1).map((row) => {
-            const item: Record<string, unknown> = {};
-            headers.forEach((header, index) => {
-              item[header] = (row as unknown[])[index];
-            });
-            return item;
-          }) as Record<string, unknown>[];
-
-          await processExcelData(data);
-        }
-      };
-      reader.readAsArrayBuffer(file);
+      if (response.success) {
+        uploadState.setUploadSession(response.data);
+        await autoConfirmOutboundMapping(response.data);
+      }
     } catch (error) {
-      console.error('Upload failed:', error);
-      toast.error('파일 처리 중 오류가 발생했습니다.');
-    } finally {
-      setIsUploading(false);
+      console.error('AI parsing failed:', error);
+      await uploadState.fallbackUpload(file);
     }
   };
 
-  const processExcelData = async (rawData: Record<string, unknown>[]) => {
-    const errors: string[] = [];
-    const validData: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[] = [];
+  const autoConfirmOutboundMapping = async (uploadSession: {
+    sessionId: string;
+    mapping: {
+      mapping: Record<string, { columnName: string; confidence: number } | null>;
+    };
+  }) => {
+    setIsAutoConfirming(true);
+    uploadState.setShowMappingUI(true);
 
-    rawData.forEach((item, index) => {
-      const orderId = String(item['쇼핑몰주문번호'] || item.orderId || '').trim();
-      const productName = String(item['주문서상품명'] || '').trim();
-      let sku = String(item['연동코드'] || item['상품명 / 매핑수량'] || item.sku || '').trim();
+    try {
+      const mapping: Record<string, string | null> = {};
 
-      if (productName && productSkus.includes(productName)) {
-        sku = productName;
-      }
+      OUTBOUND_FIELDS.forEach((field) => {
+        const fieldMapping = uploadSession.mapping.mapping[field];
+        mapping[field] = fieldMapping?.columnName || null;
+      });
 
-      const quantity = Number(item['주문수량'] || item.quantity || 1);
+      await uploadConfirm.mutateAsync({
+        sessionId: uploadSession.sessionId,
+        mapping,
+      });
 
-      if (!orderId || !sku) return;
-
-      if (!productSkus.includes(sku)) {
-        errors.push(`Row ${index + 1}: SKU "${sku}" not found`);
-      } else {
-        validData.push({
-          orderId,
-          sku,
-          quantity,
-          recipientName: String(item['수취인'] || item.recipientName || '').trim(),
-        });
-      }
-    });
-
-    if (errors.length > 0) {
-      toast.error(`${errors.length}개의 행에서 오류 발생`);
-      console.error('Validation errors:', errors);
-    }
-
-    if (validData.length > 0) {
-      try {
-        await createOutbounds.mutateAsync(validData);
-        toast.success(`${validData.length}건 등록 완료`);
-        setShowUpload(false);
-      } catch (err) {
-        toast.error('등록에 실패했습니다.');
-      }
+      toast.success('가져오기 완료', { description: '출고가 성공적으로 등록되었습니다.' });
+      uploadState.setShowMappingUI(false);
+      uploadState.setUploadSession(null);
+      setShowUpload(false);
+    } catch (error) {
+      console.error('Failed to auto-confirm mapping:', error);
+      uploadState.setErrors(['매핑 확인 중 오류가 발생했습니다.']);
+    } finally {
+      setIsAutoConfirming(false);
+      uploadState.setUploading(false);
     }
   };
 
@@ -137,23 +116,86 @@ export const OutboundManager: React.FC = () => {
         </div>
 
         <div className="max-w-2xl mx-auto py-8">
-          <div className="bg-white border rounded-xl p-8 shadow-sm space-y-6">
-            <div className="text-center space-y-2">
-              <div className="bg-indigo-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FileSpreadsheet className="h-8 w-8 text-indigo-600" />
+          {(uploadState.isUploading || isAutoConfirming) && !uploadState.showMappingUI ? (
+            <div className="bg-white border rounded-xl p-8 shadow-sm space-y-6">
+              <div className="text-center space-y-2">
+                <div className="bg-indigo-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  {(uploadParse.isPending || isAutoConfirming) ? (
+                    <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="h-8 w-8 text-indigo-600" />
+                  )}
+                </div>
+                <h2 className="text-xl font-bold">엑셀 파일 업로드</h2>
+                <p className="text-muted-foreground text-sm">
+                  {isAutoConfirming ? 'Processing outbounds...' : '주문번호, SKU, 수량이 포함된 Excel 파일을 업로드하세요.'}
+                </p>
               </div>
-              <h2 className="text-xl font-bold">엑셀 파일 업로드</h2>
-              <p className="text-muted-foreground text-sm">
-                주문번호, SKU, 수량이 포함된 Excel 파일을 업로드하세요.
-              </p>
+
+              <ExcelUpload onUpload={handleUpload} title="클릭하거나 파일을 드래그하세요" />
+
+              {uploadParse.isError && (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-yellow-700 font-bold mb-3">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>AI 분석 실패</span>
+                  </div>
+                  <p className="text-sm text-yellow-600">
+                    AI가 파일을 분석하지 못했습니다. 파일을 다시 시도하거나 기존 방식으로
+                    업로드하세요.
+                  </p>
+                </div>
+              )}
+
+              {uploadState.errors.length > 0 && (
+                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg animate-in fade-in slide-in-from-top-2">
+                  <div className="flex items-center gap-2 text-red-700 font-bold mb-3">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>Validation Errors ({uploadState.errors.length})</span>
+                  </div>
+                  <ul className="text-xs text-red-600 space-y-2 max-h-60 overflow-y-auto">
+                    {uploadState.errors.map((err, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="opacity-50">•</span>
+                        {err}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
+          ) : (
+            <div className="bg-white border rounded-xl p-8 shadow-sm space-y-6">
+              <div className="text-center space-y-2">
+                <div className="bg-indigo-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FileSpreadsheet className="h-8 w-8 text-indigo-600" />
+                </div>
+                <h2 className="text-xl font-bold">엑셀 파일 업로드</h2>
+                <p className="text-muted-foreground text-sm">
+                  주문번호, SKU, 수량이 포함된 Excel 파일을 업로드하세요.
+                </p>
+              </div>
 
-            <ExcelUpload onUpload={handleUpload} title="클릭하거나 파일을 드래그하세요" />
+              <ExcelUpload onUpload={handleUpload} title="클릭하거나 파일을 드래그하세요" />
+            </div>
+          )}
 
-            {isUploading && (
-              <div className="text-center text-sm text-gray-500">처리 중...</div>
-            )}
-          </div>
+          {!uploadState.isUploading && !isAutoConfirming && uploadState.errors.length > 0 && (
+            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center gap-2 text-red-700 font-bold mb-3">
+                <AlertCircle className="h-4 w-4" />
+                <span>Validation Errors ({uploadState.errors.length})</span>
+              </div>
+              <ul className="text-xs text-red-600 space-y-2 max-h-60 overflow-y-auto">
+                {uploadState.errors.map((err: string, i: number) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="opacity-50">•</span>
+                    {err}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     );

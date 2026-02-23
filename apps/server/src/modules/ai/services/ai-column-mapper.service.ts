@@ -83,11 +83,6 @@ Required fields to map:
 - sku: Product SKU or product code
 - quantity: Order quantity or amount
 - recipientName: Recipient name or customer name
-- recipientPhone: Recipient phone number or contact number
-- zipCode: Postal code or zip code
-- address: Main address
-- detailAddress: Detailed address or additional address info
-- shippingMemo: Shipping notes or delivery instructions
 
 Return a mapping with confidence scores (0-1) for each field. Set to null if no matching column is found.`;
   }

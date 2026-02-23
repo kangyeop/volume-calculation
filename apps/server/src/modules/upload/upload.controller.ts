@@ -49,6 +49,7 @@ export class UploadController {
         parseResult.headers,
         parseResult.sampleRows,
       );
+      console.log(mappingResult);
     } else {
       mappingResult = await this.aiColumnMapperService.mapProductColumns(
         parseResult.headers,
