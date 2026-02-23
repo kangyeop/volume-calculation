@@ -1,5 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 
+export interface OutboundItem {
+  orderId: string;
+  sku: string;
+  quantity: number;
+  recipientName?: string;
+  address?: string;
+}
+
 export interface UploadSession {
   id: string;
   type: 'outbound' | 'product';
@@ -10,6 +18,9 @@ export interface UploadSession {
   rows: Record<string, unknown>[];
   fileName: string;
   createdAt: Date;
+  transformedData?: OutboundItem[];
+  productMapping?: Record<number, string[]>;
+  columnMapping?: Record<string, string>;
 }
 
 interface SessionWithTimeout extends UploadSession {
@@ -66,6 +77,30 @@ export class UploadSessionService {
     if (session) {
       session.mapping = mapping;
       this.logger.debug(`Updated mapping for session ${id}`);
+    }
+  }
+
+  updateTransformedData(id: string, data: OutboundItem[]): void {
+    const session = this.sessions.get(id);
+    if (session) {
+      session.transformedData = data;
+      this.logger.debug(`Updated transformed data for session ${id}`);
+    }
+  }
+
+  updateProductMapping(id: string, mapping: Record<number, string[]>): void {
+    const session = this.sessions.get(id);
+    if (session) {
+      session.productMapping = mapping;
+      this.logger.debug(`Updated product mapping for session ${id}`);
+    }
+  }
+
+  updateColumnMapping(id: string, mapping: Record<string, string>): void {
+    const session = this.sessions.get(id);
+    if (session) {
+      session.columnMapping = mapping;
+      this.logger.debug(`Updated column mapping for session ${id}`);
     }
   }
 

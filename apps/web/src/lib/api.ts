@@ -1,192 +1,160 @@
-import { Project, Product, Outbound, PackingRecommendation, PackingResult, PackingGroupingOption, Box, PackingResult3D, ConfirmMappingUploadResponse } from '@wms/types';
+import axios from 'axios';
+import { Project, Product, Outbound, PackingRecommendation, PackingResult, PackingGroupingOption, Box, PackingResult3D, ConfirmMappingUploadResponse, ApiResponse, ProductMappingData, ProductMatchResult, ParseMappingUploadResponse } from '@wms/types';
 
 const API_BASE = '/api';
 
-async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${url}`, options);
+const apiClient = axios.create({
+  baseURL: API_BASE,
+});
 
-  if (!response.ok) {
-      let errorMessage = `API Error: ${response.statusText}`;
-    let errorDetails = '';
+apiClient.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'API request failed';
+    const apiError = new Error(errorMessage);
+    (apiError as unknown as { status: number; details: string }).status = error.response?.status || 500;
+    (apiError as unknown as { status: number; details: string }).details = error.response?.data?.error || '';
+    throw apiError;
+  },
+);
 
-    try {
-      const errorData = await response.json();
-      errorMessage = errorData.message || errorMessage;
-      errorDetails = errorData.error || '';
-    } catch {
-      if (response.status === 413) {
-        errorMessage = '요청이 너무 큽니다. 파일 크기를 확인해주세요.';
-      } else if (response.status === 429) {
-        errorMessage = '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
-      }
-    }
-
-    const error = new Error(errorMessage);
-    (error as unknown as { status: number; details: string }).status = response.status;
-    (error as unknown as { status: number; details: string }).details = errorDetails;
-    throw error;
-  }
-
-  return response.json();
+async function fetchApi<T>(url: string, options?: { method?: string; data?: unknown; headers?: Record<string, string> }): Promise<T> {
+  const response = await apiClient.request<T>({ url, ...options });
+  return response;
 }
 
 export const api = {
   projects: {
-    list: () => fetchJson<Project[]>('/projects'),
+    list: () => fetchApi<Project[]>('/projects'),
     create: (name: string, description?: string) =>
-      fetchJson<Project>('/projects', {
+      fetchApi<Project>('/projects', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description }),
+        data: { name, description },
       }),
-    get: (id: string) => fetchJson<Project>(`/projects/${id}`),
-    delete: (id: string) => fetchJson<void>(`/projects/${id}`, { method: 'DELETE' }),
+    get: (id: string) => fetchApi<Project>(`/projects/${id}`),
+    delete: (id: string) => fetchApi<void>(`/projects/${id}`, { method: 'DELETE' }),
   },
   products: {
-    list: (projectId: string) => fetchJson<Product[]>(`/projects/${projectId}/products`),
+    list: (projectId: string) => fetchApi<Product[]>(`/projects/${projectId}/products`),
     createBulk: (projectId: string, products: Omit<Product, 'id' | 'projectId' | 'createdAt' | 'updatedAt'>[]) =>
-      fetchJson<void>(`/projects/${projectId}/products/bulk`, {
+      fetchApi<void>(`/projects/${projectId}/products/bulk`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(products),
+        data: products,
       }),
-    delete: (id: string) => fetchJson<void>(`/products/${id}`, { method: 'DELETE' }),
+    delete: (id: string) => fetchApi<void>(`/products/${id}`, { method: 'DELETE' }),
   },
   outbound: {
-    list: (projectId: string) => fetchJson<Outbound[]>(`/projects/${projectId}/outbounds`),
-    listBatches: (projectId: string) => fetchJson<{ batchId: string; batchName: string; count: number; createdAt: string; originalFilePath?: string }[]>(`/projects/${projectId}/outbounds/batches`),
+    list: (projectId: string) => fetchApi<Outbound[]>(`/projects/${projectId}/outbounds`),
+    listBatches: (projectId: string) => fetchApi<{ batchId: string; batchName: string; count: number; createdAt: string; originalFilePath?: string }[]>(`/projects/${projectId}/outbounds/batches`),
     create: (projectId: string, outbound: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>) =>
-      fetchJson<Outbound>(`/projects/${projectId}/outbounds`, {
+      fetchApi<Outbound>(`/projects/${projectId}/outbounds`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(outbound),
+        data: outbound,
       }),
     createBulk: (projectId: string, outbounds: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[]) =>
-      fetchJson<void>(`/projects/${projectId}/outbounds/bulk`, {
+      fetchApi<void>(`/projects/${projectId}/outbounds/bulk`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(outbounds),
+        data: outbounds,
       }),
     createBulkWithFile: (projectId: string, file: File, createOutboundDtos: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[]) => {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('createOutboundDtos', JSON.stringify(createOutboundDtos));
 
-      return fetch(`${API_BASE}/projects/${projectId}/outbounds/bulk-with-file`, {
-        method: 'POST',
-        body: formData,
-      }).then(async (response) => {
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || `API Error: ${response.statusText}`);
-        }
-        return response.json();
-      });
+      return apiClient.post<{ success: boolean; data?: unknown; message?: string }>(
+        `/projects/${projectId}/outbounds/bulk-with-file`,
+        formData,
+      ).then((response) => response.data);
     },
-    deleteAll: (projectId: string) => fetchJson<void>(`/projects/${projectId}/outbounds`, { method: 'DELETE' }),
+    deleteAll: (projectId: string) => fetchApi<void>(`/projects/${projectId}/outbounds`, { method: 'DELETE' }),
   },
   packing: {
     calculate: (projectId: string, groupingOption: PackingGroupingOption = PackingGroupingOption.ORDER, batchId?: string) =>
-      fetchJson<PackingRecommendation>(`/projects/${projectId}/packing/calculate`, {
+      fetchApi<PackingRecommendation>(`/projects/${projectId}/packing/calculate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ groupingOption, batchId }),
+        data: { groupingOption, batchId },
       }),
     calculateOrder: async (projectId: string, orderId: string, groupLabel?: string) => {
-      return fetchJson<PackingResult3D>(`/projects/${projectId}/packing/calculate-order`, {
+      return fetchApi<PackingResult3D>(`/projects/${projectId}/packing/calculate-order`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, groupLabel }),
+        data: { orderId, groupLabel },
       });
     },
-    history: (projectId: string) => fetchJson<PackingResult[]>(`/projects/${projectId}/packing/results`),
+    history: (projectId: string) => fetchApi<PackingResult[]>(`/projects/${projectId}/packing/results`),
     export: (projectId: string, batchId: string) => {
-      return fetch(`${API_BASE}/projects/${projectId}/packing/export?batchId=${encodeURIComponent(batchId)}`, {
-        method: 'GET',
-      }).then(async (response) => {
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || `API Error: ${response.statusText}`);
-        }
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `packing_results_${batchId}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      });
+      return apiClient
+        .get(`/projects/${projectId}/packing/export?batchId=${encodeURIComponent(batchId)}`, {
+          responseType: 'blob',
+        })
+        .then((response) => {
+          const url = window.URL.createObjectURL(response.data);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `packing_results_${batchId}.xlsx`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        });
     },
   },
   boxes: {
-    list: () => fetchJson<Box[]>('/boxes'),
+    list: () => fetchApi<Box[]>('/boxes'),
     create: (data: Omit<Box, 'id'>) =>
-      fetchJson<Box>('/boxes', {
+      fetchApi<Box>('/boxes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        data,
       }),
-    delete: (id: string) => fetchJson<void>(`/boxes/${id}`, { method: 'DELETE' }),
+    delete: (id: string) => fetchApi<void>(`/boxes/${id}`, { method: 'DELETE' }),
   },
   upload: {
     parse: (file: File, type: 'outbound' | 'product', projectId: string) => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const params = new URLSearchParams({ type, projectId });
-      return fetch(`${API_BASE}/upload/parse?${params}`, {
-        method: 'POST',
-        body: formData,
-      }).then(async (response) => {
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || `API Error: ${response.statusText}`);
+      return apiClient.post<ApiResponse<{ sessionId: string; headers: string[]; rowCount: number; mapping: unknown; fileName: string }>>(
+        `/upload/parse?type=${encodeURIComponent(type)}&projectId=${encodeURIComponent(projectId)}`,
+        formData,
+      ).then((response) => {
+        if (!response.data.success) {
+          throw new Error(response.data.message || response.data.error || 'API request failed');
         }
-        return response.json();
+        return response.data.data;
       });
     },
     parseMapping: async (file: File, type: 'outbound' | 'product', projectId: string) => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const params = new URLSearchParams({ type, projectId });
-      const response = await fetch(`${API_BASE}/upload/parse-mapping?${params}`, {
-        method: 'POST',
-        body: formData,
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `API Error: ${response.statusText}`);
+      const response = await apiClient.post<ApiResponse<ParseMappingUploadResponse['data']>>(
+        `/upload/parse-mapping?type=${encodeURIComponent(type)}&projectId=${encodeURIComponent(projectId)}`,
+        formData,
+      );
+      if (!response.data.success) {
+        throw new Error(response.data.message || response.data.error || 'API request failed');
       }
-      return response.json();
+      return response.data.data;
     },
     confirm: (sessionId: string, mapping: Record<string, string | null>) => {
-      return fetchJson(`/upload/confirm`, {
+      return fetchApi<{ imported: number; batchId?: string }>(`/upload/confirm`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, mapping }),
+        data: { sessionId, mapping },
       });
     },
     confirmMapping: (sessionId: string, columnMapping: Record<string, string | null>, productMapping?: Record<number, string[] | null>) => {
-      return fetchJson<{ success: boolean; data: ConfirmMappingUploadResponse['data'] }>(`/upload/confirm-mapping`, {
+      return fetchApi<ConfirmMappingUploadResponse['data']>(`/upload/confirm-mapping`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, columnMapping, productMapping }),
+        data: { sessionId, columnMapping, productMapping },
       });
     },
     updateMapping: async (sessionId: string, columnMapping: Record<string, string | null>) => {
-      return fetchJson<{ success: boolean; data: { productMapping: Array<{ outboundItemIndex: number; productIds?: string[] }> } }>(`/upload/update-mapping`, {
+      return fetchApi<{ productMapping: ProductMappingData }>(`/upload/update-mapping`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, columnMapping }),
+        data: { sessionId, columnMapping },
       });
     },
     deleteSession: (sessionId: string) => {
-      return fetchJson<void>(`/upload/${sessionId}`, {
-        method: 'DELETE',
-      });
+      return apiClient.delete(`/upload/${sessionId}`);
     },
   },
 };

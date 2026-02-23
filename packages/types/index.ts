@@ -180,6 +180,7 @@ export interface ConfirmMappingUploadResponse {
     batchId?: string;
     mappedCount: number;
     unmappedCount: number;
+    orderIds?: string[];
   };
 }
 
@@ -226,4 +227,17 @@ export interface PackingResult3D {
   unpackedItems: { skuId: string; name?: string; quantity: number; reason: string }[];
   totalCBM: number;
   totalEfficiency: number;
+}
+
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: string;
+}
+
+export interface ApiErrorResponse {
+  success: false;
+  error: string;
+  message?: string;
 }

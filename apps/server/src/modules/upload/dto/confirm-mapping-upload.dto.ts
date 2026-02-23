@@ -1,9 +1,5 @@
 import { IsString, IsNotEmpty, IsObject, IsOptional } from 'class-validator';
 
-export interface ProductMappingItem {
-  productIds?: string[];
-}
-
 export class ConfirmMappingUploadDto {
   @IsString()
   @IsNotEmpty()
@@ -14,5 +10,5 @@ export class ConfirmMappingUploadDto {
 
   @IsObject()
   @IsOptional()
-  productMapping?: Record<number, ProductMappingItem>;
+  productMapping?: Record<number, string[]>;
 }

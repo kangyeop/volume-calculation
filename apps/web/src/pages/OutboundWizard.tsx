@@ -6,8 +6,16 @@ import { api } from '@/lib/api';
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { MappingPreview } from '@/components/MappingPreview';
 import { PackingResult } from '@/components/PackingResult';
-import { ChevronRight, ChevronLeft, CheckCircle, ArrowRight, RefreshCw, FileSpreadsheet, ArrowLeft } from 'lucide-react';
-import type { ProductMatchResult, PackingResult3D } from '@wms/types';
+import {
+  ChevronRight,
+  ChevronLeft,
+  CheckCircle,
+  ArrowRight,
+  RefreshCw,
+  FileSpreadsheet,
+  ArrowLeft,
+} from 'lucide-react';
+import type { ProductMatchResult, PackingResult3D, MappingResult } from '@wms/types';
 
 type WizardStep = 'upload' | 'columnMapping' | 'productMapping' | 'results';
 
@@ -24,15 +32,23 @@ export const OutboundWizard: React.FC = () => {
   const [headers, setHeaders] = useState<string[]>([]);
   const [rowCount, setRowCount] = useState<number>(0);
   const [columnMapping, setColumnMapping] = useState<Record<string, string | null>>({});
-  const [columnMappingResult, setColumnMappingResult] = useState<any>(null);
+  const [columnMappingResult, setColumnMappingResult] = useState<MappingResult | null>(null);
   const [productMappingData, setProductMappingData] = useState<ProductMatchResult[]>([]);
-  const [productMappingStats, setProductMappingStats] = useState({ totalItems: 0, matchedItems: 0, needsReview: 0 });
+  const [productMappingStats, setProductMappingStats] = useState({
+    totalItems: 0,
+    matchedItems: 0,
+    needsReview: 0,
+  });
   const [packingResults, setPackingResults] = useState<PackingResult3D[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const steps: { id: WizardStep; label: string; completed: boolean }[] = [
     { id: 'upload', label: '엑셀 업로드', completed: currentStep !== 'upload' },
-    { id: 'columnMapping', label: '컬럼 매핑', completed: currentStep === 'productMapping' || currentStep === 'results' },
+    {
+      id: 'columnMapping',
+      label: '컬럼 매핑',
+      completed: currentStep === 'productMapping' || currentStep === 'results',
+    },
     { id: 'productMapping', label: '제품 매핑', completed: currentStep === 'results' },
     { id: 'results', label: '계산 결과', completed: false },
   ];
@@ -45,35 +61,39 @@ export const OutboundWizard: React.FC = () => {
     try {
       const response = await api.upload.parseMapping(file, 'outbound', projectId);
 
-      if (response.success) {
-        setSessionId(response.data.sessionId);
-        setHeaders(response.data.headers);
-        setRowCount(response.data.rowCount);
-        setColumnMappingResult(response.data.columnMapping);
+      setSessionId(response.sessionId);
+      setHeaders(response.headers);
+      setRowCount(response.rowCount);
+      setColumnMappingResult(response.columnMapping);
 
-        if (response.data.productMapping) {
-          setProductMappingData(response.data.productMapping);
-          const mappedCount = response.data.productMapping.filter((r: ProductMatchResult) => r.productIds && r.productIds.length > 0).length;
-          setProductMappingStats({
-            totalItems: response.data.productMapping.length,
-            matchedItems: mappedCount,
-            needsReview: 0,
-          });
-        }
-
-        const initialMapping: Record<string, string | null> = {};
-        OUTBOUND_FIELDS.forEach((field) => {
-          const fieldMapping = response.data.columnMapping.mapping[field];
-          initialMapping[field] = fieldMapping?.columnName || null;
+      if (response.productMapping) {
+        setProductMappingData(response.productMapping.results);
+        const mappedCount = response.productMapping.results.filter(
+          (r: ProductMatchResult) => r.productIds && r.productIds.length > 0,
+        ).length;
+        setProductMappingStats({
+          totalItems: response.productMapping.results.length,
+          matchedItems: mappedCount,
+          needsReview: 0,
         });
-        setColumnMapping(initialMapping);
-
-        setCurrentStep('columnMapping');
-        toast.success('분석 완료', { description: `${response.data.rowCount}개의 데이터를 분석했습니다.` });
       }
+
+      const initialMapping: Record<string, string | null> = {};
+      OUTBOUND_FIELDS.forEach((field) => {
+        const fieldMapping = response.columnMapping.mapping[field];
+        initialMapping[field] = fieldMapping?.columnName || null;
+      });
+      setColumnMapping(initialMapping);
+
+      setCurrentStep('columnMapping');
+      toast.success('분석 완료', {
+        description: `${response.rowCount}개의 데이터를 분석했습니다.`,
+      });
     } catch (error) {
       console.error('Upload failed:', error);
-      toast.error('업로드 실패', { description: error instanceof Error ? error.message : '파일 처리 중 오류가 발생했습니다.' });
+      toast.error('업로드 실패', {
+        description: error instanceof Error ? error.message : '파일 처리 중 오류가 발생했습니다.',
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -93,19 +113,22 @@ export const OutboundWizard: React.FC = () => {
       try {
         const response = await api.upload.updateMapping(sessionId, newMapping);
 
-        if (response.success) {
-          setProductMappingData(response.data.productMapping);
-          const mappedCount = response.data.productMapping.filter((r: ProductMatchResult) => r.productIds && r.productIds.length > 0).length;
-          setProductMappingStats({
-            totalItems: response.data.productMapping.length,
-            matchedItems: mappedCount,
-            needsReview: 0,
-          });
-          toast.success('제품 매핑 업데이트 완료');
-        }
+        setProductMappingData(response.productMapping.results);
+        const mappedCount = response.productMapping.results.filter(
+          (r: ProductMatchResult) => r.productIds && r.productIds.length > 0,
+        ).length;
+        setProductMappingStats({
+          totalItems: response.productMapping.results.length,
+          matchedItems: mappedCount,
+          needsReview: 0,
+        });
+        toast.success('제품 매핑 업데이트 완료');
       } catch (error) {
         console.error('Update mapping failed:', error);
-        toast.error('매핑 업데이트 실패', { description: error instanceof Error ? error.message : '매핑 업데이트 중 오류가 발생했습니다.' });
+        toast.error('매핑 업데이트 실패', {
+          description:
+            error instanceof Error ? error.message : '매핑 업데이트 중 오류가 발생했습니다.',
+        });
       } finally {
         setIsProcessing(false);
       }
@@ -124,10 +147,14 @@ export const OutboundWizard: React.FC = () => {
   };
 
   const handleCalculate = async () => {
-    const unmappedCount = productMappingData.filter((r) => !r.productIds || r.productIds.length === 0).length;
+    const unmappedCount = productMappingData.filter(
+      (r) => !r.productIds || r.productIds.length === 0,
+    ).length;
 
     if (unmappedCount > 0) {
-      toast.error('매핑되지 않은 항목', { description: `${unmappedCount}개의 항목이 매핑되지 않았습니다.` });
+      toast.error('매핑되지 않은 항목', {
+        description: `${unmappedCount}개의 항목이 매핑되지 않았습니다.`,
+      });
       return;
     }
 
@@ -146,25 +173,31 @@ export const OutboundWizard: React.FC = () => {
         }
       });
 
-      const response = await api.upload.confirmMapping(sessionId, columnMapping, productMappingParam);
+      const response = await api.upload.confirmMapping(
+        sessionId,
+        columnMapping,
+        productMappingParam,
+      );
 
-      if (response.success) {
-        toast.success('가져오기 완료', { description: `${response.data.imported}개의 데이터가 등록되었습니다.` });
+      toast.success('가져오기 완료', {
+        description: `${response.imported}개의 데이터가 등록되었습니다.`,
+      });
 
-        const uniqueOrderIds = response.data.orderIds || [];
+      const uniqueOrderIds = response.orderIds || [];
 
-        const results: PackingResult3D[] = [];
-        for (const orderId of uniqueOrderIds) {
-          const result = await api.packing.calculateOrder(projectId!, orderId);
-          results.push(result);
-        }
-
-        setPackingResults(results);
-        setCurrentStep('results');
+      const results: PackingResult3D[] = [];
+      for (const orderId of uniqueOrderIds) {
+        const result = await api.packing.calculateOrder(projectId!, orderId);
+        results.push(result);
       }
+
+      setPackingResults(results);
+      setCurrentStep('results');
     } catch (error) {
       console.error('Calculation failed:', error);
-      toast.error('계산 실패', { description: error instanceof Error ? error.message : '계산 중 오류가 발생했습니다.' });
+      toast.error('계산 실패', {
+        description: error instanceof Error ? error.message : '계산 중 오류가 발생했습니다.',
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -185,7 +218,9 @@ export const OutboundWizard: React.FC = () => {
       toast.success('재계산 완료');
     } catch (error) {
       console.error('Recalculation failed:', error);
-      toast.error('재계산 실패', { description: error instanceof Error ? error.message : '계산 중 오류가 발생했습니다.' });
+      toast.error('재계산 실패', {
+        description: error instanceof Error ? error.message : '계산 중 오류가 발생했습니다.',
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -261,9 +296,7 @@ export const OutboundWizard: React.FC = () => {
                     {step.label}
                   </span>
                 </div>
-                {index < steps.length - 1 && (
-                  <ChevronRight className="h-5 w-5 text-gray-400" />
-                )}
+                {index < steps.length - 1 && <ChevronRight className="h-5 w-5 text-gray-400" />}
               </React.Fragment>
             ))}
           </div>
@@ -316,19 +349,19 @@ export const OutboundWizard: React.FC = () => {
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-800">
-                AI가 자동으로 컬럼을 매핑했습니다. 필요한 경우 컬럼을 직접 선택하여 수정할 수 있습니다.
-                필수 필드: <span className="font-bold">주문번호, SKU, 수량</span>
+                AI가 자동으로 컬럼을 매핑했습니다. 필요한 경우 컬럼을 직접 선택하여 수정할 수
+                있습니다. 필수 필드: <span className="font-bold">주문번호, SKU, 수량</span>
                 <br />
-                <span className="text-xs text-blue-600">SKU 컬럼을 변경하면 제품 매핑이 다시 진행됩니다.</span>
+                <span className="text-xs text-blue-600">
+                  SKU 컬럼을 변경하면 제품 매핑이 다시 진행됩니다.
+                </span>
               </p>
             </div>
 
             <div className="grid gap-4">
               {OUTBOUND_FIELDS.map((field) => (
                 <div key={field} className="flex items-center gap-4">
-                  <div className="w-40 text-sm font-medium text-gray-700">
-                    {field}
-                  </div>
+                  <div className="w-40 text-sm font-medium text-gray-700">{field}</div>
                   <select
                     value={columnMapping[field] || ''}
                     onChange={(e) => handleColumnMappingChange(field, e.target.value || null)}
@@ -367,9 +400,7 @@ export const OutboundWizard: React.FC = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold">제품 매핑 확인</h2>
-              <div className="text-sm text-gray-600">
-                필수 단계 - 모든 항목이 매핑되어야 합니다
-              </div>
+              <div className="text-sm text-gray-600">필수 단계 - 모든 항목이 매핑되어야 합니다</div>
             </div>
 
             <MappingPreview
@@ -393,7 +424,12 @@ export const OutboundWizard: React.FC = () => {
               </button>
               <button
                 onClick={handleCalculate}
-                disabled={isProcessing || productMappingData.some((r: ProductMatchResult) => !r.productIds || r.productIds.length === 0)}
+                disabled={
+                  isProcessing ||
+                  productMappingData.some(
+                    (r: ProductMatchResult) => !r.productIds || r.productIds.length === 0,
+                  )
+                }
                 className="inline-flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isProcessing ? (

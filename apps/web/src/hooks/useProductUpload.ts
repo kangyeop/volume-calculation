@@ -108,8 +108,8 @@ export const useProductUpload = (projectId: string) => {
     const reader = new FileReader();
     reader.onload = async (evt) => {
       const bstr = evt.target?.result as ArrayBuffer;
-      const XLSX = (window as unknown as { XLSX: { read: any; utils: { sheet_to_json: any } } }).XLSX;
-      const wb = XLSX.read(bstr, { type: 'array' });
+      const XLSX = (window as unknown as { XLSX: { read: (arg: unknown, options?: unknown) => unknown; utils: { sheet_to_json: (arg: unknown, options?: unknown) => unknown[] } } }).XLSX;
+      const wb = XLSX.read(bstr, { type: 'array' }) as { SheetNames: string[]; Sheets: Record<string, unknown> };
       const wsname = wb.SheetNames[0];
       const ws = wb.Sheets[wsname];
       const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 }) as unknown[][];

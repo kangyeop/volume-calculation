@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import type { MappingResult } from '@wms/types';
 
 export interface ParseUploadResponse {
   success: boolean;
@@ -27,8 +28,8 @@ export interface ConfirmUploadResponse {
 }
 
 export function useUploadParse() {
-  return useMutation({
-    mutationFn: ({ file, type, projectId }: { file: File; type: 'outbound' | 'product'; projectId: string }) => {
+  return useMutation<{ sessionId: string; headers: string[]; rowCount: number; mapping: MappingResult; fileName: string }, Error, { file: File; type: 'outbound' | 'product'; projectId: string }>({
+    mutationFn: ({ file, type, projectId }) => {
       if (file.size > 10 * 1024 * 1024) {
         throw new Error('파일 크기는 10MB를 초과할 수 없습니다.');
       }
@@ -42,7 +43,7 @@ export function useUploadParse() {
       return api.upload.parse(file, type, projectId);
     },
     onSuccess: (data) => {
-      toast.success('분석 완료', { description: `AI가 ${data.data.rowCount}개의 데이터를 분석했습니다.` });
+      toast.success('분석 완료', { description: `AI가 ${data.rowCount}개의 데이터를 분석했습니다.` });
     },
     onError: (error) => {
       let errorMessage = '파일 처리 중 오류가 발생했습니다.';
@@ -63,11 +64,10 @@ export function useUploadParse() {
 export function useUploadConfirm() {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: ({ sessionId, mapping }: { sessionId: string; mapping: Record<string, string | null> }) =>
-      api.upload.confirm(sessionId, mapping) as Promise<ConfirmUploadResponse>,
+  return useMutation<{ imported: number; batchId?: string }, Error, { sessionId: string; mapping: Record<string, string | null> }>({
+    mutationFn: ({ sessionId, mapping }) => api.upload.confirm(sessionId, mapping),
     onSuccess: (data) => {
-      toast.success('가져오기 완료', { description: `${data.data.imported}개의 데이터가 등록되었습니다.` });
+      toast.success('가져오기 완료', { description: `${data.imported}개의 데이터가 등록되었습니다.` });
       queryClient.invalidateQueries({ queryKey: ['outbounds'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },

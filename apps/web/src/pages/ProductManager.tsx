@@ -31,10 +31,8 @@ export const ProductManager: React.FC = () => {
         projectId: projectId,
       });
 
-      if (response.success) {
-        uploadState.setUploadSession(response.data);
-        await autoConfirmProductMapping(response.data);
-      }
+      uploadState.setUploadSession(response);
+      await autoConfirmProductMapping(response);
     } catch (error) {
       console.error('AI parsing failed:', error);
       await uploadState.fallbackUpload(file);
