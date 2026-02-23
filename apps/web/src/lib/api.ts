@@ -169,7 +169,7 @@ export const api = {
         body: JSON.stringify({ sessionId, mapping }),
       });
     },
-    confirmMapping: (sessionId: string, columnMapping: Record<string, string | null>, productMapping?: Record<number, string | null>) => {
+    confirmMapping: (sessionId: string, columnMapping: Record<string, string | null>, productMapping?: Record<number, string[] | null>) => {
       return fetchJson<{ success: boolean; data: ConfirmMappingUploadResponse['data'] }>(`/upload/confirm-mapping`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -177,7 +177,7 @@ export const api = {
       });
     },
     updateMapping: async (sessionId: string, columnMapping: Record<string, string | null>) => {
-      return fetchJson<{ success: boolean; data: { productMapping: { totalItems: number; matchedItems: number; needsReview: number; results: any[] } } }>(`/upload/update-mapping`, {
+      return fetchJson<{ success: boolean; data: { productMapping: Array<{ outboundItemIndex: number; productIds?: string[] }> } }>(`/upload/update-mapping`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, columnMapping }),

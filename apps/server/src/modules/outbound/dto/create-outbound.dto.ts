@@ -1,4 +1,4 @@
-import { IsString, IsInt, IsPositive, IsOptional, IsNumber } from 'class-validator';
+import { IsString, IsInt, IsPositive, IsOptional } from 'class-validator';
 
 export class CreateOutboundDto {
   @IsString()

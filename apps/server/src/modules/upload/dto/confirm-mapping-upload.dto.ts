@@ -1,9 +1,7 @@
 import { IsString, IsNotEmpty, IsObject, IsOptional } from 'class-validator';
 
 export interface ProductMappingItem {
-  productId?: string | null;
-  confidence?: number;
-  needsReview?: boolean;
+  productIds?: string[];
 }
 
 export class ConfirmMappingUploadDto {

@@ -50,13 +50,13 @@ export class UploadController {
     if (query.type === 'outbound') {
       mappingResult = await this.aiColumnMapperService.mapOutboundColumns(
         parseResult.headers,
-        parseResult.sampleRows,
+        parseResult.rows,
       );
       console.log(mappingResult);
     } else {
       mappingResult = await this.aiColumnMapperService.mapProductColumns(
         parseResult.headers,
-        parseResult.sampleRows,
+        parseResult.rows,
       );
     }
 
@@ -75,7 +75,6 @@ export class UploadController {
         sessionId,
         headers: parseResult.headers,
         rowCount: parseResult.rowCount,
-        sampleRows: parseResult.sampleRows,
         mapping: mappingResult,
         fileName: file.originalname,
       },
@@ -193,29 +192,7 @@ export class UploadController {
 
     const columnMapping = await this.aiColumnMapperService.mapOutboundColumns(
       parseResult.headers,
-      parseResult.sampleRows,
-    );
-
-    const mappedRows = parseResult.rows.map((row) => {
-      const result: any = {};
-      for (const [field, columnMappingInfo] of Object.entries(columnMapping.mapping)) {
-        const columnName = columnMappingInfo?.columnName;
-        if (columnName) {
-          result[field] = row[columnName] ?? '';
-        }
-      }
-      return result;
-    });
-
-    const outboundItems = mappedRows
-      .filter((row) => row.orderId)
-      .map((row) => ({
-        availableFields: row,
-      }));
-
-    const productMapping = await this.aiProductMapperService.mapOutboundItemsToProducts(
-      query.projectId,
-      outboundItems,
+      parseResult.rows,
     );
 
     const sessionId = this.uploadSessionService.createSession({
@@ -233,14 +210,7 @@ export class UploadController {
         sessionId,
         headers: parseResult.headers,
         rowCount: parseResult.rowCount,
-        sampleRows: parseResult.sampleRows,
         columnMapping,
-        productMapping: {
-          totalItems: productMapping.totalItems,
-          matchedItems: productMapping.matchedItems,
-          needsReview: productMapping.needsReview,
-          results: productMapping.results,
-        },
         fileName: file.originalname,
       },
     };
@@ -253,7 +223,10 @@ export class UploadController {
       throw new BadRequestException('Session not found or expired');
     }
 
-    this.uploadSessionService.updateMapping(confirmMappingUploadDto.sessionId, confirmMappingUploadDto.columnMapping);
+    this.uploadSessionService.updateMapping(
+      confirmMappingUploadDto.sessionId,
+      confirmMappingUploadDto.columnMapping,
+    );
 
     const mapping = confirmMappingUploadDto.columnMapping;
     const mappedRows = session.rows.map((row) => {
@@ -282,8 +255,7 @@ export class UploadController {
           address: row.address || undefined,
           detailAddress: row.detailAddress || undefined,
           shippingMemo: row.shippingMemo || undefined,
-          productId: mappingItem?.productId ?? null,
-          mappingConfidence: mappingItem?.confidence ?? (mappingItem?.productId ? 1.0 : null),
+          productId: mappingItem?.productIds?.[0] ?? null,
         };
       });
 
@@ -291,6 +263,8 @@ export class UploadController {
 
     const mappedCount = results.filter((r) => r.productId !== null).length;
     const unmappedCount = results.length - mappedCount;
+
+    const uniqueOrderIds = Array.from(new Set(outbounds.map((o) => o.orderId)));
 
     this.uploadSessionService.deleteSession(confirmMappingUploadDto.sessionId);
 
@@ -301,21 +275,27 @@ export class UploadController {
         batchId: results[0]?.batchId,
         mappedCount,
         unmappedCount,
+        orderIds: uniqueOrderIds,
       },
     };
   }
 
   @Post('update-mapping')
-  async updateMapping(@Body() body: { sessionId: string; columnMapping: Record<string, string | null> }) {
+  async updateMapping(
+    @Body() body: { sessionId: string; columnMapping: Record<string, string | null> },
+  ) {
     const session = this.uploadSessionService.getSession(body.sessionId);
     if (!session) {
       throw new BadRequestException('Session not found or expired');
     }
 
-    const sessionMapping = session.mapping as { mapping?: Record<string, { columnName: string; confidence: number }> } | undefined;
+    const sessionMapping = session.mapping as
+      | { mapping?: Record<string, { columnName: string; confidence: number }> }
+      | undefined;
     const originalMapping = sessionMapping?.mapping ?? {};
 
-    const updatedMapping: { mapping: Record<string, { columnName: string; confidence: number }> } = { mapping: {} };
+    const updatedMapping: { mapping: Record<string, { columnName: string; confidence: number }> } =
+      { mapping: {} };
     for (const [field, columnName] of Object.entries(body.columnMapping)) {
       if (columnName) {
         const originalFieldMapping = originalMapping[field];
@@ -353,12 +333,7 @@ export class UploadController {
     return {
       success: true,
       data: {
-        productMapping: {
-          totalItems: productMapping.totalItems,
-          matchedItems: productMapping.matchedItems,
-          needsReview: productMapping.needsReview,
-          results: productMapping.results,
-        },
+        productMapping,
       },
     };
   }

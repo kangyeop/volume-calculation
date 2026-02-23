@@ -117,7 +117,6 @@ export interface ParseUploadResponse {
     sessionId: string;
     headers: string[];
     rowCount: number;
-    sampleRows: Record<string, unknown>[];
     mapping: MappingResult;
     fileName: string;
   };
@@ -147,42 +146,12 @@ export interface UploadRemapRequest {
   forceAI?: boolean;
 }
 
-export interface AlternativeMatch {
-  id: string;
-  sku: string;
-  name: string;
-  confidence: number;
-}
-
 export interface ProductMatchResult {
   outboundItemIndex: number;
-  outboundSku: string;
-  outboundName?: string;
-  matchedProduct?: {
-    id: string;
-    sku: string;
-    name: string;
-  };
-  confidence: number;
-  matchReason: string;
-  needsReview: boolean;
-  alternativeMatches?: AlternativeMatch[];
-}
-
-export interface ProductMappingSession {
-  sessionId: string;
-  projectId: string;
-  totalItems: number;
-  matchedItems: number;
-  unmatchedItems: number;
-  needsReview: number;
-  results: ProductMatchResult[];
+  productIds?: string[];
 }
 
 export interface ProductMappingData {
-  totalItems: number;
-  matchedItems: number;
-  needsReview: number;
   results: ProductMatchResult[];
 }
 
@@ -192,7 +161,6 @@ export interface ParseMappingUploadResponse {
     sessionId: string;
     headers: string[];
     rowCount: number;
-    sampleRows: Record<string, unknown>[];
     columnMapping: MappingResult;
     productMapping?: ProductMappingData;
     fileName: string;

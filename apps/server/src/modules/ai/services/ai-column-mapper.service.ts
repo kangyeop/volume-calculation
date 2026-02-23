@@ -1,21 +1,27 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { OutboundMappingSchema } from '../schemas/outbound-mapping.schema';
 import { ProductMappingSchema } from '../schemas/product-mapping.schema';
 import { OutboundMappingResult } from '../schemas/outbound-mapping.schema';
 import { ProductMappingResult } from '../schemas/product-mapping.schema';
+import { ChatOpenAI } from '@langchain/openai';
 
 @Injectable()
 export class AIColumnMapperService {
   private readonly logger = new Logger(AIColumnMapperService.name);
 
-  constructor(@Inject('LLM_PROVIDER') private readonly llm: BaseChatModel) {}
+  constructor(@Inject('LLM_PROVIDER') private readonly apiKey: string) {}
 
   async mapOutboundColumns(headers: string[], sampleRows: any[]): Promise<OutboundMappingResult> {
     try {
       this.logger.log(`Mapping outbound columns for ${headers.length} headers`);
 
-      const structuredLlm = this.llm.withStructuredOutput(OutboundMappingSchema);
+      const llm = new ChatOpenAI({
+        modelName: 'gpt-4.1-nano',
+        temperature: 0,
+        apiKey: this.apiKey,
+      });
+
+      const structuredLlm = llm.withStructuredOutput(OutboundMappingSchema);
 
       const prompt = this.buildOutboundPrompt(headers, sampleRows);
 
@@ -41,7 +47,13 @@ export class AIColumnMapperService {
     try {
       this.logger.log(`Mapping product columns for ${headers.length} headers`);
 
-      const structuredLlm = this.llm.withStructuredOutput(ProductMappingSchema);
+      const llm = new ChatOpenAI({
+        modelName: 'gpt-4.1-nano',
+        temperature: 0,
+        apiKey: this.apiKey,
+      });
+
+      const structuredLlm = llm.withStructuredOutput(ProductMappingSchema);
 
       const prompt = this.buildProductPrompt(headers, sampleRows);
 
@@ -64,10 +76,8 @@ export class AIColumnMapperService {
   }
 
   private buildOutboundPrompt(headers: string[], sampleRows: any[]): string {
-    const fullData = sampleRows.map(row =>
-      Object.fromEntries(
-        headers.map(h => [h, row[h] ?? ''])
-      )
+    const fullData = sampleRows.map((row) =>
+      Object.fromEntries(headers.map((h) => [h, row[h] ?? ''])),
     );
 
     return `Analyze the following Excel data and map columns to outbound order fields.
@@ -78,54 +88,35 @@ Complete Data (JSON format, ${sampleRows.length} rows):
 ${JSON.stringify(fullData, null, 2)}
 
 Required fields to map:
-- orderId: 쇼핑몰 주문번호, 주문번호, 오더번호, 주문ID
+- orderId: for tracking the order
   Pattern: Long numeric string
 
-- sku: 연동코드, 상품코드, SKU, 상품번호
+- sku: sku name
   Pattern: Product identifier, may contain parentheses
 
-- quantity: 주문수량, 수량, 개수, quantity
+- quantity: order quantity
   Pattern: Number
 
-- recipientName: 수취인, 받는분, 고객명, 이름
+- recipientName
   Pattern: Person's name
 
-- recipientPhone: 수취인연락처, 휴대폰, 연락처, 전화번호
+- recipientPhone
   Pattern: Phone number
 
-- zipCode: 우편번호, 우편, zip
-  Pattern: 5-digit code
-
-- address: 주소, 배송지, 주소1
+- address
   Pattern: Main address
 
-- detailAddress: 상세주소, 배송상세주소, 주소2
-  Pattern: Additional address info
-
-- shippingMemo: 비고, 메모, 배송메모, 요청사항
-  Pattern: Free text, may be empty
-
-- orderProductName: 주문서 상품명
-  Pattern: Product name from order sheet
-
-- optionName: 옵션명
-  Pattern: Option name with variant details
-
 Mapping Rules:
-1. Prefer columns with exact Korean field names (수취인, 주문수량, etc.)
+1. Prefer columns with exact Korean field names
 2. Look for common patterns in the actual data values
-3. Ignore system/internal fields (출고주문상태, 매핑여부, 수집일, 수집차단여부)
+3. Ignore system/internal fields 
 4. Ignore aggregate fields (총 주문수량, 총 금액) - use per-item fields instead
-5. Ignore complex/formatted columns (상품명 / 매핑수량)
-
-Return mapping with confidence scores (0-1). Set to null if no matching column found.`;
+5. Ignore complex/formatted columns`;
   }
 
   private buildProductPrompt(headers: string[], sampleRows: any[]): string {
-    const fullData = sampleRows.map(row =>
-      Object.fromEntries(
-        headers.map(h => [h, row[h] ?? ''])
-      )
+    const fullData = sampleRows.map((row) =>
+      Object.fromEntries(headers.map((h) => [h, row[h] ?? ''])),
     );
 
     return `Analyze the following Excel data and map columns to product fields.
@@ -156,8 +147,6 @@ For dimensions, identify: SEPARATOR used between values:
 The parsing code will:
 1. Remove unit suffix (cm, mm, m, in, inch) if present
 2. Split by the identified separator
-3. Parse values: 2 values = (width, length, height=0), 3 values = (width, length, height)
-
-Return mapping with confidence scores (0-1). Set to null if no matching column found.`;
+3. Parse values: 2 values = (width, length, height=0), 3 values = (width, length, height)`;
   }
 }

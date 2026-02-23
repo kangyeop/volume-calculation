@@ -2,9 +2,9 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ProductEntity } from '../../products/entities/product.entity';
 import { SingleProductMatchSchema } from '../schemas/product-match.schema';
+import { ChatOpenAI } from '@langchain/openai';
 
 interface CachedProduct {
   id: string;
@@ -28,80 +28,31 @@ export class AIProductMapperService {
   private readonly logger = new Logger(AIProductMapperService.name);
   private readonly cache = new Map<string, ProductCache>();
   private readonly cacheTTL: number;
-  private readonly autoAcceptThreshold: number;
 
   constructor(
-    @Inject('LLM_PROVIDER') private readonly llm: BaseChatModel,
+    @Inject('LLM_PROVIDER') private readonly apiKey: string,
     @InjectRepository(ProductEntity)
     private readonly productsRepository: Repository<ProductEntity>,
     private readonly configService: ConfigService,
   ) {
     this.cacheTTL = this.configService.get('PRODUCT_CACHE_TTL', 3600000);
-    this.autoAcceptThreshold = this.configService.get('PRODUCT_MAPPING_AUTO_ACCEPT_THRESHOLD', 0.9);
   }
 
   async mapOutboundItemsToProducts(
     projectId: string,
     outboundItems: OutboundItem[],
-  ): Promise<{
-    results: Array<{
-      outboundItemIndex: number;
-      outboundSku: string;
-      outboundName?: string;
-      matchedProduct?: { id: string; sku: string; name: string };
-      confidence: number;
-      matchReason: string;
-      needsReview: boolean;
-      alternativeMatches?: Array<{ id: string; sku: string; name: string; confidence: number }>;
-    }>;
-    totalItems: number;
-    matchedItems: number;
-    unmatchedItems: number;
-    needsReview: number;
-  }> {
+  ): Promise<Array<{ outboundItemIndex: number; productIds?: string[] }>> {
     this.logger.log(`Mapping ${outboundItems.length} outbound items for project ${projectId}`);
 
     const products = await this.getProductCache(projectId);
+
     const results = await Promise.all(
-      outboundItems.map(async (item, index) => {
-        const exactMatch = this.findExactMatch(item.availableFields, products);
-        if (exactMatch) {
-          this.logger.log(`Exact SKU match found`);
-          return {
-            outboundItemIndex: index,
-            outboundSku: exactMatch.sku,
-            outboundName: exactMatch.name,
-            matchedProduct: {
-              id: exactMatch.id,
-              sku: exactMatch.sku,
-              name: exactMatch.name,
-            },
-            confidence: 1.0,
-            matchReason: 'Exact SKU match',
-            needsReview: false,
-          };
-        }
-
-        return this.findBestMatchWithAI(item, products, index);
-      }),
+      outboundItems.map(async (item, index) => this.findMatchesWithAI(item, products, index)),
     );
 
-    const totalItems = results.length;
-    const matchedItems = results.filter((r) => r.matchedProduct !== undefined).length;
-    const unmatchedItems = totalItems - matchedItems;
-    const needsReview = results.filter((r) => r.needsReview).length;
+    this.logger.log(`Mapping complete`);
 
-    this.logger.log(
-      `Mapping complete: ${matchedItems} matched, ${unmatchedItems} unmatched, ${needsReview} needs review`,
-    );
-
-    return {
-      results,
-      totalItems,
-      matchedItems,
-      unmatchedItems,
-      needsReview,
-    };
+    return results;
   }
 
   private async getProductCache(projectId: string): Promise<CachedProduct[]> {
@@ -136,88 +87,47 @@ export class AIProductMapperService {
     return cachedProducts;
   }
 
-  private findExactMatch(
-    availableFields: Record<string, string>,
-    products: CachedProduct[],
-  ): CachedProduct | null {
-    for (const [, value] of Object.entries(availableFields)) {
-      if (!value) continue;
-
-      const normalizedInput = value.toLowerCase().trim();
-      const matched = products.find((p) => p.sku.toLowerCase() === normalizedInput);
-      if (matched) {
-        return matched;
-      }
-    }
-
-    return null;
-  }
-
-  private async findBestMatchWithAI(
+  private async findMatchesWithAI(
     item: OutboundItem,
     products: CachedProduct[],
     index: number,
-  ): Promise<{
-    outboundItemIndex: number;
-    outboundSku: string;
-    outboundName?: string;
-    matchedProduct?: { id: string; sku: string; name: string };
-    confidence: number;
-    matchReason: string;
-    needsReview: boolean;
-    alternativeMatches?: Array<{ id: string; sku: string; name: string; confidence: number }>;
-  }> {
+  ): Promise<{ outboundItemIndex: number; productIds?: string[] }> {
     if (products.length === 0) {
       return {
         outboundItemIndex: index,
-        outboundSku: item.availableFields.sku || '',
-        outboundName: item.availableFields.name || '',
-        matchedProduct: undefined,
-        confidence: 0,
-        matchReason: 'No products available in project',
-        needsReview: true,
       };
     }
 
     try {
-      const structuredLlm = this.llm.withStructuredOutput(SingleProductMatchSchema);
+      const llm = new ChatOpenAI({
+        modelName: 'gpt-4.1-nano',
+        temperature: 0,
+        apiKey: this.apiKey,
+      });
+      const structuredLlm = llm.withStructuredOutput(SingleProductMatchSchema);
       const prompt = this.buildMatchingPrompt(item, products);
 
-      const result = (await structuredLlm.invoke([
+      const result = await structuredLlm.invoke([
         [
           'system',
           'You are a product matching assistant. Find the best matching product for an outbound order item.',
         ],
         ['human', prompt],
-      ])) as { matchedIndex: number; confidence: number; reason: string; needsReview: boolean };
+      ]);
 
-      if (result.matchedIndex === -1 || result.confidence < 0.3) {
+      if (result.matchedIndexes.length === 0) {
         return {
           outboundItemIndex: index,
-          outboundSku: item.availableFields.sku || '',
-          outboundName: item.availableFields.name || '',
-          matchedProduct: undefined,
-          confidence: result.confidence,
-          matchReason: result.reason || 'No suitable match found',
-          needsReview: true,
         };
       }
 
-      const matchedProduct = products[result.matchedIndex];
-      const needsReview = result.confidence < this.autoAcceptThreshold;
+      const productIds = result.matchedIndexes
+        .map((i) => products[i]?.id)
+        .filter((id): id is string => !!id);
 
       return {
         outboundItemIndex: index,
-        outboundSku: item.availableFields.sku || '',
-        outboundName: item.availableFields.name || '',
-        matchedProduct: {
-          id: matchedProduct.id,
-          sku: matchedProduct.sku,
-          name: matchedProduct.name,
-        },
-        confidence: result.confidence,
-        matchReason: result.reason || 'AI-based semantic match',
-        needsReview,
+        productIds,
       };
     } catch (error) {
       const err = error as Error;
@@ -225,12 +135,6 @@ export class AIProductMapperService {
 
       return {
         outboundItemIndex: index,
-        outboundSku: item.availableFields.sku || '',
-        outboundName: item.availableFields.name || '',
-        matchedProduct: undefined,
-        confidence: 0,
-        matchReason: 'AI matching failed',
-        needsReview: true,
       };
     }
   }
@@ -259,12 +163,7 @@ AI Instructions:
 2. Identify which field(s) contain product name or product code
 3. Look for semantic similarity with product names in the database
 4. Consider common patterns: product names in quotes, variant info, codes
-5. Return matchedIndex of best matching product, or -1 if no match
-
-Thresholds:
-- confidence >= 0.9: Auto-accept (exact match)
-- 0.7 <= confidence < 0.9: Accept but flag for review
-- confidence < 0.7: Needs manual review`;
+5. Return matchedIndexes of all matching products, or an empty array if no match found`;
   }
 
   invalidateCache(projectId: string): void {

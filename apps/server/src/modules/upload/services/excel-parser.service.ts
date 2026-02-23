@@ -5,7 +5,6 @@ interface ParseResult {
   headers: string[];
   rows: Record<string, unknown>[];
   rowCount: number;
-  sampleRows: Record<string, unknown>[];
 }
 
 @Injectable()
@@ -34,7 +33,6 @@ export class ExcelParserService {
       }
 
       const headers = data.length > 0 ? Object.keys(data[0]) : [];
-      const sampleRows = data.slice(0, 3);
 
       this.logger.log(
         `Successfully parsed ${file.originalname}: ${headers.length} headers, ${data.length} rows`,
@@ -44,7 +42,6 @@ export class ExcelParserService {
         headers,
         rows: data,
         rowCount: data.length,
-        sampleRows,
       };
     } catch (error) {
       const err = error as Error;

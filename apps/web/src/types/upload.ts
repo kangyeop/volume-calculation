@@ -2,7 +2,6 @@ export interface UploadSession {
   sessionId: string;
   headers: string[];
   rowCount: number;
-  sampleRows: Record<string, unknown>[];
   mapping: {
     confidence: number;
     mapping: Record<string, { columnName: string; confidence: number } | null>;

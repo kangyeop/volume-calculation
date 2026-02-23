@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Check, AlertCircle } from 'lucide-react';
 import { ColumnSelector } from './ColumnSelector';
 import { ConfidenceIndicator } from './ConfidenceIndicator';
-import { DataPreview } from './DataPreview';
 
 interface FieldMapping {
   fieldName: string;
@@ -42,7 +41,6 @@ interface MappingConfirmationProps {
     unmappedColumns: string[];
     notes?: string;
   };
-  sampleRows: Record<string, unknown>[];
   onConfirm: (mapping: Record<string, string | null>) => void;
   onFallback?: () => void;
   onCancel: () => void;
@@ -73,7 +71,6 @@ export const MappingConfirmation: React.FC<MappingConfirmationProps> = ({
   sessionId: _sessionId,
   headers,
   mapping,
-  sampleRows,
   onConfirm,
   onFallback,
   onCancel,
@@ -146,7 +143,7 @@ export const MappingConfirmation: React.FC<MappingConfirmationProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Field Mapping Section */}
         <div className="space-y-4">
           <h3 className="text-md font-medium text-gray-900">필드 매핑</h3>
@@ -183,12 +180,6 @@ export const MappingConfirmation: React.FC<MappingConfirmationProps> = ({
               <p className="text-sm text-gray-600">{mapping.unmappedColumns.join(', ')}</p>
             </div>
           )}
-        </div>
-
-        {/* Data Preview Section */}
-        <div className="space-y-4">
-          <h3 className="text-md font-medium text-gray-900">데이터 미리보기</h3>
-          <DataPreview headers={headers} data={sampleRows} />
         </div>
       </div>
 

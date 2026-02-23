@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useParams } from 'react-router-dom';
-import { Package, LayoutDashboard, Calculator, Wand2 } from 'lucide-react';
+import { Package, LayoutDashboard, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const Sidebar: React.FC = () => {
