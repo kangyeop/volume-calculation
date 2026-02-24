@@ -1,34 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import type { MappingResult } from '@wms/types';
-
-export interface ParseUploadResponse {
-  success: boolean;
-  data: {
-    sessionId: string;
-    headers: string[];
-    rowCount: number;
-    mapping: {
-      confidence: number;
-      mapping: Record<string, { columnName: string; confidence: number } | null>;
-      unmappedColumns: string[];
-      notes?: string;
-    };
-    fileName: string;
-  };
-}
-
-export interface ConfirmUploadResponse {
-  success: boolean;
-  data: {
-    imported: number;
-    batchId?: string;
-  };
-}
+import type { ParseUploadResponse, ConfirmUploadResponse } from '@wms/types';
 
 export function useUploadParse() {
-  return useMutation<{ sessionId: string; headers: string[]; rowCount: number; mapping: MappingResult; fileName: string }, Error, { file: File; type: 'outbound' | 'product'; projectId: string }>({
+  return useMutation<ParseUploadResponse['data'], Error, { file: File; type: 'outbound' | 'product'; projectId: string }>({
     mutationFn: ({ file, type, projectId }) => {
       if (file.size > 10 * 1024 * 1024) {
         throw new Error('파일 크기는 10MB를 초과할 수 없습니다.');
@@ -64,7 +40,7 @@ export function useUploadParse() {
 export function useUploadConfirm() {
   const queryClient = useQueryClient();
 
-  return useMutation<{ imported: number; batchId?: string }, Error, { sessionId: string; mapping: Record<string, string | null> }>({
+  return useMutation<ConfirmUploadResponse['data'], Error, { sessionId: string; mapping: Record<string, string | null> }>({
     mutationFn: ({ sessionId, mapping }) => api.upload.confirm(sessionId, mapping),
     onSuccess: (data) => {
       toast.success('가져오기 완료', { description: `${data.imported}개의 데이터가 등록되었습니다.` });

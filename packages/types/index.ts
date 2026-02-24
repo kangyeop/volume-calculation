@@ -1,7 +1,7 @@
 export interface Dimensions {
-  width: number; // cm
-  length: number; // cm
-  height: number; // cm
+  width: number;
+  length: number;
+  height: number;
 }
 
 export interface SKU extends Dimensions {
@@ -18,8 +18,8 @@ export enum PackingGroupingOption {
 
 export interface Box extends Dimensions {
   id: string;
-  name: string; // e.g., "Post Office #1"
-  price?: number; // Optional: for cost calculation
+  name: string;
+  price?: number;
 }
 
 export interface PackingResult {
@@ -27,11 +27,11 @@ export interface PackingResult {
   projectId: string;
   boxId: string;
   boxName: string;
-  packedCount: number; // How many items packed in this box
-  remainingQuantity: number; // How many items left to pack
-  efficiency: number; // 0-1 (percentage of volume used)
+  packedCount: number;
+  remainingQuantity: number;
+  efficiency: number;
   totalCBM: number;
-  groupLabel?: string; // e.g. "Order: #123"
+  groupLabel?: string;
   createdAt: Date | string;
 }
 
@@ -94,6 +94,7 @@ export interface Outbound {
   recipientName?: string;
   batchId?: string;
   batchName?: string;
+  productId?: string | null;
   createdAt: Date | string;
 }
 
@@ -111,15 +112,17 @@ export interface MappingResult {
   notes?: string;
 }
 
+export interface ParseUploadData {
+  sessionId: string;
+  headers: string[];
+  rowCount: number;
+  mapping: MappingResult;
+  fileName: string;
+}
+
 export interface ParseUploadResponse {
   success: boolean;
-  data: {
-    sessionId: string;
-    headers: string[];
-    rowCount: number;
-    mapping: MappingResult;
-    fileName: string;
-  };
+  data: ParseUploadData;
 }
 
 export interface ConfirmUploadRequest {
@@ -127,12 +130,14 @@ export interface ConfirmUploadRequest {
   mapping: Record<string, string | null>;
 }
 
+export interface ConfirmUploadData {
+  imported: number;
+  batchId?: string;
+}
+
 export interface ConfirmUploadResponse {
   success: boolean;
-  data: {
-    imported: number;
-    batchId?: string;
-  };
+  data: ConfirmUploadData;
 }
 
 export interface ValidationError {
@@ -148,40 +153,45 @@ export interface UploadRemapRequest {
 
 export interface ProductMatchResult {
   outboundItemIndex: number;
-  productIds?: string[];
+  orderId?: string;
+  productIds?: string[] | null;
 }
 
 export interface ProductMappingData {
   results: ProductMatchResult[];
 }
 
+export interface ParseMappingUploadData {
+  sessionId: string;
+  headers: string[];
+  rowCount: number;
+  columnMapping: MappingResult;
+  productMapping?: ProductMappingData;
+  fileName: string;
+}
+
 export interface ParseMappingUploadResponse {
   success: boolean;
-  data: {
-    sessionId: string;
-    headers: string[];
-    rowCount: number;
-    columnMapping: MappingResult;
-    productMapping?: ProductMappingData;
-    fileName: string;
-  };
+  data: ParseMappingUploadData;
 }
 
 export interface ConfirmMappingUploadRequest {
   sessionId: string;
   columnMapping: Record<string, string | null>;
-  productMapping?: Record<number, string | null>;
+  productMapping?: Record<number, string[] | null>;
+}
+
+export interface ConfirmMappingUploadData {
+  imported: number;
+  batchId?: string;
+  mappedCount: number;
+  unmappedCount: number;
+  orderIds?: string[];
 }
 
 export interface ConfirmMappingUploadResponse {
   success: boolean;
-  data: {
-    imported: number;
-    batchId?: string;
-    mappedCount: number;
-    unmappedCount: number;
-    orderIds?: string[];
-  };
+  data: ConfirmMappingUploadData;
 }
 
 export interface OutboundWithProduct extends Outbound {
@@ -231,7 +241,7 @@ export interface PackingResult3D {
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
-  data?: T;
+  data: T;
   message?: string;
   error?: string;
 }

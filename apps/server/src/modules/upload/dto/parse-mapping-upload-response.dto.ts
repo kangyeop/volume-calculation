@@ -1,6 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
+import {
+  ColumnMapping,
+  MappingResult,
+  ProductMatchResult,
+  ProductMappingData,
+  ParseMappingUploadResponse,
+  ParseMappingUploadData,
+} from '@wms/types';
 
-export class ColumnMappingDto {
+export class ColumnMappingDto implements ColumnMapping {
   @ApiProperty({
     description: 'Column name from the Excel file',
     example: '주문번호',
@@ -14,7 +22,7 @@ export class ColumnMappingDto {
   confidence!: number;
 }
 
-export class MappingResultDto {
+export class MappingResultDto implements MappingResult {
   @ApiProperty({
     description: 'Overall confidence score for the mapping',
     example: 0.92,
@@ -45,7 +53,7 @@ export class MappingResultDto {
   notes?: string;
 }
 
-export class ProductMatchResultDto {
+export class ProductMatchResultDto implements ProductMatchResult {
   @ApiProperty({
     description: 'Index of the outbound item',
     example: 0,
@@ -53,15 +61,23 @@ export class ProductMatchResultDto {
   outboundItemIndex!: number;
 
   @ApiProperty({
+    description: 'Order ID',
+    required: false,
+    example: 'ORD-001',
+  })
+  orderId?: string;
+
+  @ApiProperty({
     description: 'Matched product IDs',
     required: false,
     type: [String],
+    nullable: true,
     example: ['prod_123', 'prod_456'],
   })
-  productIds?: string[];
+  productIds?: string[] | null;
 }
 
-export class ProductMappingDataDto {
+export class ProductMappingDataDto implements ProductMappingData {
   @ApiProperty({
     description: 'Product matching results',
     type: [ProductMatchResultDto],
@@ -69,7 +85,7 @@ export class ProductMappingDataDto {
   results!: ProductMatchResultDto[];
 }
 
-export class ParseMappingUploadDataDto {
+export class ParseMappingUploadDataDto implements ParseMappingUploadData {
   @ApiProperty({
     description: 'Session ID for subsequent requests',
     example: '550e8400-e29b-41d4-a716-446655440000',
@@ -109,7 +125,7 @@ export class ParseMappingUploadDataDto {
   fileName!: string;
 }
 
-export class ParseMappingUploadResponseDto {
+export class ParseMappingUploadResponseDto implements ParseMappingUploadResponse {
   @ApiProperty({
     description: 'Whether the request was successful',
     example: true,

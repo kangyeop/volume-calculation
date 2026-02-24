@@ -62,6 +62,7 @@ export const MappingPreview: React.FC<MappingPreviewProps> = ({
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b">
             <tr>
+              <th className="px-4 py-3 text-left font-medium text-gray-700 w-24">주문번호</th>
               <th className="px-4 py-3 text-left font-medium text-gray-700 w-16">인덱스</th>
               <th className="px-4 py-3 text-left font-medium text-gray-700">매핑된 상품</th>
               <th className="px-4 py-3 text-left font-medium text-gray-700">동작</th>
@@ -77,6 +78,9 @@ export const MappingPreview: React.FC<MappingPreviewProps> = ({
                     editingIndex === result.outboundItemIndex ? 'bg-blue-50' : ''
                   } ${matchedProducts.length === 0 ? 'bg-red-50' : 'bg-green-50'}`}
                 >
+                  <td className="px-4 py-3">
+                    <span className="font-medium">{result.orderId || '-'}</span>
+                  </td>
                   <td className="px-4 py-3">
                     <span className="font-medium">{result.outboundItemIndex}</span>
                   </td>

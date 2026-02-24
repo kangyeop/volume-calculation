@@ -307,6 +307,7 @@ export class UploadController {
 
     const mappedCount = results.filter((r) => r.productId !== null).length;
     const unmappedCount = results.length - mappedCount;
+    const uniqueOrderIds = Array.from(new Set(results.map((r) => r.orderId).filter(Boolean)));
 
     this.uploadSessionService.deleteSession(confirmMappingUploadDto.sessionId);
 
@@ -317,6 +318,7 @@ export class UploadController {
         batchId: results[0]?.batchId,
         mappedCount,
         unmappedCount,
+        orderIds: uniqueOrderIds,
       },
     };
   }
@@ -362,6 +364,11 @@ export class UploadController {
       outboundItems,
     );
 
+    const productMappingWithOrderId = productMapping.map((result) => ({
+      ...result,
+      orderId: transformedData[result.outboundItemIndex]?.orderId,
+    }));
+
     const productMappingRecord: Record<number, string[]> = {};
     productMapping.forEach((result) => {
       if (result.productIds) {
@@ -373,7 +380,7 @@ export class UploadController {
     return {
       success: true,
       data: {
-        productMapping: { results: productMapping },
+        productMapping: { results: productMappingWithOrderId },
       },
     };
   }

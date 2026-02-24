@@ -1,6 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
+import {
+  ColumnMapping,
+  MappingResult,
+  ParseUploadResponse,
+  ParseUploadData,
+} from '@wms/types';
 
-export class ColumnMappingDto {
+export class ColumnMappingDto implements ColumnMapping {
   @ApiProperty({
     description: 'Column name from the Excel file',
     example: '주문번호',
@@ -14,7 +20,7 @@ export class ColumnMappingDto {
   confidence!: number;
 }
 
-export class MappingResultDto {
+export class MappingResultDto implements MappingResult {
   @ApiProperty({
     description: 'Overall confidence score for the mapping',
     example: 0.92,
@@ -45,7 +51,7 @@ export class MappingResultDto {
   notes?: string;
 }
 
-export class ParseUploadDataDto {
+export class ParseUploadDataDto implements ParseUploadData {
   @ApiProperty({
     description: 'Session ID for subsequent requests',
     example: '550e8400-e29b-41d4-a716-446655440000',
@@ -78,7 +84,7 @@ export class ParseUploadDataDto {
   fileName!: string;
 }
 
-export class ParseUploadResponseDto {
+export class ParseUploadResponseDto implements ParseUploadResponse {
   @ApiProperty({
     description: 'Whether the request was successful',
     example: true,

@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ConfirmMappingUploadResponse, ConfirmMappingUploadData } from '@wms/types';
 
-export class ConfirmMappingUploadDataDto {
+export class ConfirmMappingUploadDataDto implements ConfirmMappingUploadData {
   @ApiProperty({
     description: 'Number of items imported',
     example: 50,
@@ -25,9 +26,16 @@ export class ConfirmMappingUploadDataDto {
     example: 5,
   })
   unmappedCount!: number;
+
+  @ApiProperty({
+    description: 'List of unique order IDs in the batch',
+    required: false,
+    example: ['ORD001', 'ORD002'],
+  })
+  orderIds?: string[];
 }
 
-export class ConfirmMappingUploadResponseDto {
+export class ConfirmMappingUploadResponseDto implements ConfirmMappingUploadResponse {
   @ApiProperty({
     description: 'Whether the request was successful',
     example: true,

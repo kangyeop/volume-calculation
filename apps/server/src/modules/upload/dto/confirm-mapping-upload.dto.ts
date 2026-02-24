@@ -10,5 +10,5 @@ export class ConfirmMappingUploadDto {
 
   @IsObject()
   @IsOptional()
-  productMapping?: Record<number, string[]>;
+  productMapping?: Record<number, string[] | null>;
 }

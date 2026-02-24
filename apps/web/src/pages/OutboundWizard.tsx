@@ -61,6 +61,10 @@ export const OutboundWizard: React.FC = () => {
     try {
       const response = await api.upload.parseMapping(file, 'outbound', projectId);
 
+      if (!response) {
+        throw new Error('Invalid response from server');
+      }
+
       setSessionId(response.sessionId);
       setHeaders(response.headers);
       setRowCount(response.rowCount);
@@ -80,7 +84,7 @@ export const OutboundWizard: React.FC = () => {
 
       const initialMapping: Record<string, string | null> = {};
       OUTBOUND_FIELDS.forEach((field) => {
-        const fieldMapping = response.columnMapping.mapping[field];
+        const fieldMapping = response?.columnMapping.mapping[field];
         initialMapping[field] = fieldMapping?.columnName || null;
       });
       setColumnMapping(initialMapping);
@@ -111,14 +115,14 @@ export const OutboundWizard: React.FC = () => {
     if (skuColumnChanged && value) {
       setIsProcessing(true);
       try {
-        const response = await api.upload.updateMapping(sessionId, newMapping);
+        const data = await api.upload.updateMapping(sessionId, newMapping);
 
-        setProductMappingData(response.productMapping.results);
-        const mappedCount = response.productMapping.results.filter(
+        setProductMappingData(data.productMapping.results);
+        const mappedCount = data.productMapping.results.filter(
           (r: ProductMatchResult) => r.productIds && r.productIds.length > 0,
         ).length;
         setProductMappingStats({
-          totalItems: response.productMapping.results.length,
+          totalItems: data.productMapping.results.length,
           matchedItems: mappedCount,
           needsReview: 0,
         });
@@ -173,17 +177,13 @@ export const OutboundWizard: React.FC = () => {
         }
       });
 
-      const response = await api.upload.confirmMapping(
-        sessionId,
-        columnMapping,
-        productMappingParam,
-      );
+      const data = await api.upload.confirmMapping(sessionId, columnMapping, productMappingParam);
 
       toast.success('가져오기 완료', {
-        description: `${response.imported}개의 데이터가 등록되었습니다.`,
+        description: `${data.imported}개의 데이터가 등록되었습니다.`,
       });
 
-      const uniqueOrderIds = response.orderIds || [];
+      const uniqueOrderIds = data.orderIds || [];
 
       const results: PackingResult3D[] = [];
       for (const orderId of uniqueOrderIds) {

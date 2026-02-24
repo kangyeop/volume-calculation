@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ConfirmUploadResponse, ConfirmUploadData } from '@wms/types';
 
-export class ConfirmUploadDataDto {
+export class ConfirmUploadDataDto implements ConfirmUploadData {
   @ApiProperty({
     description: 'Number of items imported',
     example: 50,
@@ -15,7 +16,7 @@ export class ConfirmUploadDataDto {
   batchId?: string;
 }
 
-export class ConfirmUploadResponseDto {
+export class ConfirmUploadResponseDto implements ConfirmUploadResponse {
   @ApiProperty({
     description: 'Whether the request was successful',
     example: true,
