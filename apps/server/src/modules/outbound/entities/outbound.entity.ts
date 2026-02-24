@@ -2,9 +2,11 @@ import { Entity, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { ProjectEntity } from '../../projects/entities/project.entity';
 import { ProductEntity } from '../../products/entities/product.entity';
+import { OrderEntity } from '../../orders/entities/order.entity';
 
 @Entity('outbounds')
 @Index(['projectId', 'productId'])
+@Index(['projectId', 'orderId'])
 export class OutboundEntity extends BaseEntity {
   @Column()
   orderId!: string;
@@ -33,6 +35,10 @@ export class OutboundEntity extends BaseEntity {
   @ManyToOne(() => ProjectEntity, (project) => project.outbounds)
   @JoinColumn({ name: 'projectId' })
   project!: ProjectEntity;
+
+  @ManyToOne(() => OrderEntity, (order) => order.outbounds, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'orderId' })
+  order?: OrderEntity;
 
   @ManyToOne(() => ProductEntity)
   @JoinColumn({ name: 'productId' })

@@ -85,6 +85,23 @@ export interface Product {
   updatedAt: Date | string;
 }
 
+export enum OrderStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  COMPLETED = 'COMPLETED',
+}
+
+export interface Order {
+  id: string;
+  projectId: string;
+  orderId: string;
+  recipientName?: string;
+  address?: string;
+  status: OrderStatus;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
 export interface Outbound {
   id: string;
   projectId: string;

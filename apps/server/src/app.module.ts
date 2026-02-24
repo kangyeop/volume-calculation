@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { ProductsModule } from './modules/products/products.module';
 import { OutboundModule } from './modules/outbound/outbound.module';
+import { OrdersModule } from './modules/orders/orders.module';
 import { PackingModule } from './modules/packing/packing.module';
 import { BoxesModule } from './modules/boxes/boxes.module';
 import { UploadModule } from './modules/upload/upload.module';
@@ -25,6 +26,7 @@ import { UploadModule } from './modules/upload/upload.module';
     }),
     ProjectsModule,
     ProductsModule,
+    OrdersModule,
     OutboundModule,
     PackingModule,
     BoxesModule,
