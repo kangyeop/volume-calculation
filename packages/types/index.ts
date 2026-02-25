@@ -119,11 +119,9 @@ export type UploadType = 'outbound' | 'product';
 
 export interface ColumnMapping {
   columnName: string;
-  confidence: number;
 }
 
 export interface MappingResult {
-  confidence: number;
   mapping: Record<string, ColumnMapping | null>;
   unmappedColumns: string[];
   notes?: string;
@@ -172,6 +170,13 @@ export interface ProductMatchResult {
   outboundItemIndex: number;
   orderId?: string;
   productIds?: string[] | null;
+  isPatternDetected?: boolean;
+  hasMultiplePatterns?: boolean;
+  rawValue?: string;
+  expandedPatterns?: Array<{
+    productName: string;
+    quantity: number;
+  }>;
 }
 
 export interface ProductMappingData {
@@ -183,7 +188,6 @@ export interface ParseMappingUploadData {
   headers: string[];
   rowCount: number;
   columnMapping: MappingResult;
-  productMapping?: ProductMappingData;
   fileName: string;
 }
 
