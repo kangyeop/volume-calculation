@@ -60,11 +60,9 @@ export class UploadSessionService {
       this.deleteSession(id);
       this.logger.debug(`Session ${id} expired and was removed`);
     }, this.TTL);
-
     session.timeout = timeout;
 
     this.logger.log(`Created session ${id} for ${data.type} upload`);
-
     return id;
   }
 

@@ -15,7 +15,7 @@ import {
   FileSpreadsheet,
   ArrowLeft,
 } from 'lucide-react';
-import type { ProductMatchResult, PackingResult3D, MappingResult } from '@wms/types';
+import type { ProductMatchResult, PackingResult3D } from '@wms/types';
 
 type WizardStep = 'upload' | 'columnMapping' | 'productMapping' | 'results';
 
@@ -32,7 +32,6 @@ export const OutboundWizard: React.FC = () => {
   const [headers, setHeaders] = useState<string[]>([]);
   const [rowCount, setRowCount] = useState<number>(0);
   const [columnMapping, setColumnMapping] = useState<Record<string, string | null>>({});
-  const [columnMappingResult, setColumnMappingResult] = useState<MappingResult | null>(null);
   const [productMappingData, setProductMappingData] = useState<ProductMatchResult[]>([]);
   const [productMappingStats, setProductMappingStats] = useState({
     totalItems: 0,
@@ -68,19 +67,6 @@ export const OutboundWizard: React.FC = () => {
       setSessionId(response.sessionId);
       setHeaders(response.headers);
       setRowCount(response.rowCount);
-      setColumnMappingResult(response.columnMapping);
-
-      if (response.productMapping) {
-        setProductMappingData(response.productMapping.results);
-        const mappedCount = response.productMapping.results.filter(
-          (r: ProductMatchResult) => r.productIds && r.productIds.length > 0,
-        ).length;
-        setProductMappingStats({
-          totalItems: response.productMapping.results.length,
-          matchedItems: mappedCount,
-          needsReview: 0,
-        });
-      }
 
       const initialMapping: Record<string, string | null> = {};
       OUTBOUND_FIELDS.forEach((field) => {
@@ -104,7 +90,36 @@ export const OutboundWizard: React.FC = () => {
   };
 
   const handleColumnMappingNext = async () => {
-    setCurrentStep('productMapping');
+    if (!sessionId) return;
+
+    setIsProcessing(true);
+
+    try {
+      const productMappingResult = await api.upload.productMapping(sessionId, columnMapping);
+
+      setProductMappingData(productMappingResult.results);
+
+      const mappedCount = productMappingResult.results.filter(
+        (r: ProductMatchResult) => r.productIds && r.productIds.length > 0,
+      ).length;
+      setProductMappingStats({
+        totalItems: productMappingResult.results.length,
+        matchedItems: mappedCount,
+        needsReview: 0,
+      });
+
+      setCurrentStep('productMapping');
+      toast.success('제품 매핑 완료', {
+        description: `${mappedCount}개의 항목이 매핑되었습니다.`,
+      });
+    } catch (error) {
+      console.error('Product mapping failed:', error);
+      toast.error('제품 매핑 실패', {
+        description: error instanceof Error ? error.message : '제품 매핑 중 오류가 발생했습니다.',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleColumnMappingChange = async (field: string, value: string | null) => {
@@ -115,18 +130,9 @@ export const OutboundWizard: React.FC = () => {
     if (skuColumnChanged && value) {
       setIsProcessing(true);
       try {
-        const data = await api.upload.updateMapping(sessionId, newMapping);
+        await api.upload.updateMapping(sessionId, newMapping);
 
-        setProductMappingData(data.productMapping.results);
-        const mappedCount = data.productMapping.results.filter(
-          (r: ProductMatchResult) => r.productIds && r.productIds.length > 0,
-        ).length;
-        setProductMappingStats({
-          totalItems: data.productMapping.results.length,
-          matchedItems: mappedCount,
-          needsReview: 0,
-        });
-        toast.success('제품 매핑 업데이트 완료');
+        toast.success('컬럼 매핑 업데이트 완료');
       } catch (error) {
         console.error('Update mapping failed:', error);
         toast.error('매핑 업데이트 실패', {
@@ -246,7 +252,6 @@ export const OutboundWizard: React.FC = () => {
     setHeaders([]);
     setRowCount(0);
     setColumnMapping({});
-    setColumnMappingResult(null);
     setProductMappingData([]);
     setProductMappingStats({ totalItems: 0, matchedItems: 0, needsReview: 0 });
     setPackingResults([]);
@@ -351,10 +356,6 @@ export const OutboundWizard: React.FC = () => {
               <p className="text-sm text-blue-800">
                 AI가 자동으로 컬럼을 매핑했습니다. 필요한 경우 컬럼을 직접 선택하여 수정할 수
                 있습니다. 필수 필드: <span className="font-bold">주문번호, SKU, 수량</span>
-                <br />
-                <span className="text-xs text-blue-600">
-                  SKU 컬럼을 변경하면 제품 매핑이 다시 진행됩니다.
-                </span>
               </p>
             </div>
 
@@ -375,11 +376,6 @@ export const OutboundWizard: React.FC = () => {
                       </option>
                     ))}
                   </select>
-                  {columnMappingResult?.mapping?.[field]?.confidence && (
-                    <span className="text-xs text-gray-500 w-16">
-                      {(columnMappingResult.mapping[field].confidence * 100).toFixed(0)}%
-                    </span>
-                  )}
                 </div>
               ))}
             </div>

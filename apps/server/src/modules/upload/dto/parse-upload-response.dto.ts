@@ -1,10 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  ColumnMapping,
-  MappingResult,
-  ParseUploadResponse,
-  ParseUploadData,
-} from '@wms/types';
+import { ColumnMapping, MappingResult, ParseUploadResponse, ParseUploadData } from '@wms/types';
 
 export class ColumnMappingDto implements ColumnMapping {
   @ApiProperty({
@@ -12,21 +7,9 @@ export class ColumnMappingDto implements ColumnMapping {
     example: '주문번호',
   })
   columnName!: string;
-
-  @ApiProperty({
-    description: 'Confidence score for the mapping (0-1)',
-    example: 0.95,
-  })
-  confidence!: number;
 }
 
 export class MappingResultDto implements MappingResult {
-  @ApiProperty({
-    description: 'Overall confidence score for the mapping',
-    example: 0.92,
-  })
-  confidence!: number;
-
   @ApiProperty({
     description: 'Field to column mapping',
     type: 'object',

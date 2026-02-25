@@ -39,8 +39,28 @@ export const MappingPreview: React.FC<MappingPreviewProps> = ({
     return products.filter((p) => result.productIds?.includes(p.id));
   };
 
+  const patternCount = results.filter(r => r.isPatternDetected).length;
+  const multiplePatternCount = results.filter(r => r.hasMultiplePatterns).length;
+
   return (
     <div className="space-y-6">
+      {patternCount > 0 && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center gap-2">
+            <div className="text-green-600">
+              <div className="text-lg font-bold">{patternCount}개 행</div>
+              <div className="text-sm">패턴 감지됨</div>
+            </div>
+            {multiplePatternCount > 0 && (
+              <div className="text-green-600">
+                <div className="text-lg font-bold">{multiplePatternCount}개 행</div>
+                <div className="text-sm">다중 패턴 분할</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="grid grid-cols-2 gap-4 text-center">
           <div>
@@ -65,6 +85,7 @@ export const MappingPreview: React.FC<MappingPreviewProps> = ({
               <th className="px-4 py-3 text-left font-medium text-gray-700 w-24">주문번호</th>
               <th className="px-4 py-3 text-left font-medium text-gray-700 w-16">인덱스</th>
               <th className="px-4 py-3 text-left font-medium text-gray-700">매핑된 상품</th>
+              <th className="px-4 py-3 text-left font-medium text-gray-700 w-32">원본 값</th>
               <th className="px-4 py-3 text-left font-medium text-gray-700">동작</th>
             </tr>
           </thead>
@@ -82,7 +103,12 @@ export const MappingPreview: React.FC<MappingPreviewProps> = ({
                     <span className="font-medium">{result.orderId || '-'}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="font-medium">{result.outboundItemIndex}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{result.outboundItemIndex}</span>
+                      {result.isPatternDetected && (
+                        <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded">패턴</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     {editingIndex === result.outboundItemIndex ? (
@@ -149,6 +175,27 @@ export const MappingPreview: React.FC<MappingPreviewProps> = ({
                       <span className="text-gray-400 italic">매핑되지 않음</span>
                     )}
                   </td>
+                  <td className="px-4 py-3 text-xs">
+                    {result.rawValue && (
+                      <div className="text-gray-400 italic">{result.rawValue}</div>
+                    )}
+                  </td>
+                  {result.expandedPatterns && result.expandedPatterns.length > 0 && (
+                    <td className="px-4 py-3" colSpan={4}>
+                      <div className="bg-purple-50 border border-purple-200 rounded p-2">
+                        <div className="text-xs text-purple-700 font-medium mb-1">
+                          분할된 패턴 ({result.expandedPatterns.length}개):
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {result.expandedPatterns.map((pattern, idx) => (
+                            <span key={idx} className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">
+                              {pattern.productName} / {pattern.quantity}ea
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     {editingIndex !== result.outboundItemIndex && (
                       <button

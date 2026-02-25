@@ -30,6 +30,8 @@ import { ConfirmMappingUploadResponseDto } from './dto/confirm-mapping-upload-re
 import { UpdateMappingResponseDto } from './dto/update-mapping-response.dto';
 import { UpdateMappingDto } from './dto/update-mapping.dto';
 import { MappingResult } from '@wms/types';
+import { ProductMappingDto } from './dto/product-mapping.dto';
+import { ProductMappingResponseDto } from './dto/product-mapping-response.dto';
 
 @ApiTags('upload')
 @Controller('upload')
@@ -64,7 +66,10 @@ export class UploadController {
   })
   @ApiResponse({ status: 400, description: 'Bad Request' })
   @UseInterceptors(FileInterceptor('file'))
-  async parse(@UploadedFile() file: Express.Multer.File, @Query() query: ParseUploadDto): Promise<ParseUploadResponseDto> {
+  async parse(
+    @UploadedFile() file: Express.Multer.File,
+    @Query() query: ParseUploadDto,
+  ): Promise<ParseUploadResponseDto> {
     if (!file) {
       throw new BadRequestException('File is required');
     }
@@ -75,15 +80,10 @@ export class UploadController {
 
     const parseResult = this.excelParserService.parseExcelFile(file);
 
-    const mappingResult: MappingResult = query.type === 'outbound'
-      ? await this.aiColumnMapperService.mapOutboundColumns(
-          parseResult.headers,
-          parseResult.rows,
-        )
-      : await this.aiColumnMapperService.mapProductColumns(
-          parseResult.headers,
-          parseResult.rows,
-        );
+    const mappingResult: MappingResult = await this.aiColumnMapperService.mapOutboundColumns(
+      parseResult.headers,
+      parseResult.rows,
+    );
 
     const sessionId = this.uploadSessionService.createSession({
       type: query.type,
@@ -141,11 +141,7 @@ export class UploadController {
           sku: String(row.sku || ''),
           quantity: parseInt(String(row.quantity || '1'), 10) || 1,
           recipientName: row.recipientName ? String(row.recipientName) : undefined,
-          recipientPhone: row.recipientPhone ? String(row.recipientPhone) : undefined,
-          zipCode: row.zipCode ? String(row.zipCode) : undefined,
           address: row.address ? String(row.address) : undefined,
-          detailAddress: row.detailAddress ? String(row.detailAddress) : undefined,
-          shippingMemo: row.shippingMemo ? String(row.shippingMemo) : undefined,
         }));
 
       const results = await this.outboundService.createBulk(session.projectId, outbounds);
@@ -161,7 +157,9 @@ export class UploadController {
       };
     } else {
       const originalMapping = session.originalMapping as MappingResult | undefined;
-      const dimensionMapping = originalMapping?.mapping?.dimensions as { separator?: string } | undefined;
+      const dimensionMapping = originalMapping?.mapping?.dimensions as
+        | { separator?: string }
+        | undefined;
       const separator = dimensionMapping?.separator || '*';
 
       const products = mappedRows
@@ -226,7 +224,10 @@ export class UploadController {
   })
   @ApiResponse({ status: 400, description: 'Bad Request' })
   @UseInterceptors(FileInterceptor('file'))
-  async parseMapping(@UploadedFile() file: Express.Multer.File, @Query() query: ParseUploadDto): Promise<ParseMappingUploadResponseDto> {
+  async parseMapping(
+    @UploadedFile() file: Express.Multer.File,
+    @Query() query: ParseUploadDto,
+  ): Promise<ParseMappingUploadResponseDto> {
     if (!file) {
       throw new BadRequestException('File is required');
     }
@@ -275,7 +276,9 @@ export class UploadController {
     type: ConfirmMappingUploadResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Bad Request' })
-  async confirmMapping(@Body() confirmMappingUploadDto: ConfirmMappingUploadDto): Promise<ConfirmMappingUploadResponseDto> {
+  async confirmMapping(
+    @Body() confirmMappingUploadDto: ConfirmMappingUploadDto,
+  ): Promise<ConfirmMappingUploadResponseDto> {
     const session = this.uploadSessionService.getSession(confirmMappingUploadDto.sessionId);
     if (!session) {
       throw new BadRequestException('Session not found or expired');
@@ -324,14 +327,16 @@ export class UploadController {
   }
 
   @Post('update-mapping')
-  @ApiOperation({ summary: 'Update column mapping and get product suggestions' })
+  @ApiOperation({ summary: 'Update column mapping' })
   @ApiResponse({
     status: 200,
     description: 'Mapping updated successfully',
     type: UpdateMappingResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Bad Request' })
-  async updateMapping(@Body() updateMappingDto: UpdateMappingDto): Promise<UpdateMappingResponseDto> {
+  async updateMapping(
+    @Body() updateMappingDto: UpdateMappingDto,
+  ): Promise<UpdateMappingResponseDto> {
     const session = this.uploadSessionService.getSession(updateMappingDto.sessionId);
     if (!session) {
       throw new BadRequestException('Session not found or expired');
@@ -349,6 +354,37 @@ export class UploadController {
     this.uploadSessionService.updateTransformedData(updateMappingDto.sessionId, transformedData);
     this.uploadSessionService.updateColumnMapping(updateMappingDto.sessionId, cleanColumnMapping);
 
+    return {
+      success: true,
+    };
+  }
+
+  @Post('product-mapping')
+  @ApiOperation({ summary: 'Update product mapping' })
+  @ApiResponse({
+    status: 200,
+    description: 'Mapping updated successfully',
+    type: ProductMappingResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  async productMapping(@Body() body: ProductMappingDto): Promise<ProductMappingResponseDto> {
+    const session = this.uploadSessionService.getSession(body.sessionId);
+    if (!session) {
+      throw new BadRequestException('Session not found or expired');
+    }
+
+    const cleanColumnMapping: Record<string, string> = {};
+    for (const [field, columnName] of Object.entries(body.columnMapping)) {
+      if (columnName) {
+        cleanColumnMapping[field] = columnName;
+      }
+    }
+
+    const transformedData = this.transformOutboundRows(session.rows, cleanColumnMapping);
+
+    let productMappingRecord: Record<number, string[]> = {};
+    let productMappingWithOrderId: any[] = [];
+
     const outboundItems = transformedData.map((item) => ({
       availableFields: {
         orderId: item.orderId,
@@ -364,23 +400,23 @@ export class UploadController {
       outboundItems,
     );
 
-    const productMappingWithOrderId = productMapping.map((result) => ({
+    productMappingWithOrderId = productMapping.map((result) => ({
       ...result,
       orderId: transformedData[result.outboundItemIndex]?.orderId,
     }));
 
-    const productMappingRecord: Record<number, string[]> = {};
     productMapping.forEach((result) => {
       if (result.productIds) {
         productMappingRecord[result.outboundItemIndex] = result.productIds;
       }
     });
-    this.uploadSessionService.updateProductMapping(updateMappingDto.sessionId, productMappingRecord);
+
+    this.uploadSessionService.updateProductMapping(body.sessionId, productMappingRecord);
 
     return {
       success: true,
       data: {
-        productMapping: { results: productMappingWithOrderId },
+        results: productMappingWithOrderId,
       },
     };
   }
@@ -407,19 +443,25 @@ export class UploadController {
         const mapped = this.mapRow(row, columnMapping);
         return mapped.orderId && mapped.sku;
       })
-      .map((row) => {
+      .flatMap((row) => {
         const mapped = this.mapRow(row, columnMapping);
-        return {
-          orderId: String(mapped.orderId || ''),
-          sku: String(mapped.sku || ''),
-          quantity: parseInt(String(mapped.quantity || '1'), 10) || 1,
-          recipientName: mapped.recipientName ? String(mapped.recipientName) : undefined,
-          address: mapped.address ? String(mapped.address) : undefined,
-        };
+
+        return [
+          {
+            orderId: String(mapped.orderId || ''),
+            sku: String(mapped.sku || ''),
+            quantity: parseInt(String(mapped.quantity || '1'), 10) || 1,
+            recipientName: mapped.recipientName ? String(mapped.recipientName) : undefined,
+            address: mapped.address ? String(mapped.address) : undefined,
+          },
+        ];
       });
   }
 
-  private mapRow(row: Record<string, unknown>, columnMapping: Record<string, string>): Record<string, unknown> {
+  private mapRow(
+    row: Record<string, unknown>,
+    columnMapping: Record<string, string>,
+  ): Record<string, unknown> {
     const result: Record<string, unknown> = {};
     for (const [field, columnName] of Object.entries(columnMapping)) {
       if (columnName) {

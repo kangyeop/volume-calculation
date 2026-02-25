@@ -6,6 +6,7 @@ import { useUploadParse, useUploadConfirm } from '@/hooks/queries';
 import { useProductUpload } from '@/hooks/useProductUpload';
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { AlertCircle, Loader2 } from 'lucide-react';
+import type { ParseUploadData } from '@wms/types';
 
 const PRODUCT_FIELDS = ['sku', 'name', 'dimensions'];
 
@@ -31,7 +32,6 @@ export const ProductManager: React.FC = () => {
         projectId: projectId,
       });
 
-      uploadState.setUploadSession(response);
       await autoConfirmProductMapping(response);
     } catch (error) {
       console.error('AI parsing failed:', error);
@@ -39,12 +39,7 @@ export const ProductManager: React.FC = () => {
     }
   };
 
-  const autoConfirmProductMapping = async (uploadSession: {
-    sessionId: string;
-    mapping: {
-      mapping: Record<string, { columnName: string; confidence: number } | null>;
-    };
-  }) => {
+  const autoConfirmProductMapping = async (uploadSession: ParseUploadData) => {
     setIsAutoConfirming(true);
     uploadState.setShowMappingUI(true);
 

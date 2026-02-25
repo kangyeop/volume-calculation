@@ -97,10 +97,11 @@ export const api = {
       formData.append('createOutboundDtos', JSON.stringify(createOutboundDtos));
 
       return apiClient
-        .post<{ success: boolean; data?: unknown; message?: string }>(
-          `/projects/${projectId}/outbounds/bulk-with-file`,
-          formData,
-        )
+        .post<{
+          success: boolean;
+          data?: unknown;
+          message?: string;
+        }>(`/projects/${projectId}/outbounds/bulk-with-file`, formData)
         .then((response) => {
           if (!response.data.success) {
             throw new Error(response.data.message || 'API request failed');
@@ -220,12 +221,22 @@ export const api = {
     updateMapping: async (
       sessionId: string,
       columnMapping: Record<string, string | null>,
-    ): Promise<{ productMapping: ProductMappingData }> => {
-      const response = await apiClient.post<
-        ApiResponse<{ productMapping: ProductMappingData }>
-      >(
-        `/upload/update-mapping`,
-        { sessionId, columnMapping },
+    ): Promise<void> => {
+      await apiClient.post<ApiResponse<void>>(`/upload/update-mapping`, {
+        sessionId,
+        columnMapping,
+      });
+    },
+    productMapping: async (
+      sessionId: string,
+      columnMapping: Record<string, string | null>,
+    ): Promise<ProductMappingData> => {
+      const response = await apiClient.post<ApiResponse<ProductMappingData>>(
+        `/upload/product-mapping`,
+        {
+          sessionId,
+          columnMapping,
+        },
       );
 
       return unwrapResponse({ data: response.data });
