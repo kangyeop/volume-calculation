@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PackingResultEntity } from '../entities/packing-result.entity';
 import { PackingResultDetailEntity } from '../entities/packing-result-detail.entity';
@@ -18,7 +18,7 @@ import { UploadModule } from './upload.module';
     OutboundModule,
     ProjectsModule,
     BoxesModule,
-    UploadModule,
+    forwardRef(() => UploadModule),
   ],
   controllers: [PackingController],
   providers: [PackingService, ExcelService],
