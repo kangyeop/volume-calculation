@@ -96,7 +96,7 @@ export class DataTransformerService {
     };
   }
 
-  transformProductRows(rows: Record<string, unknown>[], separator: string): CreateProductDto[] {
+  transformProductRows(rows: Record<string, unknown>[], separator: string = 'x'): CreateProductDto[] {
     return rows
       .filter((row) => row.sku && row.name)
       .map((row) => {
@@ -130,8 +130,6 @@ export class DataTransformerService {
     row: Record<string, unknown>,
     columnMapping: Record<string, string>,
   ): Record<string, unknown> {
-    console.log(row);
-
     const result: Record<string, unknown> = {};
     for (const [field, columnName] of Object.entries(columnMapping)) {
       if (columnName) {

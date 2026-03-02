@@ -2,8 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductEntity } from '../entities/product.entity';
-import { AIColumnMapperService } from '../services/aiColumnMapper.service';
-import { AIProductMapperService } from '../services/aiProductMapper.service';
+import { AIService } from '../services/ai.service';
 
 @Module({
   imports: [ConfigModule, TypeOrmModule.forFeature([ProductEntity])],
@@ -15,9 +14,8 @@ import { AIProductMapperService } from '../services/aiProductMapper.service';
       },
       inject: [ConfigService],
     },
-    AIColumnMapperService,
-    AIProductMapperService,
+    AIService,
   ],
-  exports: ['LLM_PROVIDER', AIColumnMapperService, AIProductMapperService],
+  exports: ['LLM_PROVIDER', AIService],
 })
 export class AIModule {}

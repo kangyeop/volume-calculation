@@ -3,7 +3,7 @@ import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { AIModule } from './ai.module';
 import { ProductsModule } from './products.module';
-import { ExcelParserService } from '../services/excelParser.service';
+import { ExcelService } from '../services/excel.service';
 import { FileStorageService } from '../services/fileStorage.service';
 import { UploadController } from '../controllers/upload.controller';
 import { UploadRepository } from '../repositories';
@@ -30,7 +30,7 @@ import { DataTransformerService } from '../services/dataTransformer.service';
   ],
   controllers: [UploadController],
   providers: [
-    ExcelParserService,
+    ExcelService,
     FileStorageService,
     UploadRepository,
     UploadParseService,
@@ -38,7 +38,7 @@ import { DataTransformerService } from '../services/dataTransformer.service';
     DataTransformerService,
   ],
   exports: [
-    ExcelParserService,
+    ExcelService,
     FileStorageService,
     UploadParseService,
     UploadConfirmService,

@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Param, Body, Query } from '@nestjs/common';
 import { PackingService } from '../services/packing.service';
-import { ExcelExportService } from '../services/excelExport.service';
+import { ExcelService } from '../services/excel.service';
 import { PackingRecommendation, PackingResult3D } from '@wms/types';
 import { PackingResultEntity } from '../entities/packing-result.entity';
 import { CalculatePackingDto } from '../dto/calculate-packing.dto';
@@ -10,7 +10,7 @@ import { CalculateOrderPackingDto } from '../dto/calculate-order-packing.dto';
 export class PackingController {
   constructor(
     private readonly packingService: PackingService,
-    private readonly excelExportService: ExcelExportService,
+    private readonly excelService: ExcelService,
   ) {}
 
   @Post('calculate')
@@ -35,7 +35,7 @@ export class PackingController {
     @Param('projectId') projectId: string,
     @Query('batchId') batchId: string,
   ): Promise<Buffer> {
-    return this.excelExportService.exportPackingResults(projectId, batchId);
+    return this.excelService.exportPackingResults(projectId, batchId);
   }
 
   @Post('calculate-order')

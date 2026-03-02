@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ProductEntity } from '../entities/product.entity';
+import { OutboundMappingSchema, OutboundMappingResult } from './schemas/outbound-mapping.schema';
 import { SingleProductMatchSchema } from './schemas/product-match.schema';
 import { ChatOpenAI } from '@langchain/openai';
 
@@ -24,8 +25,8 @@ interface OutboundItem {
 }
 
 @Injectable()
-export class AIProductMapperService {
-  private readonly logger = new Logger(AIProductMapperService.name);
+export class AIService {
+  private readonly logger = new Logger(AIService.name);
   private readonly cache = new Map<string, ProductCache>();
   private readonly cacheTTL: number;
 
@@ -36,6 +37,32 @@ export class AIProductMapperService {
     private readonly configService: ConfigService,
   ) {
     this.cacheTTL = this.configService.get('PRODUCT_CACHE_TTL', 3600000);
+  }
+
+  async mapOutboundColumns(headers: string[], sampleRows: any[]): Promise<OutboundMappingResult> {
+    try {
+      this.logger.log(`Mapping outbound columns for ${headers.length} headers`);
+
+      const llm = this.createLLM();
+      const structuredLlm = llm.withStructuredOutput(OutboundMappingSchema);
+      const prompt = this.buildOutboundPrompt(headers, sampleRows);
+
+      const result = await structuredLlm.invoke([
+        [
+          'system',
+          'You are a helpful data mapping assistant. Analyze CSV headers and sample data to map columns to required fields.',
+        ],
+        ['human', prompt],
+      ]);
+
+      this.logger.log(`Successfully mapped outbound columns`);
+
+      return result;
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(`Failed to map outbound columns using AI: ${err.message}`, err.stack);
+      throw error;
+    }
   }
 
   async mapOutboundItemsToProducts(
@@ -53,6 +80,14 @@ export class AIProductMapperService {
     this.logger.log(`Mapping complete`);
 
     return results;
+  }
+
+  private createLLM(): ChatOpenAI {
+    return new ChatOpenAI({
+      modelName: 'gpt-4.1-nano',
+      temperature: 0,
+      apiKey: this.apiKey,
+    });
   }
 
   private async getProductCache(projectId: string): Promise<CachedProduct[]> {
@@ -99,11 +134,7 @@ export class AIProductMapperService {
     }
 
     try {
-      const llm = new ChatOpenAI({
-        modelName: 'gpt-4.1-nano',
-        temperature: 0,
-        apiKey: this.apiKey,
-      });
+      const llm = this.createLLM();
       const structuredLlm = llm.withStructuredOutput(SingleProductMatchSchema);
       const prompt = this.buildMatchingPrompt(item, products);
 
@@ -139,6 +170,41 @@ export class AIProductMapperService {
     }
   }
 
+  private buildOutboundPrompt(headers: string[], sampleRows: any[]): string {
+    const fullData = sampleRows.map((row) =>
+      Object.fromEntries(headers.map((h) => [h, row[h] ?? ''])),
+    );
+
+    return `Analyze following Excel data and map columns to outbound order fields.
+
+Headers: ${headers.join(', ')}
+
+Complete Data (JSON format, ${sampleRows.length} rows):
+${JSON.stringify(fullData, null, 2)}
+
+Required fields to map:
+- orderId: for tracking order
+  Pattern: Long numeric string
+
+- sku: sku name
+  Pattern: (상품명 / 개수ea)
+
+- quantity: order quantity
+  Pattern: Number
+
+- recipientName
+  Pattern: Person's name
+
+- address
+  Pattern: Main address
+
+Mapping Rules:
+1. Prefer columns with exact Korean field names
+2. Look for common patterns in actual data values
+3. Ignore system/internal fields
+5. Ignore complex/formatted columns`;
+  }
+
   private buildMatchingPrompt(item: OutboundItem, products: CachedProduct[]): string {
     const fieldsList = Object.entries(item.availableFields)
       .filter(([_, value]) => value)
@@ -159,9 +225,9 @@ Available Products (${productCount} of ${products.length}):
 ${productList}
 
 AI Instructions:
-1. Analyze all available fields from the outbound item
+1. Analyze all available fields from outbound item
 2. Identify which field(s) contain product name or product code
-3. Look for semantic similarity with product names in the database
+3. Look for semantic similarity with product names in database
 4. Consider common patterns: product names in quotes, variant info, codes
 5. Return matchedIndexes of all matching products, or an empty array if no match found`;
   }

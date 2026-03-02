@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository } from 'typeorm';
+import { Transactional } from 'typeorm-transactional';
 import { ProductEntity } from '../entities/product.entity';
 
 @Injectable()
@@ -8,7 +9,6 @@ export class ProductsRepository {
   constructor(
     @InjectRepository(ProductEntity)
     private readonly repository: Repository<ProductEntity>,
-    private readonly dataSource: DataSource,
   ) {}
 
   async create(projectId: string, product: Partial<ProductEntity>): Promise<ProductEntity> {
@@ -45,34 +45,23 @@ export class ProductsRepository {
     return (result.affected ?? 0) > 0;
   }
 
+  @Transactional()
   async createBulk(
     projectId: string,
     products: Partial<ProductEntity>[],
   ): Promise<ProductEntity[]> {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    const entities = products.map((dto) =>
+      this.repository.create({ ...dto, projectId }),
+    );
 
-    try {
-      const entities = products.map((dto) =>
-        this.repository.create({ ...dto, projectId }),
-      );
+    await this.repository
+      .createQueryBuilder()
+      .insert()
+      .into(ProductEntity)
+      .values(entities)
+      .orUpdate(['name', 'width', 'length', 'height'], ['projectId', 'sku'])
+      .execute();
 
-      await this.repository
-        .createQueryBuilder()
-        .insert()
-        .into(ProductEntity)
-        .values(entities)
-        .orUpdate(['name', 'width', 'length', 'height'], ['projectId', 'sku'])
-        .execute();
-
-      await queryRunner.commitTransaction();
-      return entities;
-    } catch (err) {
-      await queryRunner.rollbackTransaction();
-      throw err;
-    } finally {
-      await queryRunner.release();
-    }
+    return entities;
   }
 }

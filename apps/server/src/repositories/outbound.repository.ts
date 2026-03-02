@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository } from 'typeorm';
+import { Transactional } from 'typeorm-transactional';
 import { OutboundEntity } from '../entities/outbound.entity';
 
 @Injectable()
@@ -8,7 +9,6 @@ export class OutboundRepository {
   constructor(
     @InjectRepository(OutboundEntity)
     private readonly repository: Repository<OutboundEntity>,
-    private readonly dataSource: DataSource,
   ) {}
 
   async create(projectId: string, outbound: Partial<OutboundEntity>): Promise<OutboundEntity> {
@@ -66,27 +66,16 @@ export class OutboundRepository {
     await this.repository.delete({ projectId });
   }
 
+  @Transactional()
   async createBulk(
     projectId: string,
     outbounds: Partial<OutboundEntity>[],
   ): Promise<OutboundEntity[]> {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    const entities = outbounds.map((dto) =>
+      this.repository.create({ ...dto, projectId }),
+    );
 
-    try {
-      const entities = outbounds.map((dto) =>
-        this.repository.create({ ...dto, projectId }),
-      );
-
-      const savedEntities = await queryRunner.manager.save(entities);
-      await queryRunner.commitTransaction();
-      return savedEntities;
-    } catch (err) {
-      await queryRunner.rollbackTransaction();
-      throw err;
-    } finally {
-      await queryRunner.release();
-    }
+    const savedEntities = await this.repository.manager.save(entities);
+    return savedEntities;
   }
 }

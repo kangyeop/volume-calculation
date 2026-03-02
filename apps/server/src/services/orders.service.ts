@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository } from 'typeorm';
+import { Transactional } from 'typeorm-transactional';
 import { OrderEntity, OrderStatus } from '../entities/order.entity';
 import { OutboundEntity } from '../entities/outbound.entity';
 import { ProductEntity } from '../entities/product.entity';
@@ -10,7 +11,6 @@ export class OrdersService {
   constructor(
     @InjectRepository(OrderEntity)
     private readonly ordersRepository: Repository<OrderEntity>,
-    private readonly dataSource: DataSource,
   ) {}
 
   async findOrCreate(
@@ -52,47 +52,36 @@ export class OrdersService {
     return order;
   }
 
+  @Transactional()
   async mapProducts(projectId: string, orderId: string): Promise<number> {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    const order = await this.ordersRepository.manager.findOne(OrderEntity, {
+      where: { projectId, orderId },
+    });
 
-    try {
-      const order = await queryRunner.manager.findOne(OrderEntity, {
-        where: { projectId, orderId },
-      });
-
-      if (!order) {
-        throw new NotFoundException(
-          `Order with projectId "${projectId}" and orderId "${orderId}" not found`,
-        );
-      }
-
-      const outbounds = await queryRunner.manager.find(OutboundEntity, {
-        where: { projectId, orderId },
-      });
-
-      let mappedCount = 0;
-      for (const outbound of outbounds) {
-        const product = await queryRunner.manager.findOne(ProductEntity, {
-          where: { projectId, sku: outbound.sku },
-        });
-
-        if (product) {
-          outbound.productId = product.id;
-          await queryRunner.manager.save(outbound);
-          mappedCount++;
-        }
-      }
-
-      await queryRunner.commitTransaction();
-      return mappedCount;
-    } catch (err) {
-      await queryRunner.rollbackTransaction();
-      throw err;
-    } finally {
-      await queryRunner.release();
+    if (!order) {
+      throw new NotFoundException(
+        `Order with projectId "${projectId}" and orderId "${orderId}" not found`,
+      );
     }
+
+    const outbounds = await this.ordersRepository.manager.find(OutboundEntity, {
+      where: { projectId, orderId },
+    });
+
+    let mappedCount = 0;
+    for (const outbound of outbounds) {
+      const product = await this.ordersRepository.manager.findOne(ProductEntity, {
+        where: { projectId, sku: outbound.sku },
+      });
+
+      if (product) {
+        outbound.productId = product.id;
+        await this.ordersRepository.manager.save(outbound);
+        mappedCount++;
+      }
+    }
+
+    return mappedCount;
   }
 
   async calculateVolume(projectId: string, orderId: string): Promise<number> {

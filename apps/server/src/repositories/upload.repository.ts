@@ -1,99 +1,85 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Transactional } from 'typeorm-transactional';
 import { OutboundEntity } from '../entities/outbound.entity';
 import { ProductEntity } from '../entities/product.entity';
+import { OrderEntity, OrderStatus } from '../entities/order.entity';
 import { CreateOutboundDto } from '../dto/create-outbound.dto';
 import { CreateProductDto } from '../dto/create-product.dto';
-import { OrderEntity, OrderStatus } from '../entities/order.entity';
 
 @Injectable()
 export class UploadRepository {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    @InjectRepository(OutboundEntity)
+    private readonly outboundRepository: Repository<OutboundEntity>,
+    @InjectRepository(ProductEntity)
+    private readonly productRepository: Repository<ProductEntity>,
+    @InjectRepository(OrderEntity)
+    private readonly orderRepository: Repository<OrderEntity>,
+  ) {}
 
+  @Transactional()
   async createOutboundsWithOrder(
     projectId: string,
     outbounds: CreateOutboundDto[],
   ): Promise<{ outbounds: OutboundEntity[]; batchId: string; batchName: string }> {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    const batchId = crypto.randomUUID();
+    const batchName = `Upload ${new Date().toLocaleString()}`;
 
-    try {
-      const batchId = crypto.randomUUID();
-      const batchName = `Upload ${new Date().toLocaleString()}`;
+    const uniqueOrderIds = [...new Set(outbounds.map((dto) => dto.orderId))];
 
-      const uniqueOrderIds = [...new Set(outbounds.map((dto) => dto.orderId))];
+    for (const orderId of uniqueOrderIds) {
+      const existingOrder = await this.orderRepository.findOne({
+        where: { projectId, orderId },
+      });
 
-      for (const orderId of uniqueOrderIds) {
-        const existingOrder = await queryRunner.manager.findOne(OrderEntity, {
-          where: { projectId, orderId },
-        });
-
-        if (!existingOrder) {
-          const firstOutboundForOrder = outbounds.find((dto) => dto.orderId === orderId);
-          const order = queryRunner.manager.create(OrderEntity, {
-            projectId,
-            orderId,
-            recipientName: firstOutboundForOrder?.recipientName,
-            address: firstOutboundForOrder?.address,
-            status: OrderStatus.PENDING,
-          });
-          await queryRunner.manager.save(order);
-        }
-      }
-
-      const outboundEntities = outbounds.map((dto) =>
-        queryRunner.manager.create(OutboundEntity, {
-          ...dto,
+      if (!existingOrder) {
+        const firstOutboundForOrder = outbounds.find((dto) => dto.orderId === orderId);
+        const order = this.orderRepository.create({
           projectId,
-          batchId,
-          batchName,
-        }),
-      );
-
-      const savedOutbounds = await queryRunner.manager.save(outboundEntities);
-      await queryRunner.commitTransaction();
-      return { outbounds: savedOutbounds, batchId, batchName };
-    } catch (err) {
-      await queryRunner.rollbackTransaction();
-      throw err;
-    } finally {
-      await queryRunner.release();
+          orderId,
+          recipientName: firstOutboundForOrder?.recipientName,
+          address: firstOutboundForOrder?.address,
+          status: OrderStatus.PENDING,
+        });
+        await this.orderRepository.save(order);
+      }
     }
+
+    const outboundEntities = outbounds.map((dto) =>
+      this.outboundRepository.create({
+        ...dto,
+        projectId,
+        batchId,
+        batchName,
+      }),
+    );
+
+    const savedOutbounds = await this.outboundRepository.manager.save(outboundEntities);
+    return { outbounds: savedOutbounds, batchId, batchName };
   }
 
+  @Transactional()
   async createProductsWithUpsert(
     projectId: string,
     products: CreateProductDto[],
   ): Promise<ProductEntity[]> {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    const productEntities = products.map((dto) =>
+      this.productRepository.create({
+        ...dto,
+        projectId,
+      }),
+    );
 
-    try {
-      const productEntities = products.map((dto) =>
-        queryRunner.manager.create(ProductEntity, {
-          ...dto,
-          projectId,
-        }),
-      );
+    await this.productRepository
+      .createQueryBuilder()
+      .insert()
+      .into(ProductEntity)
+      .values(productEntities)
+      .orUpdate(['name', 'width', 'length', 'height'], ['projectId', 'sku'])
+      .execute();
 
-      await queryRunner.manager
-        .createQueryBuilder()
-        .insert()
-        .into(ProductEntity)
-        .values(productEntities)
-        .orUpdate(['name', 'width', 'length', 'height'], ['projectId', 'sku'])
-        .execute();
-
-      await queryRunner.commitTransaction();
-
-      return productEntities;
-    } catch (err) {
-      await queryRunner.rollbackTransaction();
-      throw err;
-    } finally {
-      await queryRunner.release();
-    }
+    return productEntities;
   }
 }

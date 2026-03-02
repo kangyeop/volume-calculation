@@ -1,17 +1,65 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as ExcelJS from 'exceljs';
+import * as xlsx from 'xlsx';
 import { PackingResultDetailEntity } from '../entities/packing-result-detail.entity';
 import { FileStorageService } from './fileStorage.service';
 
+interface ParseResult {
+  headers: string[];
+  rows: Record<string, unknown>[];
+  rowCount: number;
+}
+
 @Injectable()
-export class ExcelExportService {
+export class ExcelService {
+  private readonly logger = new Logger(ExcelService.name);
+
   constructor(
     @InjectRepository(PackingResultDetailEntity)
     private readonly packingResultDetailRepository: Repository<PackingResultDetailEntity>,
     private readonly fileStorageService: FileStorageService,
   ) {}
+
+  parseExcelFile(file: Express.Multer.File): ParseResult {
+    try {
+      this.logger.log(`Parsing file: ${file.originalname}`);
+
+      const workbook = xlsx.read(file.buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+
+      if (!sheetName) {
+        throw new Error('No sheets found in file');
+      }
+
+      const worksheet = workbook.Sheets[sheetName];
+      const data = xlsx.utils.sheet_to_json<Record<string, unknown>>(worksheet, {
+        defval: '',
+        raw: false,
+      });
+
+      if (data.length === 0) {
+        throw new Error('No data found in file');
+      }
+
+      const headers = data.length > 0 ? Object.keys(data[0]) : [];
+
+      this.logger.log(
+        `Successfully parsed ${file.originalname}: ${headers.length} headers, ${data.length} rows`,
+      );
+
+      return {
+        headers,
+        rows: data,
+        rowCount: data.length,
+      };
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(`Failed to parse file: ${err.message}`, err.stack);
+      throw err;
+    }
+  }
 
   async exportPackingResults(projectId: string, batchId: string): Promise<Buffer> {
     if (!batchId) {
@@ -33,7 +81,6 @@ export class ExcelExportService {
     const fileBuffer = await this.fileStorageService.readFile(filePath);
 
     const originalWorkbook = new ExcelJS.Workbook();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     await originalWorkbook.xlsx.load(fileBuffer as any);
 
     const results = await this.packingResultDetailRepository
@@ -84,9 +131,7 @@ export class ExcelExportService {
 
     for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber++) {
       const row = worksheet.getRow(rowNumber);
-      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       const orderIdValue = String(row.getCell(orderIdIndex + 1).value || '');
-      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       const skuValue = String(row.getCell(skuIndex + 1).value || '');
 
       const key = [orderIdValue, skuValue].join('_');
