@@ -3,13 +3,14 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ProjectsModule } from './modules/projects/projects.module';
-import { ProductsModule } from './modules/products/products.module';
-import { OutboundModule } from './modules/outbound/outbound.module';
-import { OrdersModule } from './modules/orders/orders.module';
-import { PackingModule } from './modules/packing/packing.module';
-import { BoxesModule } from './modules/boxes/boxes.module';
-import { UploadModule } from './modules/upload/upload.module';
+import { AIModule } from './modules/ai.module';
+import { ProjectsModule } from './modules/projects.module';
+import { ProductsModule } from './modules/products.module';
+import { OutboundModule } from './modules/outbound.module';
+import { OrdersModule } from './modules/orders.module';
+import { PackingModule } from './modules/packing.module';
+import { BoxesModule } from './modules/boxes.module';
+import { UploadModule } from './modules/upload.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { UploadModule } from './modules/upload/upload.module';
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
     }),
+    AIModule,
     ProjectsModule,
     ProductsModule,
     OrdersModule,
