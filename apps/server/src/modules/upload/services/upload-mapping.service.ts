@@ -85,24 +85,21 @@ export class UploadMappingService {
 
       const skuItemList = skuItems.split('\n');
 
-      for (const sku of skuItemList) {
-        const [name, count] = sku.split('/');
+      let productIds = [];
 
-        const trimmedName = name.trim();
-        const trimmedCount = parseInt(count?.trim() || '1', 10) || 1;
+      for (const sku of skuItemList) {
+        const match = sku.match(/\((.+?)\s*\/\s*(\d+)ea\)?/);
+        if (!match) {
+          continue;
+        }
+
+        const trimmedName = match[1].trim();
 
         const products = await this.productsService.findBySku(session.projectId, trimmedName);
 
         if (products.length > 0) {
-          const productIds = products.map((p: ProductEntity) => p.id);
-          const index = transformedData.findIndex(
-            (data) =>
-              data.sku.toLowerCase() === item.availableFields.sku.toLowerCase() &&
-              data.quantity === trimmedCount,
-          );
-          if (index !== -1) {
-            productMappingRecord[index] = productIds;
-          }
+          const ids = products.map((p: ProductEntity) => p.id);
+          productIds.push(...ids);
         }
       }
     }
