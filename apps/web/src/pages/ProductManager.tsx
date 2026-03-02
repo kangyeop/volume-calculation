@@ -34,8 +34,19 @@ export const ProductManager: React.FC = () => {
 
       await autoConfirmProductMapping(response);
     } catch (error) {
-      console.error('AI parsing failed:', error);
-      await uploadState.fallbackUpload(file);
+      console.error('AI parsing failed, trying hardcoded mapping:', error);
+      // Fallback: read file with xlsx library and process with hardcoded mapping
+      try {
+        const XLSX = await import('xlsx');
+        const buffer = await file.arrayBuffer();
+        const wb = XLSX.read(buffer, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rawData = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
+        await uploadState.processWithHardcodedMapping(rawData);
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
+        uploadState.setErrors(['파일 처리에 실패했습니다.']);
+      }
     }
   };
 
@@ -58,7 +69,6 @@ export const ProductManager: React.FC = () => {
 
       toast.success('가져오기 완료', { description: '상품이 성공적으로 등록되었습니다.' });
       uploadState.setShowMappingUI(false);
-      uploadState.setUploadSession(null);
     } catch (error) {
       console.error('Failed to auto-confirm mapping:', error);
       uploadState.setErrors(['매핑 확인 중 오류가 발생했습니다.']);

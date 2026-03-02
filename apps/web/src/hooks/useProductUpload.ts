@@ -88,47 +88,9 @@ export const useProductUpload = (projectId: string) => {
     }
   };
 
-  const fallbackUpload = async (file: File) => {
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      const bstr = evt.target?.result as ArrayBuffer;
-      const XLSX = (
-        window as unknown as {
-          XLSX: {
-            read: (arg: unknown, options?: unknown) => unknown;
-            utils: { sheet_to_json: (arg: unknown, options?: unknown) => unknown[] };
-          };
-        }
-      ).XLSX;
-      const wb = XLSX.read(bstr, { type: 'array' }) as {
-        SheetNames: string[];
-        Sheets: Record<string, unknown>;
-      };
-      const wsname = wb.SheetNames[0];
-      const ws = wb.Sheets[wsname];
-      const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 }) as unknown[][];
-
-      if (rawData.length > 0) {
-        const headerRow = 2;
-        const dataRows = rawData.slice(headerRow).map((row) => {
-          const item: Record<string, unknown> = {};
-          const headers = rawData[headerRow] as string[];
-          headers.forEach((header, index) => {
-            item[header] = (row as unknown[])[index];
-          });
-          return item;
-        }) as Record<string, unknown>[];
-
-        await processWithHardcodedMapping(dataRows);
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  };
-
   return {
     ...uploadState,
     processWithHardcodedMapping,
-    fallbackUpload,
     createProducts,
   };
 };

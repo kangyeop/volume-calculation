@@ -244,5 +244,17 @@ export const api = {
     deleteSession: (sessionId: string) => {
       return apiClient.delete(`/upload/${sessionId}`);
     },
+    /** Stateless: map products for outbound rows without session */
+    mapProducts: async (
+      projectId: string,
+      columnMapping: Record<string, string | null>,
+      rows: Record<string, unknown>[],
+    ): Promise<ProductMappingData> => {
+      const response = await apiClient.post<ApiResponse<ProductMappingData>>(
+        `/upload/map-products`,
+        { projectId, columnMapping, rows },
+      );
+      return unwrapResponse({ data: response.data });
+    },
   },
 };

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import type { ParseUploadResponse, ConfirmUploadResponse } from '@wms/types';
+import type { ParseUploadResponse, ConfirmUploadResponse, ProductMappingData } from '@wms/types';
 
 export function useUploadParse() {
   return useMutation<
@@ -69,8 +69,24 @@ export function useUploadConfirm() {
   });
 }
 
-export function useDeleteUploadSession() {
-  return useMutation({
-    mutationFn: (sessionId: string) => api.upload.deleteSession(sessionId),
+/** Stateless: map products for outbound items */
+export function useUploadMapProducts() {
+  return useMutation<
+    ProductMappingData,
+    Error,
+    {
+      projectId: string;
+      columnMapping: Record<string, string | null>;
+      rows: Record<string, unknown>[];
+    }
+  >({
+    mutationFn: ({ projectId, columnMapping, rows }) =>
+      api.upload.mapProducts(projectId, columnMapping, rows),
+    onError: (error) => {
+      const errorMessage =
+        error instanceof Error ? error.message : '제품 매핑 중 오류가 발생했습니다.';
+      toast.error('오류', { description: errorMessage });
+    },
   });
 }
+
