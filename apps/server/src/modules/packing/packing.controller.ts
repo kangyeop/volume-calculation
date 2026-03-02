@@ -43,11 +43,7 @@ export class PackingController {
     @Param('projectId') projectId: string,
     @Body() dto: CalculateOrderPackingDto,
   ): Promise<PackingResult3D> {
-    return this.packingService.calculateOrderPacking(
-      projectId,
-      dto.orderId,
-      dto.groupLabel,
-    );
+    return this.packingService.calculateOrderPacking(projectId, dto.orderId, dto.groupLabel);
   }
 
   @Get('results/:orderId')

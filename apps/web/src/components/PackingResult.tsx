@@ -24,16 +24,12 @@ export const PackingResult: React.FC<PackingResultProps> = ({ result, onExport }
       <div className="bg-indigo-50 px-4 py-3 border-b flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Package className="h-5 w-5 text-indigo-600" />
-          <h3 className="font-semibold text-indigo-900">
-            {result.groupLabel || result.orderId}
-          </h3>
+          <h3 className="font-semibold text-indigo-900">{result.groupLabel || result.orderId}</h3>
         </div>
         <div className="flex items-center gap-4 text-sm">
           <div>
             <span className="text-gray-600">CBM:</span>
-            <span className="font-medium text-indigo-700 ml-1">
-              {formatCBM(result.totalCBM)}
-            </span>
+            <span className="font-medium text-indigo-700 ml-1">{formatCBM(result.totalCBM)}</span>
           </div>
           <div>
             <span className="text-gray-600">효율:</span>
@@ -69,9 +65,7 @@ export const PackingResult: React.FC<PackingResultProps> = ({ result, onExport }
               {result.unpackedItems.map((item, index) => (
                 <div key={index} className="px-4 py-3 flex items-start gap-3">
                   <div className="flex-1">
-                    <div className="font-medium text-gray-900">
-                      {item.name || item.skuId}
-                    </div>
+                    <div className="font-medium text-gray-900">{item.name || item.skuId}</div>
                     <div className="text-sm text-gray-500">SKU: {item.skuId}</div>
                     <div className="text-sm text-gray-500">수량: {item.quantity}</div>
                   </div>
@@ -131,16 +125,12 @@ const BoxResult: React.FC<BoxResultProps> = ({ box }) => {
           </div>
           <div className="bg-white border rounded-lg p-3">
             <div className="text-xs text-gray-500 mb-1">포장 효율</div>
-            <div className="text-lg font-medium text-green-600">
-              {box.efficiency.toFixed(1)}%
-            </div>
+            <div className="text-lg font-medium text-green-600">{box.efficiency.toFixed(1)}%</div>
           </div>
         </div>
 
         <div className="space-y-2">
-          <h5 className="text-sm font-medium text-gray-700">
-            포장된 상품 ({box.items.length})
-          </h5>
+          <h5 className="text-sm font-medium text-gray-700">포장된 상품 ({box.items.length})</h5>
           <div className="bg-white border rounded-lg divide-y max-h-64 overflow-y-auto">
             {box.items.map((item, itemIndex) => (
               <PackedItem key={itemIndex} item={item} />
@@ -161,18 +151,21 @@ const PackedItem: React.FC<PackedItemProps> = ({ item }) => {
     <div className="px-3 py-2">
       <div className="flex items-start gap-3">
         <div className="flex-1">
-          <div className="font-medium text-gray-900">
-            {item.name || item.skuId}
-          </div>
+          <div className="font-medium text-gray-900">{item.name || item.skuId}</div>
           <div className="text-sm text-gray-500">SKU: {item.skuId}</div>
           <div className="text-sm text-gray-500">수량: {item.quantity}</div>
         </div>
         <div className="text-right">
           <div className="text-xs text-gray-500 mb-1">위치</div>
           {item.placements.map((placement, index) => (
-            <div key={index} className="text-xs font-mono text-gray-600 bg-gray-100 px-2 py-1 rounded">
+            <div
+              key={index}
+              className="text-xs font-mono text-gray-600 bg-gray-100 px-2 py-1 rounded"
+            >
               X:{placement.x} Y:{placement.y} Z:{placement.z}
-              <span className="text-blue-600 ml-1">R:{rotationLabels[placement.rotation]}&deg;</span>
+              <span className="text-blue-600 ml-1">
+                R:{rotationLabels[placement.rotation]}&deg;
+              </span>
             </div>
           ))}
         </div>

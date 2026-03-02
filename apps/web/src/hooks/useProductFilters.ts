@@ -11,7 +11,7 @@ export const useProductFilters = (products: Product[]) => {
   const [filters, setFilters] = useState<FilterOptions>({});
 
   const filteredProducts = useMemo(() => {
-    return products.filter(product => {
+    return products.filter((product) => {
       if (filters.search) {
         const searchLower = filters.search.toLowerCase();
         if (
@@ -33,7 +33,7 @@ export const useProductFilters = (products: Product[]) => {
   }, [products, filters]);
 
   const updateFilters = (newFilters: Partial<FilterOptions>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
+    setFilters((prev) => ({ ...prev, ...newFilters }));
   };
 
   const clearFilters = () => {

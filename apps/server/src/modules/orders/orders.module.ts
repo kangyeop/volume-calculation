@@ -8,10 +8,7 @@ import { OrdersController } from './orders.controller';
 import { ProductsModule } from '../products/products.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([OrderEntity, OutboundEntity, ProductEntity]),
-    ProductsModule,
-  ],
+  imports: [TypeOrmModule.forFeature([OrderEntity, OutboundEntity, ProductEntity]), ProductsModule],
   controllers: [OrdersController],
   providers: [OrdersService],
   exports: [OrdersService],

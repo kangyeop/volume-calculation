@@ -8,7 +8,7 @@ export const useOutboundUpload = (projectId: string) => {
   const { data: products } = useProducts(projectId);
   const uploadState = useUploadState();
 
-  const productSkus = new Set(products?.map(p => p.sku) || []);
+  const productSkus = new Set(products?.map((p) => p.sku) || []);
 
   const processWithHardcodedMapping = async (rawData: Record<string, unknown>[]) => {
     const newErrors: string[] = [];
@@ -19,11 +19,7 @@ export const useOutboundUpload = (projectId: string) => {
 
       const findValue = (keys: string[]) => {
         for (const key of keys) {
-          if (
-            item[key] !== undefined &&
-            item[key] !== null &&
-            String(item[key]).trim() !== ''
-          ) {
+          if (item[key] !== undefined && item[key] !== null && String(item[key]).trim() !== '') {
             return item[key];
           }
         }
@@ -44,9 +40,7 @@ export const useOutboundUpload = (projectId: string) => {
       const validQuantity = isNaN(quantity) || quantity <= 0 ? 1 : quantity;
 
       if (!productSkus.has(sku)) {
-        newErrors.push(
-          `Row ${rowNum}: SKU "${sku}" not found in products. Skipping this row.`,
-        );
+        newErrors.push(`Row ${rowNum}: SKU "${sku}" not found in products. Skipping this row.`);
         return;
       }
 
@@ -69,15 +63,25 @@ export const useOutboundUpload = (projectId: string) => {
     const reader = new FileReader();
     reader.onload = async (evt) => {
       const bstr = evt.target?.result as ArrayBuffer;
-      const XLSX = (window as unknown as { XLSX: { read: (arg: unknown, options?: unknown) => unknown; utils: { sheet_to_json: (arg: unknown, options?: unknown) => unknown[] } } }).XLSX;
-      const wb = XLSX.read(bstr, { type: 'array' }) as { SheetNames: string[]; Sheets: Record<string, unknown> };
+      const XLSX = (
+        window as unknown as {
+          XLSX: {
+            read: (arg: unknown, options?: unknown) => unknown;
+            utils: { sheet_to_json: (arg: unknown, options?: unknown) => unknown[] };
+          };
+        }
+      ).XLSX;
+      const wb = XLSX.read(bstr, { type: 'array' }) as {
+        SheetNames: string[];
+        Sheets: Record<string, unknown>;
+      };
       const wsname = wb.SheetNames[0];
       const ws = wb.Sheets[wsname];
       const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 }) as unknown[][];
 
       if (rawData.length > 0) {
         const headerRow = 2;
-        const dataRows = rawData.slice(headerRow).map(row => {
+        const dataRows = rawData.slice(headerRow).map((row) => {
           const item: Record<string, unknown> = {};
           const headers = rawData[headerRow] as string[];
           headers.forEach((header, index) => {

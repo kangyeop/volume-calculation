@@ -10,19 +10,19 @@ export function useRetry(options: RetryOptions = {}) {
   const { maxRetries = 3, delay = 1000, onRetry } = options;
   const [retryCount, setRetryCount] = useState(0);
 
-  const executeWithRetry = async <T,>(
+  const executeWithRetry = async <T>(
     fn: () => Promise<T>,
-    onError?: (error: Error) => void
+    onError?: (error: Error) => void,
   ): Promise<T> => {
     try {
       return await fn();
     } catch (error) {
       if (error instanceof Error && retryCount < maxRetries - 1) {
-        setRetryCount(prev => prev + 1);
+        setRetryCount((prev) => prev + 1);
         onRetry?.(retryCount + 1, error);
 
         // 지연 후 재시도
-        await new Promise(resolve => setTimeout(resolve, delay * (retryCount + 1)));
+        await new Promise((resolve) => setTimeout(resolve, delay * (retryCount + 1)));
         return executeWithRetry(fn, onError);
       }
 

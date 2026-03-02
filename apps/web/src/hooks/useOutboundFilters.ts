@@ -9,24 +9,22 @@ interface FilterOptions {
 
 export const useOutboundFilters = (
   outbounds: Outbound[],
-  batches: { batchId: string; batchName: string }[]
+  batches: { batchId: string; batchName: string }[],
 ) => {
   const [filters, setFilters] = useState<FilterOptions>({});
 
   const currentBatches = useMemo(() => {
-    return [...batches].sort((a, b) =>
-      b.batchName.localeCompare(a.batchName)
-    );
+    return [...batches].sort((a, b) => b.batchName.localeCompare(a.batchName));
   }, [batches]);
 
   const filteredBatches = useMemo(() => {
-    return currentBatches.filter(batch =>
-      batch.batchName.toLowerCase().includes(filters.searchTerm?.toLowerCase() || '')
+    return currentBatches.filter((batch) =>
+      batch.batchName.toLowerCase().includes(filters.searchTerm?.toLowerCase() || ''),
     );
   }, [currentBatches, filters.searchTerm]);
 
   const filteredOutbounds = useMemo(() => {
-    return outbounds.filter(outbound => {
+    return outbounds.filter((outbound) => {
       if (filters.batchId && outbound.batchId !== filters.batchId) {
         return false;
       }
@@ -38,11 +36,11 @@ export const useOutboundFilters = (
   }, [outbounds, filters]);
 
   const selectedBatch = useMemo(() => {
-    return currentBatches.find(b => b.batchId === filters.batchId);
+    return currentBatches.find((b) => b.batchId === filters.batchId);
   }, [currentBatches, filters.batchId]);
 
   const updateFilters = (newFilters: Partial<FilterOptions>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
+    setFilters((prev) => ({ ...prev, ...newFilters }));
   };
 
   const clearFilters = () => {

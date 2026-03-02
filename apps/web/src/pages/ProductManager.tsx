@@ -85,7 +85,7 @@ export const ProductManager: React.FC = () => {
             <div className="bg-white border rounded-xl p-8 shadow-sm space-y-6">
               <div className="text-center space-y-2">
                 <div className="bg-blue-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  {(uploadParse.isPending || isAutoConfirming) ? (
+                  {uploadParse.isPending || isAutoConfirming ? (
                     <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
                   ) : (
                     <div className="text-blue-600 font-bold">XLS</div>
@@ -93,14 +93,13 @@ export const ProductManager: React.FC = () => {
                 </div>
                 <h2 className="text-xl font-bold">Import Products</h2>
                 <p className="text-muted-foreground text-sm">
-                  {isAutoConfirming ? 'Processing products...' : 'Upload your Excel file containing product information.'}
+                  {isAutoConfirming
+                    ? 'Processing products...'
+                    : 'Upload your Excel file containing product information.'}
                 </p>
               </div>
 
-              <ExcelUpload
-                onUpload={handleUpload}
-                title="Click or drag Excel file here"
-              />
+              <ExcelUpload onUpload={handleUpload} title="Click or drag Excel file here" />
 
               {uploadParse.isError && (
                 <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -133,10 +132,7 @@ export const ProductManager: React.FC = () => {
               )}
             </div>
           ) : (
-            <ExcelUpload
-              onUpload={handleUpload}
-              title="Import Products via Excel"
-            />
+            <ExcelUpload onUpload={handleUpload} title="Import Products via Excel" />
           )}
 
           {!uploadState.isUploading && !isAutoConfirming && uploadState.errors.length > 0 && (

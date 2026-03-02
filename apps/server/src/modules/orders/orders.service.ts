@@ -37,10 +37,7 @@ export class OrdersService {
     return order;
   }
 
-  async findByProjectAndOrderId(
-    projectId: string,
-    orderId: string,
-  ): Promise<OrderEntity> {
+  async findByProjectAndOrderId(projectId: string, orderId: string): Promise<OrderEntity> {
     const order = await this.ordersRepository.findOne({
       where: { projectId, orderId },
       relations: ['outbounds', 'outbounds.product'],

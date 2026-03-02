@@ -1,8 +1,22 @@
 import React, { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Calculator, Package, History, Settings, AlertTriangle, Layers, Download } from 'lucide-react';
+import {
+  Calculator,
+  Package,
+  History,
+  Settings,
+  AlertTriangle,
+  Layers,
+  Download,
+} from 'lucide-react';
 import { toast } from 'sonner';
-import { useBoxes, useBatches, usePackingHistory, useCalculatePacking, useExportPacking } from '@/hooks/queries';
+import {
+  useBoxes,
+  useBatches,
+  usePackingHistory,
+  useCalculatePacking,
+  useExportPacking,
+} from '@/hooks/queries';
 import { PackingGroupingOption, PackingRecommendation } from '@wms/types';
 
 interface PackingCalculationResult {
@@ -124,7 +138,11 @@ export const PackingCalculator: React.FC = () => {
         return;
       }
 
-      const data = await calculatePacking.mutateAsync({ projectId: id, groupingOption, batchId: selectedBatchId || undefined });
+      const data = await calculatePacking.mutateAsync({
+        projectId: id,
+        groupingOption,
+        batchId: selectedBatchId || undefined,
+      });
       setResult(data);
     } catch (error: unknown) {
       console.error('Calculation failed:', error);
@@ -148,10 +166,7 @@ export const PackingCalculator: React.FC = () => {
       await exportPacking.mutateAsync({ projectId: id, batchId: selectedBatchId });
     } catch (error: unknown) {
       console.error('Export failed:', error);
-      const message =
-        error instanceof Error
-          ? error.message
-          : '엑셀 다운로드에 실패했습니다.';
+      const message = error instanceof Error ? error.message : '엑셀 다운로드에 실패했습니다.';
       toast.error('내보내기 실패', { description: message });
     }
   };

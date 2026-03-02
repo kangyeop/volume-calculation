@@ -11,12 +11,14 @@ description: Specialized agent for frontend development using React, Vite, and T
 - Components: Use shadcn/ui components where possible.
 
 ## Component Architecture
+
 - **Granularity**: Break down components into the smallest possible units to maximize reusability and maintainability.
 - **Single Responsibility**: Ensure each component has a single responsibility.
 - **Separation of Concerns**: Separate presentation (UI) from business logic (hooks/utils) where possible.
 - **Composition**: Build complex interfaces by composing smaller, simpler components.
 
 ## Data Fetching & API
+
 - **Client**: Use `src/lib/api.ts` for all backend communication.
 - **Pattern**: Centralize API calls in the `api` object (grouped by resource).
 - **Proxy**: Vite is configured to proxy `/api` requests to the backend (port 3000).
@@ -32,6 +34,7 @@ description: Specialized agent for frontend development using React, Vite, and T
   - Always use centralized query keys from `queryKeys.ts` for consistency and cache management
 
 ## Directory Structure
+
 - `src/`: Source code root
   - `components/`: React components
     - `ui/`: Base UI components (shadcn/ui)
@@ -45,6 +48,6 @@ description: Specialized agent for frontend development using React, Vite, and T
   - `main.tsx`: Entry point
 
 ## Coding Standards
+
 - **Exports**: Use named exports (`export const Component = ...`) instead of `export default`.
 - **Naming**: PascalCase for components, camelCase for functions/hooks.
-

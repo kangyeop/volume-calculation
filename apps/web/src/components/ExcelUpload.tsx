@@ -22,7 +22,9 @@ export const ExcelUpload = ({
     if (!file) return;
 
     if (file.size > maxSize * 1024 * 1024) {
-      toast.error('파일 크기 초과', { description: `파일 크기는 ${maxSize}MB를 초과할 수 없습니다.` });
+      toast.error('파일 크기 초과', {
+        description: `파일 크기는 ${maxSize}MB를 초과할 수 없습니다.`,
+      });
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -31,7 +33,9 @@ export const ExcelUpload = ({
 
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
     if (!allowedExtensions.includes(fileExtension)) {
-      toast.error('지원하지 않는 형식', { description: `허용되는 파일 형식: ${allowedExtensions.join(', ')}` });
+      toast.error('지원하지 않는 형식', {
+        description: `허용되는 파일 형식: ${allowedExtensions.join(', ')}`,
+      });
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }

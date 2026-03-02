@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseMutationResult,
+} from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { outbounds } from './queryKeys';
 import type { Outbound } from '@wms/types';
@@ -19,7 +24,9 @@ export function useBatches(projectId: string) {
   });
 }
 
-export function useCreateOutbound(projectId: string): UseMutationResult<Outbound, Error, Omit<Outbound, 'id' | 'projectId' | 'createdAt'>> {
+export function useCreateOutbound(
+  projectId: string,
+): UseMutationResult<Outbound, Error, Omit<Outbound, 'id' | 'projectId' | 'createdAt'>> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -30,7 +37,9 @@ export function useCreateOutbound(projectId: string): UseMutationResult<Outbound
   });
 }
 
-export function useCreateOutbounds(projectId: string): UseMutationResult<void, Error, Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[]> {
+export function useCreateOutbounds(
+  projectId: string,
+): UseMutationResult<void, Error, Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[]> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -42,11 +51,18 @@ export function useCreateOutbounds(projectId: string): UseMutationResult<void, E
   });
 }
 
-export function useCreateOutboundsWithFile(projectId: string): UseMutationResult<void, Error, { file: File; createOutboundDtos: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[] }> {
+export function useCreateOutboundsWithFile(
+  projectId: string,
+): UseMutationResult<
+  void,
+  Error,
+  { file: File; createOutboundDtos: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[] }
+> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ file, createOutboundDtos }) => api.outbound.createBulkWithFile(projectId, file, createOutboundDtos),
+    mutationFn: ({ file, createOutboundDtos }) =>
+      api.outbound.createBulkWithFile(projectId, file, createOutboundDtos),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: outbounds.all._def });
       queryClient.invalidateQueries({ queryKey: outbounds.batches._def });

@@ -24,8 +24,8 @@ export const ColumnSelector: React.FC<ColumnSelectorProps> = ({
 
   const filteredColumns = useMemo(() => {
     if (!searchTerm) return availableColumns;
-    return availableColumns.filter(column =>
-      column.toLowerCase().includes(searchTerm.toLowerCase())
+    return availableColumns.filter((column) =>
+      column.toLowerCase().includes(searchTerm.toLowerCase()),
     );
   }, [availableColumns, searchTerm]);
 
@@ -64,8 +64,18 @@ export const ColumnSelector: React.FC<ColumnSelectorProps> = ({
         )}
         {!disabled && (
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            <svg
+              className="h-4 w-4 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </div>
         )}
@@ -99,9 +109,7 @@ export const ColumnSelector: React.FC<ColumnSelectorProps> = ({
               ))}
             </div>
           ) : (
-            <div className="px-3 py-2 text-sm text-gray-500">
-              일치하는 칼럼이 없습니다
-            </div>
+            <div className="px-3 py-2 text-sm text-gray-500">일치하는 칼럼이 없습니다</div>
           )}
           {selectedColumn && (
             <div className="p-2 border-t">

@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseMutationResult,
+} from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { packing } from './queryKeys';
 import type { PackingGroupingOption, PackingRecommendation } from '@wms/types';
@@ -11,18 +16,27 @@ export function usePackingHistory(projectId: string) {
   });
 }
 
-export function useCalculatePacking(): UseMutationResult<PackingRecommendation, Error, { projectId: string; groupingOption?: string; batchId?: string }> {
+export function useCalculatePacking(): UseMutationResult<
+  PackingRecommendation,
+  Error,
+  { projectId: string; groupingOption?: string; batchId?: string }
+> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ projectId, groupingOption, batchId }) => api.packing.calculate(projectId, groupingOption as PackingGroupingOption, batchId),
+    mutationFn: ({ projectId, groupingOption, batchId }) =>
+      api.packing.calculate(projectId, groupingOption as PackingGroupingOption, batchId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: packing.history._def });
     },
   });
 }
 
-export function useExportPacking(): UseMutationResult<void, Error, { projectId: string; batchId?: string }> {
+export function useExportPacking(): UseMutationResult<
+  void,
+  Error,
+  { projectId: string; batchId?: string }
+> {
   return useMutation({
     mutationFn: ({ projectId, batchId }) => api.packing.export(projectId, batchId!),
   });

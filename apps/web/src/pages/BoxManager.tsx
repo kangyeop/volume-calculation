@@ -50,7 +50,9 @@ export const BoxManager: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">Box Management</h1>
-          <p className="text-muted-foreground mt-1">Configure standard box sizes for packing optimization algorithms.</p>
+          <p className="text-muted-foreground mt-1">
+            Configure standard box sizes for packing optimization algorithms.
+          </p>
         </div>
         <div className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg border border-indigo-100">
           <Package className="h-5 w-5" />
@@ -95,7 +97,9 @@ export const BoxManager: React.FC = () => {
                         min="0"
                         placeholder="L"
                       />
-                      <span className="absolute left-3 top-2 text-gray-400 text-xs font-bold">L</span>
+                      <span className="absolute left-3 top-2 text-gray-400 text-xs font-bold">
+                        L
+                      </span>
                     </div>
                   </div>
                   <div>
@@ -109,7 +113,9 @@ export const BoxManager: React.FC = () => {
                         min="0"
                         placeholder="W"
                       />
-                      <span className="absolute left-3 top-2 text-gray-400 text-xs font-bold">W</span>
+                      <span className="absolute left-3 top-2 text-gray-400 text-xs font-bold">
+                        W
+                      </span>
                     </div>
                   </div>
                   <div>
@@ -123,7 +129,9 @@ export const BoxManager: React.FC = () => {
                         min="0"
                         placeholder="H"
                       />
-                      <span className="absolute left-3 top-2 text-gray-400 text-xs font-bold">H</span>
+                      <span className="absolute left-3 top-2 text-gray-400 text-xs font-bold">
+                        H
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -131,7 +139,9 @@ export const BoxManager: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Price (Optional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Price (Optional)
+                </label>
                 <div className="relative">
                   <span className="absolute left-3 top-2 text-gray-500 text-sm">₩</span>
                   <input
@@ -176,7 +186,9 @@ export const BoxManager: React.FC = () => {
                       </div>
                       <div>
                         <h3 className="font-bold text-gray-900">{box.name}</h3>
-                        <p className="text-xs text-muted-foreground font-mono mt-0.5">ID: {box.id.slice(0, 8)}...</p>
+                        <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                          ID: {box.id.slice(0, 8)}...
+                        </p>
                       </div>
                     </div>
                     <button
@@ -193,21 +205,30 @@ export const BoxManager: React.FC = () => {
                     <div className="bg-gray-50 rounded-lg p-3 grid grid-cols-3 gap-2 text-center border border-gray-100">
                       <div>
                         <div className="text-xs text-gray-500 uppercase font-semibold">Length</div>
-                        <div className="font-medium text-gray-900">{box.length} <span className="text-gray-400 text-xs">cm</span></div>
+                        <div className="font-medium text-gray-900">
+                          {box.length} <span className="text-gray-400 text-xs">cm</span>
+                        </div>
                       </div>
                       <div className="border-l border-gray-200">
                         <div className="text-xs text-gray-500 uppercase font-semibold">Width</div>
-                        <div className="font-medium text-gray-900">{box.width} <span className="text-gray-400 text-xs">cm</span></div>
+                        <div className="font-medium text-gray-900">
+                          {box.width} <span className="text-gray-400 text-xs">cm</span>
+                        </div>
                       </div>
                       <div className="border-l border-gray-200">
                         <div className="text-xs text-gray-500 uppercase font-semibold">Height</div>
-                        <div className="font-medium text-gray-900">{box.height} <span className="text-gray-400 text-xs">cm</span></div>
+                        <div className="font-medium text-gray-900">
+                          {box.height} <span className="text-gray-400 text-xs">cm</span>
+                        </div>
                       </div>
                     </div>
 
                     <div className="flex justify-between items-center pt-1">
                       <div className="text-xs text-muted-foreground">
-                        Volume: <span className="font-mono font-medium text-gray-700">{((box.length * box.width * box.height) / 1000000).toFixed(4)} CBM</span>
+                        Volume:{' '}
+                        <span className="font-mono font-medium text-gray-700">
+                          {((box.length * box.width * box.height) / 1000000).toFixed(4)} CBM
+                        </span>
                       </div>
                       {box.price && (
                         <div className="text-sm font-bold text-gray-900">

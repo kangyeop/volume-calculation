@@ -148,6 +148,7 @@ export interface ConfirmUploadRequest {
 export interface ConfirmUploadData {
   imported: number;
   batchId?: string;
+  batchName?: string;
 }
 
 export interface ConfirmUploadResponse {
@@ -189,6 +190,7 @@ export interface ParseMappingUploadData {
   rowCount: number;
   columnMapping: MappingResult;
   fileName: string;
+  orderId?: string;
 }
 
 export interface ParseMappingUploadResponse {
@@ -205,6 +207,7 @@ export interface ConfirmMappingUploadRequest {
 export interface ConfirmMappingUploadData {
   imported: number;
   batchId?: string;
+  batchName?: string;
   mappedCount: number;
   unmappedCount: number;
   orderIds?: string[];

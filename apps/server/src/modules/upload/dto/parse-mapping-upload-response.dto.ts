@@ -111,6 +111,13 @@ export class ParseMappingUploadDataDto implements ParseMappingUploadData {
     example: 'orders.xlsx',
   })
   fileName!: string;
+
+  @ApiProperty({
+    description: 'Order ID created for this upload',
+    required: false,
+    example: 'ORD-1234567890-abc123def',
+  })
+  orderId?: string;
 }
 
 export class ParseMappingUploadResponseDto implements ParseMappingUploadResponse {

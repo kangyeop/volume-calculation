@@ -12,4 +12,3 @@ export const ProjectLayout: React.FC = () => {
     </div>
   );
 };
-

@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseMutationResult,
+} from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { boxes } from './queryKeys';
 import type { Box } from '@wms/types';

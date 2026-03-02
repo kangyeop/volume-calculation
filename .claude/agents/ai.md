@@ -6,12 +6,14 @@ description: Specialized agent for AI/ML integration using LangChain and OpenAI.
 # AI Agent Rules
 
 ## Stack
+
 - LangChain (`@langchain/core`, `@langchain/openai`)
 - Zod for schema validation
 - OpenAI GPT-4o
 - NestJS modules with dependency injection
 
 ## Directory Structure
+
 - `src/modules/ai/`: AI module root
   - `ai.module.ts`: Module definition with LLM provider configuration
   - `ai.service.ts`: Core AI service with provider management
@@ -28,6 +30,7 @@ description: Specialized agent for AI/ML integration using LangChain and OpenAI.
 ## LLM Configuration
 
 ### Environment Variables
+
 ```
 OPENAI_API_KEY=your_openai_key
 AI_MODEL=gpt-4o
@@ -38,6 +41,7 @@ AI_MAX_RETRIES=2
 ```
 
 ### Provider Setup
+
 Use factory providers in `ai.module.ts` to configure LLM instance:
 
 ```typescript
@@ -60,6 +64,7 @@ Use factory providers in `ai.module.ts` to configure LLM instance:
 ## withStructuredOutput Pattern
 
 ### Zod Schema Definition
+
 Define schemas in `schemas/` directory:
 
 ```typescript
@@ -68,10 +73,12 @@ import { z } from 'zod';
 export const OutboundMappingSchema = z.object({
   confidence: z.number().min(0).max(1).describe('Overall mapping confidence (0~1)'),
   mapping: z.object({
-    orderId: z.object({
-      columnName: z.string(),
-      confidence: z.number().min(0).max(1),
-    }).nullable(),
+    orderId: z
+      .object({
+        columnName: z.string(),
+        confidence: z.number().min(0).max(1),
+      })
+      .nullable(),
     // ... other fields
   }),
   unmappedColumns: z.array(z.string()),
@@ -82,6 +89,7 @@ export type OutboundMappingResult = z.infer<typeof OutboundMappingSchema>;
 ```
 
 ### Usage in Service
+
 ```typescript
 const structuredLlm = this.llm.withStructuredOutput(OutboundMappingSchema);
 const result = await structuredLlm.invoke([
@@ -93,30 +101,35 @@ const result = await structuredLlm.invoke([
 ## Fallback Strategy
 
 When AI fails, use keyword-based mapping:
+
 1. Predefined keyword maps for each field
 2. String similarity matching (case-insensitive, normalize spaces/underscores)
 3. Return structured result same as AI format
 4. Include note that fallback was used
 
 ## Error Handling
+
 - Rate limiting (429): Log and return error to user
 - Invalid API key (401): Log and return error
 - Timeout (504): Retry with maxRetries, then use fallback mapper
 - Parse errors: Use fallback mapper
 
 ## Cost Considerations
+
 - `temperature: 0` for deterministic results
 - Limit `maxTokens` to minimum needed
 - Consider using cheaper models (GPT-4o-mini, Claude Haiku) for simple tasks
 - Track usage if needed for cost monitoring
 
 ## Naming Conventions
+
 - **Files**: Kebab-case (e.g., `ai-column-mapper.service.ts`)
 - **Classes**: PascalCase (e.g., `AIColumnMapperService`, `OutboundMappingSchema`)
 - **Schemas**: PascalCase with `Schema` suffix (e.g., `OutboundMappingSchema`)
 - **Types**: PascalCase with `Result` suffix (e.g., `OutboundMappingResult`)
 
 ## Dependencies
+
 - `@langchain/core`: Core LangChain types
 - `@langchain/openai`: OpenAI integration
 - `zod`: Schema validation

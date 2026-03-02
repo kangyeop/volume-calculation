@@ -8,6 +8,11 @@ import { ExcelParserService } from './services/excel-parser.service';
 import { UploadSessionService } from './services/upload-session.service';
 import { FileStorageService } from './services/file-storage.service';
 import { UploadController } from './upload.controller';
+import { UploadRepository } from './repositories/upload.repository';
+import { UploadParseService } from './services/upload-parse.service';
+import { UploadConfirmService } from './services/upload-confirm.service';
+import { UploadMappingService } from './services/upload-mapping.service';
+import { DataTransformerService } from './services/data-transformer.service';
 
 @Module({
   imports: [
@@ -28,7 +33,23 @@ import { UploadController } from './upload.controller';
     }),
   ],
   controllers: [UploadController],
-  providers: [ExcelParserService, UploadSessionService, FileStorageService],
-  exports: [ExcelParserService, UploadSessionService, FileStorageService],
+  providers: [
+    ExcelParserService,
+    UploadSessionService,
+    FileStorageService,
+    UploadRepository,
+    UploadParseService,
+    UploadConfirmService,
+    UploadMappingService,
+    DataTransformerService,
+  ],
+  exports: [
+    ExcelParserService,
+    UploadSessionService,
+    FileStorageService,
+    UploadParseService,
+    UploadConfirmService,
+    UploadMappingService,
+  ],
 })
 export class UploadModule {}

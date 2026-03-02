@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseMutationResult,
+} from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { products } from './queryKeys';
 import type { Product } from '@wms/types';
@@ -11,7 +16,9 @@ export function useProducts(projectId: string) {
   });
 }
 
-export function useCreateProducts(projectId: string): UseMutationResult<void, Error, Omit<Product, 'id' | 'projectId' | 'createdAt' | 'updatedAt'>[]> {
+export function useCreateProducts(
+  projectId: string,
+): UseMutationResult<void, Error, Omit<Product, 'id' | 'projectId' | 'createdAt' | 'updatedAt'>[]> {
   const queryClient = useQueryClient();
 
   return useMutation({

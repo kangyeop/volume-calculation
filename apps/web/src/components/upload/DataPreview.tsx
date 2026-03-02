@@ -28,16 +28,15 @@ interface DataPreviewProps {
   maxRows?: number;
 }
 
-export const DataPreview: React.FC<DataPreviewProps> = ({
-  headers,
-  data,
-  maxRows = 5,
-}) => {
+export const DataPreview: React.FC<DataPreviewProps> = ({ headers, data, maxRows = 5 }) => {
   const displayData = data.slice(0, maxRows);
   const totalRows = data.length;
   const patternRowIndices = displayData
     .map((_, index) => index)
-    .filter(index => displayData[index] && Object.values(displayData[index]).some(v => containsPattern(v)));
+    .filter(
+      (index) =>
+        displayData[index] && Object.values(displayData[index]).some((v) => containsPattern(v)),
+    );
 
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -112,9 +111,7 @@ export const DataPreview: React.FC<DataPreviewProps> = ({
       </div>
       {totalRows > maxRows && (
         <div className="bg-gray-50 p-3 border-t text-center">
-          <span className="text-sm text-gray-600">
-            + {totalRows - maxRows} 행 더 보기
-          </span>
+          <span className="text-sm text-gray-600">+ {totalRows - maxRows} 행 더 보기</span>
         </div>
       )}
     </div>

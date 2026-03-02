@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseMutationResult,
+} from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { projects } from './queryKeys';
 import type { Project } from '@wms/types';
@@ -18,7 +23,11 @@ export function useProject(id: string) {
   });
 }
 
-export function useCreateProject(): UseMutationResult<Project, Error, { name: string; description?: string }> {
+export function useCreateProject(): UseMutationResult<
+  Project,
+  Error,
+  { name: string; description?: string }
+> {
   const queryClient = useQueryClient();
 
   return useMutation({

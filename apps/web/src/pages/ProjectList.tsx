@@ -83,4 +83,3 @@ export const ProjectList: React.FC = () => {
     </div>
   );
 };
-

@@ -1,4 +1,12 @@
-import { SKU, Box, Rotation, ItemPlacement, PackedBox3D, PackedItem3D, PackingResult3D } from '@wms/types';
+import {
+  SKU,
+  Box,
+  Rotation,
+  ItemPlacement,
+  PackedBox3D,
+  PackedItem3D,
+  PackingResult3D,
+} from '@wms/types';
 
 const DECIMAL_PRECISION = 2;
 
@@ -12,7 +20,10 @@ interface PlacedItem {
   volume: number;
 }
 
-function rotateItem(item: SKU, rotation: Rotation): { width: number; length: number; height: number } {
+function rotateItem(
+  item: SKU,
+  rotation: Rotation,
+): { width: number; length: number; height: number } {
   switch (rotation) {
     case 'none':
       return { width: item.width, length: item.length, height: item.height };
@@ -31,7 +42,7 @@ function hasCollision(
   pos1: { x: number; y: number; z: number },
   item1: { width: number; length: number; height: number },
   pos2: { x: number; y: number; z: number },
-  item2: { width: number; length: number; height: number }
+  item2: { width: number; length: number; height: number },
 ): boolean {
   return (
     pos1.x < pos2.x + item2.width &&
@@ -47,7 +58,7 @@ function findValidPosition(
   item: SKU,
   box: Box,
   placedItems: PlacedItem[],
-  rotations: Rotation[]
+  rotations: Rotation[],
 ): { position: { x: number; y: number; z: number }; rotation: Rotation } | null {
   const stepSize = 0.1;
 
@@ -57,7 +68,11 @@ function findValidPosition(
     for (let z = 0; z <= box.height - rotated.height; z = Math.round((z + stepSize) * 10) / 10) {
       for (let y = 0; y <= box.length - rotated.length; y = Math.round((y + stepSize) * 10) / 10) {
         for (let x = 0; x <= box.width - rotated.width; x = Math.round((x + stepSize) * 10) / 10) {
-          const position = { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, z: Math.round(z * 10) / 10 };
+          const position = {
+            x: Math.round(x * 10) / 10,
+            y: Math.round(y * 10) / 10,
+            z: Math.round(z * 10) / 10,
+          };
 
           let collides = false;
           for (const placed of placedItems) {
@@ -81,7 +96,7 @@ function findValidPosition(
 function packSingleBox(
   items: SKU[],
   box: Box,
-  rotations: Rotation[]
+  rotations: Rotation[],
 ): { placedItems: PlacedItem[]; unpackedIndices: number[]; usedVolume: number } {
   const sortedItems = items
     .map((item, index) => ({ ...item, originalIndex: index }))
@@ -130,11 +145,7 @@ function doesItemFitInBox(item: SKU, box: Box): boolean {
   const itemDims = [item.width, item.length, item.height].sort((a, b) => a - b);
   const boxDims = [box.width, box.length, box.height].sort((a, b) => a - b);
 
-  return (
-    itemDims[0] <= boxDims[0] &&
-    itemDims[1] <= boxDims[1] &&
-    itemDims[2] <= boxDims[2]
-  );
+  return itemDims[0] <= boxDims[0] && itemDims[1] <= boxDims[1] && itemDims[2] <= boxDims[2];
 }
 
 function calculatePacking3D(items: SKU[], boxes: Box[]): PackingResult3D {
@@ -178,7 +189,11 @@ function calculatePacking3D(items: SKU[], boxes: Box[]): PackingResult3D {
 
   while (remainingItems.length > 0) {
     let bestBox: Box | null = null;
-    let bestResult: { placedItems: PlacedItem[]; unpackedIndices: number[]; usedVolume: number } | null = null;
+    let bestResult: {
+      placedItems: PlacedItem[];
+      unpackedIndices: number[];
+      usedVolume: number;
+    } | null = null;
     let bestEfficiency = 0;
 
     for (const box of sortedBoxes) {
@@ -235,7 +250,9 @@ function calculatePacking3D(items: SKU[], boxes: Box[]): PackingResult3D {
 
       boxCounter++;
 
-      remainingItems = remainingItems.filter((_, index) => bestResult!.unpackedIndices.includes(index));
+      remainingItems = remainingItems.filter((_, index) =>
+        bestResult!.unpackedIndices.includes(index),
+      );
     } else {
       const oversizedItem = remainingItems[0];
       const existingUnpacked = unpackedItems.find((u) => u.skuId === oversizedItem.id);
@@ -267,7 +284,7 @@ function calculateOrderPacking3D(
   orderId: string,
   items: SKU[],
   boxes: Box[],
-  groupLabel?: string
+  groupLabel?: string,
 ): PackingResult3D {
   const result = calculatePacking3D(items, boxes);
   result.orderId = orderId;

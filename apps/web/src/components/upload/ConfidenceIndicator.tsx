@@ -43,14 +43,12 @@ export const ConfidenceIndicator: React.FC<ConfidenceIndicatorProps> = ({
   const percentage = Math.round(confidence * 100);
 
   return (
-    <div className={`inline-flex items-center ${getSizeClasses()} ${getConfidenceBg(confidence)} rounded-full font-medium`}>
-      <span className={getConfidenceColor(confidence)}>
-        {percentage}%
-      </span>
+    <div
+      className={`inline-flex items-center ${getSizeClasses()} ${getConfidenceBg(confidence)} rounded-full font-medium`}
+    >
+      <span className={getConfidenceColor(confidence)}>{percentage}%</span>
       {showLabel && (
-        <span className="ml-2 text-gray-600 text-xs">
-          ({getConfidenceText(confidence)})
-        </span>
+        <span className="ml-2 text-gray-600 text-xs">({getConfidenceText(confidence)})</span>
       )}
     </div>
   );

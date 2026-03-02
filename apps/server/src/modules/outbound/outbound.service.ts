@@ -51,7 +51,8 @@ export class OutboundService {
   }
 
   async findAll(projectId: string, batchId?: string): Promise<OutboundEntity[]> {
-    const query = this.outboundRepository.createQueryBuilder('outbound')
+    const query = this.outboundRepository
+      .createQueryBuilder('outbound')
       .where('outbound.projectId = :projectId', { projectId });
     if (batchId) {
       query.andWhere('outbound.batchId = :batchId', { batchId });
@@ -98,7 +99,7 @@ export class OutboundService {
   async createBulk(
     projectId: string,
     createOutboundDtos: CreateOutboundDto[],
-  ): Promise<OutboundEntity[]> {
+  ): Promise<{ outbounds: OutboundEntity[]; batchId: string; batchName: string }> {
     const queryRunner = this.dataSource.createQueryRunner();
 
     await queryRunner.connect();
@@ -140,7 +141,7 @@ export class OutboundService {
 
       const savedOutbounds = await queryRunner.manager.save(outbounds);
       await queryRunner.commitTransaction();
-      return savedOutbounds;
+      return { outbounds: savedOutbounds, batchId, batchName };
     } catch (err) {
       await queryRunner.rollbackTransaction();
       throw err;

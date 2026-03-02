@@ -51,6 +51,12 @@ export class ProductsService {
     }
   }
 
+  async findBySku(projectId: string, sku: string): Promise<ProductEntity[]> {
+    return await this.productsRepository.find({
+      where: { projectId, sku },
+    });
+  }
+
   async createBulk(
     projectId: string,
     createProductDtos: CreateProductDto[],
@@ -74,10 +80,7 @@ export class ProductsService {
         .insert()
         .into(ProductEntity)
         .values(products)
-        .orUpdate(
-          ['name', 'width', 'length', 'height'],
-          ['projectId', 'sku'],
-        )
+        .orUpdate(['name', 'width', 'length', 'height'], ['projectId', 'sku'])
         .execute();
 
       await queryRunner.commitTransaction();

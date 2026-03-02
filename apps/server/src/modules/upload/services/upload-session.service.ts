@@ -21,6 +21,7 @@ export interface UploadSession {
   transformedData?: OutboundItem[];
   productMapping?: Record<number, string[]>;
   columnMapping?: Record<string, string>;
+  orderId?: string;
 }
 
 interface SessionWithTimeout extends UploadSession {
@@ -102,6 +103,14 @@ export class UploadSessionService {
     }
   }
 
+  updateOrderId(id: string, orderId: string): void {
+    const session = this.sessions.get(id);
+    if (session) {
+      session.orderId = orderId;
+      this.logger.debug(`Updated orderId for session ${id}: ${orderId}`);
+    }
+  }
+
   deleteSession(id: string): void {
     const session = this.sessions.get(id);
     if (session && session.timeout) {
@@ -109,5 +118,14 @@ export class UploadSessionService {
     }
     this.sessions.delete(id);
     this.logger.log(`Deleted session ${id}`);
+  }
+
+  cleanup(sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+    if (session && session.timeout) {
+      clearTimeout(session.timeout);
+    }
+    this.sessions.delete(sessionId);
+    this.logger.log(`Cleaned up session ${sessionId}`);
   }
 }

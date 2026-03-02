@@ -23,9 +23,10 @@ export const MappingPreview: React.FC<MappingPreviewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
-  const filteredProducts = products.filter((product) =>
-    product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()),
+  const filteredProducts = products.filter(
+    (product) =>
+      product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const handleProductSelect = (index: number, productIds: string[] | null) => {
@@ -39,8 +40,8 @@ export const MappingPreview: React.FC<MappingPreviewProps> = ({
     return products.filter((p) => result.productIds?.includes(p.id));
   };
 
-  const patternCount = results.filter(r => r.isPatternDetected).length;
-  const multiplePatternCount = results.filter(r => r.hasMultiplePatterns).length;
+  const patternCount = results.filter((r) => r.isPatternDetected).length;
+  const multiplePatternCount = results.filter((r) => r.hasMultiplePatterns).length;
 
   return (
     <div className="space-y-6">
@@ -106,7 +107,9 @@ export const MappingPreview: React.FC<MappingPreviewProps> = ({
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{result.outboundItemIndex}</span>
                       {result.isPatternDetected && (
-                        <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded">패턴</span>
+                        <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded">
+                          패턴
+                        </span>
                       )}
                     </div>
                   </td>
@@ -137,7 +140,9 @@ export const MappingPreview: React.FC<MappingPreviewProps> = ({
                             filteredProducts.map((product) => (
                               <button
                                 key={product.id}
-                                onClick={() => handleProductSelect(result.outboundItemIndex, [product.id])}
+                                onClick={() =>
+                                  handleProductSelect(result.outboundItemIndex, [product.id])
+                                }
                                 className="w-full px-3 py-2 text-left hover:bg-blue-50 text-sm flex items-start justify-between gap-4"
                               >
                                 <div>
@@ -165,7 +170,10 @@ export const MappingPreview: React.FC<MappingPreviewProps> = ({
                     ) : matchedProducts.length > 0 ? (
                       <div className="space-y-1">
                         {matchedProducts.map((product) => (
-                          <div key={product.id} className="border-b border-gray-200 pb-1 last:border-0">
+                          <div
+                            key={product.id}
+                            className="border-b border-gray-200 pb-1 last:border-0"
+                          >
                             <div className="font-medium">{product.name}</div>
                             <div className="text-xs text-gray-500">SKU: {product.sku}</div>
                           </div>
@@ -188,7 +196,10 @@ export const MappingPreview: React.FC<MappingPreviewProps> = ({
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {result.expandedPatterns.map((pattern, idx) => (
-                            <span key={idx} className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">
+                            <span
+                              key={idx}
+                              className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs"
+                            >
                               {pattern.productName} / {pattern.quantity}ea
                             </span>
                           ))}

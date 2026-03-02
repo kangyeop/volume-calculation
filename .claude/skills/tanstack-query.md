@@ -18,7 +18,7 @@ pnpm add @tanstack/react-query @lukemorales/query-key-factory
 Configure QueryClient at app root:
 
 ```tsx
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,14 +28,14 @@ const queryClient = new QueryClient({
       retry: 1,
     },
   },
-})
+});
 
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppContent />
     </QueryClientProvider>
-  )
+  );
 }
 ```
 
@@ -57,16 +57,16 @@ src/hooks/queries/
 Create typed query keys using `createQueryKeys`:
 
 ```ts
-import { createQueryKeys } from '@lukemorales/query-key-factory'
+import { createQueryKeys } from '@lukemorales/query-key-factory';
 
 export const projects = createQueryKeys('projects', {
   all: null,
   detail: (id: string) => [id],
-})
+});
 
 export const products = createQueryKeys('products', {
   all: (projectId: string) => [projectId],
-})
+});
 
 export const todos = createQueryKeys('todos', {
   detail: (todoId: string) => [todoId],
@@ -74,10 +74,11 @@ export const todos = createQueryKeys('todos', {
     queryKey: [{ filters }],
     queryFn: (ctx) => api.getTodos({ filters, page: ctx.pageParam }),
   }),
-})
+});
 ```
 
 Generated keys follow TanStack Query convention:
+
 - `projects.all.queryKey` → `['projects']`
 - `projects.detail('123').queryKey` → `['projects', 'detail', '123']`
 - `products.all('proj-1').queryKey` → `['products', 'proj-1']`
@@ -89,18 +90,24 @@ Generated keys follow TanStack Query convention:
 Fetch and cache data:
 
 ```tsx
-import { useQuery } from '@tanstack/react-query'
-import { projects } from './queryKeys'
+import { useQuery } from '@tanstack/react-query';
+import { projects } from './queryKeys';
 
 function ProjectsList() {
   const { data, isLoading, error } = useQuery({
     ...projects.all,
-    queryFn: () => fetch('/api/projects').then(res => res.json()),
-  })
+    queryFn: () => fetch('/api/projects').then((res) => res.json()),
+  });
 
-  if (isLoading) return <div>Loading...</div>
-  if (error) return <div>Error: {error.message}</div>
-  return <div>{data?.map(p => <div key={p.id}>{p.name}</div>)}</div>
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+  return (
+    <div>
+      {data?.map((p) => (
+        <div key={p.id}>{p.name}</div>
+      ))}
+    </div>
+  );
 }
 ```
 
@@ -109,23 +116,24 @@ function ProjectsList() {
 Perform data mutations with automatic cache invalidation:
 
 ```tsx
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { projects } from './queryKeys'
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { projects } from './queryKeys';
 
 function CreateProject() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (name: string) => fetch('/api/projects', {
-      method: 'POST',
-      body: JSON.stringify({ name }),
-    }).then(res => res.json()),
+    mutationFn: (name: string) =>
+      fetch('/api/projects', {
+        method: 'POST',
+        body: JSON.stringify({ name }),
+      }).then((res) => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: projects.all._def })
+      queryClient.invalidateQueries({ queryKey: projects.all._def });
     },
-  })
+  });
 
-  return <button onClick={() => mutation.mutate('New Project')}>Create</button>
+  return <button onClick={() => mutation.mutate('New Project')}>Create</button>;
 }
 ```
 
@@ -144,15 +152,15 @@ function CreateProject() {
 
 ```tsx
 // useProjects.ts
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api } from '@/lib/api'
-import { projects } from './queryKeys'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { projects } from './queryKeys';
 
 export function useProjects() {
   return useQuery({
     ...projects.all,
     queryFn: () => api.projects.list(),
-  })
+  });
 }
 
 export function useProject(id: string) {
@@ -160,16 +168,16 @@ export function useProject(id: string) {
     ...projects.detail(id),
     queryFn: () => api.projects.get(id),
     enabled: !!id,
-  })
+  });
 }
 
 export function useCreateProject() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ name }) => api.projects.create(name),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: projects.all._def })
+      queryClient.invalidateQueries({ queryKey: projects.all._def });
     },
-  })
+  });
 }
 ```
