@@ -1,25 +1,27 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
+import { useAtomValue } from 'jotai';
+import { useColumnMappingActions } from '@/hooks/outbound/useColumnMappingActions';
+import {
+  headersAtom,
+  rowCountAtom,
+  columnMappingAtom,
+  isProcessingAtom,
+} from '@/store/outboundWizardAtoms';
 
 const OUTBOUND_FIELDS = ['orderId', 'sku', 'quantity', 'recipientName'];
 
 interface ColumnMappingStepProps {
-  headers: string[];
-  rowCount: number;
-  columnMapping: Record<string, string | null>;
-  onMappingChange: (field: string, value: string | null) => void;
-  onNext: () => void;
-  isProcessing: boolean;
+  sessionId: string;
 }
 
-export const ColumnMappingStep: React.FC<ColumnMappingStepProps> = ({
-  headers,
-  rowCount,
-  columnMapping,
-  onMappingChange,
-  onNext,
-  isProcessing,
-}) => {
+export const ColumnMappingStep: React.FC<ColumnMappingStepProps> = ({ sessionId }) => {
+  const headers = useAtomValue(headersAtom);
+  const rowCount = useAtomValue(rowCountAtom);
+  const columnMapping = useAtomValue(columnMappingAtom);
+  const isProcessing = useAtomValue(isProcessingAtom);
+  const { handleMappingChange, handleNext } = useColumnMappingActions();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -42,7 +44,9 @@ export const ColumnMappingStep: React.FC<ColumnMappingStepProps> = ({
             <div className="w-40 text-sm font-medium text-gray-700">{field}</div>
             <select
               value={columnMapping[field] || ''}
-              onChange={(e) => onMappingChange(field, e.target.value || null)}
+              onChange={(e) =>
+                handleMappingChange(sessionId, field, e.target.value || null)
+              }
               disabled={isProcessing}
               className="flex-1 h-10 px-3 rounded-md border border-input bg-background text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
             >
@@ -59,7 +63,7 @@ export const ColumnMappingStep: React.FC<ColumnMappingStepProps> = ({
 
       <div className="flex justify-end">
         <button
-          onClick={onNext}
+          onClick={() => handleNext(sessionId)}
           className="inline-flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           다음

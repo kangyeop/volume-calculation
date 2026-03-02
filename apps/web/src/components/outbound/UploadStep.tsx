@@ -1,13 +1,25 @@
 import React from 'react';
 import { FileSpreadsheet, RefreshCw } from 'lucide-react';
+import { useAtomValue } from 'jotai';
 import { ExcelUpload } from '@/components/ExcelUpload';
+import { useUploadAction } from '@/hooks/outbound/useUploadAction';
+import { isProcessingAtom } from '@/store/outboundWizardAtoms';
 
 interface UploadStepProps {
-  onUpload: (file: File) => void;
-  isProcessing: boolean;
+  onSessionCreated: (sessionId: string) => void;
 }
 
-export const UploadStep: React.FC<UploadStepProps> = ({ onUpload, isProcessing }) => {
+export const UploadStep: React.FC<UploadStepProps> = ({ onSessionCreated }) => {
+  const isProcessing = useAtomValue(isProcessingAtom);
+  const { handleUpload } = useUploadAction();
+
+  const onUpload = async (file: File) => {
+    const sessionId = await handleUpload(file);
+    if (sessionId) {
+      onSessionCreated(sessionId);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center space-y-2">

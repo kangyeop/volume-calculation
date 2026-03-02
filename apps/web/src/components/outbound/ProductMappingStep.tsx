@@ -1,31 +1,31 @@
 import React from 'react';
 import { ChevronLeft, ArrowRight, RefreshCw } from 'lucide-react';
+import { useAtomValue } from 'jotai';
 import { MappingPreview } from '@/components/MappingPreview';
-import type { ProductMatchResult, Product } from '@wms/types';
+import { useProductMappingActions } from '@/hooks/outbound/useProductMappingActions';
+import { useWizardNavigation } from '@/hooks/outbound/useWizardNavigation';
+import { useProducts } from '@/hooks/queries';
+import { useParams } from 'react-router-dom';
+import {
+  productMappingDataAtom,
+  productMappingStatsAtom,
+  isProcessingAtom,
+} from '@/store/outboundWizardAtoms';
+import type { ProductMatchResult } from '@wms/types';
 
 interface ProductMappingStepProps {
-  productMappingData: ProductMatchResult[];
-  productMappingStats: {
-    totalItems: number;
-    matchedItems: number;
-    needsReview: number;
-  };
-  products: Product[];
-  onMappingChange: (index: number, productIds: string[] | null) => void;
-  onBack: () => void;
-  onCalculate: () => void;
-  isProcessing: boolean;
+  sessionId: string;
 }
 
-export const ProductMappingStep: React.FC<ProductMappingStepProps> = ({
-  productMappingData,
-  productMappingStats,
-  products,
-  onMappingChange,
-  onBack,
-  onCalculate,
-  isProcessing,
-}) => {
+export const ProductMappingStep: React.FC<ProductMappingStepProps> = ({ sessionId }) => {
+  const { id: projectId } = useParams<{ id: string }>();
+  const { data: products = [] } = useProducts(projectId || '');
+  const productMappingData = useAtomValue(productMappingDataAtom);
+  const productMappingStats = useAtomValue(productMappingStatsAtom);
+  const isProcessing = useAtomValue(isProcessingAtom);
+  const { handleMappingChange, handleCalculate } = useProductMappingActions();
+  const { handleBack } = useWizardNavigation();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -39,13 +39,13 @@ export const ProductMappingStep: React.FC<ProductMappingStepProps> = ({
         matchedItems={productMappingStats.matchedItems}
         needsReview={0}
         products={products}
-        onMappingChange={onMappingChange}
+        onMappingChange={handleMappingChange}
         isProcessing={isProcessing}
       />
 
       <div className="flex justify-between">
         <button
-          onClick={onBack}
+          onClick={handleBack}
           disabled={isProcessing}
           className="inline-flex items-center gap-2 px-6 py-2 border rounded-lg font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -53,7 +53,7 @@ export const ProductMappingStep: React.FC<ProductMappingStepProps> = ({
           이전
         </button>
         <button
-          onClick={onCalculate}
+          onClick={() => handleCalculate(sessionId)}
           disabled={
             isProcessing ||
             productMappingData.some(

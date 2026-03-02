@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
 import { useAtomValue } from 'jotai';
 import { ArrowLeft } from 'lucide-react';
-import { useOutboundWizard } from '@/hooks/useOutboundWizard';
-import {
-  stepsAtom,
-  productMappingStatsAtom,
-} from '@/store/outboundWizardAtoms';
+import { useWizardNavigation } from '@/hooks/outbound/useWizardNavigation';
+import { stepsAtom } from '@/store/outboundWizardAtoms';
 import { WizardStepper } from '@/components/outbound/WizardStepper';
 import { UploadStep } from '@/components/outbound/UploadStep';
 import { ColumnMappingStep } from '@/components/outbound/ColumnMappingStep';
@@ -13,46 +10,11 @@ import { ProductMappingStep } from '@/components/outbound/ProductMappingStep';
 import { ResultsStep } from '@/components/outbound/ResultsStep';
 
 export const OutboundWizard: React.FC = () => {
-  const {
-    currentStep,
-    headers,
-    rowCount,
-    columnMapping,
-    productMappingData,
-    packingResults,
-    isProcessing,
-    products,
-    handleUpload,
-    handleColumnMappingNext,
-    handleColumnMappingChange,
-    handleProductMappingChange,
-    handleCalculate,
-    handleRecalculate,
-    handleBack,
-    handleReset,
-    handleBackToDashboard,
-  } = useOutboundWizard();
-
+  const { currentStep, handleReset, handleBackToDashboard } = useWizardNavigation();
   const steps = useAtomValue(stepsAtom);
-  const productMappingStats = useAtomValue(productMappingStatsAtom);
 
-  // Session ID: managed locally as it's transitional (will be removed with Stateless API)
+  // sessionId: 서버가 완전 stateless가 되면 제거 예정
   const [sessionId, setSessionId] = useState('');
-
-  const onUpload = async (file: File) => {
-    const newSessionId = await handleUpload(file);
-    if (newSessionId) {
-      setSessionId(newSessionId);
-    }
-  };
-
-  const onColumnMappingNext = () => handleColumnMappingNext(sessionId);
-
-  const onColumnMappingChange = (field: string, value: string | null) => {
-    handleColumnMappingChange(sessionId, field, value);
-  };
-
-  const onCalculate = () => handleCalculate(sessionId);
 
   return (
     <div className="space-y-6">
@@ -73,41 +35,18 @@ export const OutboundWizard: React.FC = () => {
         <WizardStepper steps={steps} currentStep={currentStep} onReset={handleReset} />
 
         {currentStep === 'upload' && (
-          <UploadStep onUpload={onUpload} isProcessing={isProcessing} />
+          <UploadStep onSessionCreated={setSessionId} />
         )}
 
         {currentStep === 'columnMapping' && (
-          <ColumnMappingStep
-            headers={headers}
-            rowCount={rowCount}
-            columnMapping={columnMapping}
-            onMappingChange={onColumnMappingChange}
-            onNext={onColumnMappingNext}
-            isProcessing={isProcessing}
-          />
+          <ColumnMappingStep sessionId={sessionId} />
         )}
 
         {currentStep === 'productMapping' && (
-          <ProductMappingStep
-            productMappingData={productMappingData}
-            productMappingStats={productMappingStats}
-            products={products}
-            onMappingChange={handleProductMappingChange}
-            onBack={handleBack}
-            onCalculate={onCalculate}
-            isProcessing={isProcessing}
-          />
+          <ProductMappingStep sessionId={sessionId} />
         )}
 
-        {currentStep === 'results' && (
-          <ResultsStep
-            packingResults={packingResults}
-            onRecalculate={handleRecalculate}
-            onBack={handleBack}
-            onComplete={handleBackToDashboard}
-            isProcessing={isProcessing}
-          />
-        )}
+        {currentStep === 'results' && <ResultsStep />}
       </div>
     </div>
   );

@@ -5,30 +5,23 @@ import {
   RefreshCw,
   FileSpreadsheet,
 } from 'lucide-react';
+import { useAtomValue } from 'jotai';
 import { PackingResult } from '@/components/PackingResult';
-import type { PackingResult3D } from '@wms/types';
+import { useResultsActions } from '@/hooks/outbound/useResultsActions';
+import { useWizardNavigation } from '@/hooks/outbound/useWizardNavigation';
+import { isProcessingAtom } from '@/store/outboundWizardAtoms';
 
-interface ResultsStepProps {
-  packingResults: PackingResult3D[];
-  onRecalculate: () => void;
-  onBack: () => void;
-  onComplete: () => void;
-  isProcessing: boolean;
-}
+export const ResultsStep: React.FC = () => {
+  const isProcessing = useAtomValue(isProcessingAtom);
+  const { packingResults, handleRecalculate } = useResultsActions();
+  const { handleBack, handleBackToDashboard } = useWizardNavigation();
 
-export const ResultsStep: React.FC<ResultsStepProps> = ({
-  packingResults,
-  onRecalculate,
-  onBack,
-  onComplete,
-  isProcessing,
-}) => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">계산 결과</h2>
         <button
-          onClick={onRecalculate}
+          onClick={handleRecalculate}
           disabled={isProcessing}
           className="inline-flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
         >
@@ -65,7 +58,7 @@ export const ResultsStep: React.FC<ResultsStepProps> = ({
 
       <div className="flex justify-between">
         <button
-          onClick={onBack}
+          onClick={handleBack}
           disabled={isProcessing}
           className="inline-flex items-center gap-2 px-6 py-2 border rounded-lg font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -73,7 +66,7 @@ export const ResultsStep: React.FC<ResultsStepProps> = ({
           이전
         </button>
         <button
-          onClick={onComplete}
+          onClick={handleBackToDashboard}
           className="inline-flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
         >
           완료
