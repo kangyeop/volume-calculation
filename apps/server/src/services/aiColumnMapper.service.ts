@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { OutboundMappingSchema, OutboundMappingResult } from '../modules/schemas/outbound-mapping.schema';
+import { OutboundMappingSchema, OutboundMappingResult } from './schemas/outbound-mapping.schema';
 import { ChatOpenAI } from '@langchain/openai';
 
 @Injectable()

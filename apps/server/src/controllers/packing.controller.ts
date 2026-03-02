@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Param, Body, Query } from '@nestjs/common';
 import { PackingService } from '../services/packing.service';
-import { ExcelExportService } from '../services/excel-export.service';
+import { ExcelExportService } from '../services/excelExport.service';
 import { PackingRecommendation, PackingResult3D } from '@wms/types';
 import { PackingResultEntity } from '../entities/packing-result.entity';
 import { CalculatePackingDto } from '../dto/calculate-packing.dto';

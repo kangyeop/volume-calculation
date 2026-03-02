@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ProductEntity } from '../entities/product.entity';
-import { SingleProductMatchSchema } from '../modules/schemas/product-match.schema';
+import { SingleProductMatchSchema } from './schemas/product-match.schema';
 import { ChatOpenAI } from '@langchain/openai';
 
 interface CachedProduct {
@@ -128,7 +128,7 @@ export class AIProductMapperService {
       return {
         outboundItemIndex: index,
         productIds,
-      };
+      } as { outboundItemIndex: number; productIds: string[] };
     } catch (error) {
       const err = error as Error;
       this.logger.error(`AI matching failed: ${err.message}`, err.stack);

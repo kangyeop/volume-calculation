@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { OutboundItem } from './upload-session.service';
 import { CreateProductDto } from '../dto/create-product.dto';
+import { OutboundItemDto } from '../dto/confirm-upload.dto';
 
 @Injectable()
 export class DataTransformerService {
   transformOutboundRows(
     rows: Record<string, unknown>[],
     columnMapping: Record<string, string>,
-  ): OutboundItem[] {
+  ): OutboundItemDto[] {
     return rows
       .filter((row) => {
         const mapped = this.mapRow(row, columnMapping);
@@ -26,6 +26,74 @@ export class DataTransformerService {
           },
         ];
       });
+  }
+
+  async transformAndMapOutbound(
+    columnMapping: Record<string, string>,
+    rows: Record<string, unknown>[],
+  ): Promise<{
+    parsedOrders: Array<{
+      orderId: string;
+      recipientName: string;
+      address: string;
+      outboundItems: Array<{
+        sku: string;
+        quantity: number;
+        productId?: string | null;
+        productName?: string;
+      }>;
+    }>;
+  }> {
+    const transformed = this.transformOutboundRows(rows, columnMapping);
+
+    const orderMap = new Map<
+      string,
+      {
+        orderId: string;
+        recipientName: string;
+        address: string;
+        outboundItems: Array<{
+          sku: string;
+          quantity: number;
+          productId?: string | null;
+          productName?: string;
+        }>;
+      }
+    >();
+
+    for (const item of transformed) {
+      const orderId = item.orderId;
+
+      if (!orderMap.has(orderId)) {
+        orderMap.set(orderId, {
+          orderId,
+          recipientName: item.recipientName || '',
+          address: item.address || '',
+          outboundItems: [],
+        });
+      }
+
+      const order = orderMap.get(orderId)!;
+      const sku = item.sku.toLowerCase();
+      const skuItems = sku.split('\n');
+
+      for (const skuItem of skuItems) {
+        const match = skuItem.match(/\((.+?)\s*\/\s*(\d+)ea\)?/);
+        if (!match) continue;
+
+        const productName = match[1].trim();
+        const quantity = parseInt(match[2], 10);
+
+        order.outboundItems.push({
+          sku: productName,
+          quantity,
+        });
+      }
+    }
+
+    return {
+      parsedOrders: Array.from(orderMap.values()),
+    };
   }
 
   transformProductRows(rows: Record<string, unknown>[], separator: string): CreateProductDto[] {

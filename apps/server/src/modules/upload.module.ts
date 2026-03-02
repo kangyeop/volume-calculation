@@ -1,23 +1,19 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { AIModule } from './ai.module';
-import { OutboundModule } from './outbound.module';
 import { ProductsModule } from './products.module';
-import { ExcelParserService } from '../services/excel-parser.service';
-import { UploadSessionService } from '../services/upload-session.service';
-import { FileStorageService } from '../services/file-storage.service';
+import { ExcelParserService } from '../services/excelParser.service';
+import { FileStorageService } from '../services/fileStorage.service';
 import { UploadController } from '../controllers/upload.controller';
 import { UploadRepository } from '../repositories';
-import { UploadParseService } from '../services/upload-parse.service';
-import { UploadConfirmService } from '../services/upload-confirm.service';
-import { UploadMappingService } from '../services/upload-mapping.service';
-import { DataTransformerService } from '../services/data-transformer.service';
+import { UploadParseService } from '../services/uploadParse.service';
+import { UploadConfirmService } from '../services/uploadConfirm.service';
+import { DataTransformerService } from '../services/dataTransformer.service';
 
 @Module({
   imports: [
     AIModule,
-    forwardRef(() => OutboundModule),
     ProductsModule,
     MulterModule.register({
       storage: memoryStorage(),
@@ -35,21 +31,17 @@ import { DataTransformerService } from '../services/data-transformer.service';
   controllers: [UploadController],
   providers: [
     ExcelParserService,
-    UploadSessionService,
     FileStorageService,
     UploadRepository,
     UploadParseService,
     UploadConfirmService,
-    UploadMappingService,
     DataTransformerService,
   ],
   exports: [
     ExcelParserService,
-    UploadSessionService,
     FileStorageService,
     UploadParseService,
     UploadConfirmService,
-    UploadMappingService,
   ],
 })
 export class UploadModule {}

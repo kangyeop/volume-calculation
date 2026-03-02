@@ -3,7 +3,7 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as ExcelJS from 'exceljs';
 import { PackingResultDetailEntity } from '../entities/packing-result-detail.entity';
-import { FileStorageService } from './file-storage.service';
+import { FileStorageService } from './fileStorage.service';
 
 @Injectable()
 export class ExcelExportService {

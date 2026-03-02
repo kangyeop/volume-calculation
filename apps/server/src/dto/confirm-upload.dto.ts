@@ -1,10 +1,30 @@
-import { IsString, IsNotEmpty, IsObject } from 'class-validator';
+import { IsString, IsNotEmpty, IsArray, IsObject } from 'class-validator';
+
+export class OutboundItemDto {
+  @IsString()
+  @IsNotEmpty()
+  orderId!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  sku!: string;
+
+  @IsNotEmpty()
+  quantity!: number;
+
+  recipientName?: string;
+
+  address?: string;
+
+  productId?: string | null;
+}
 
 export class ConfirmUploadDto {
   @IsString()
   @IsNotEmpty()
-  sessionId!: string;
+  projectId!: string;
 
-  @IsObject()
-  mapping!: Record<string, string | null>;
+  @IsArray()
+  @IsObject({ each: true })
+  orders!: OutboundItemDto[];
 }

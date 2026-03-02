@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductEntity } from '../entities/product.entity';
-import { AIColumnMapperService } from '../services/ai-column-mapper.service';
-import { AIProductMapperService } from '../services/ai-product-mapper.service';
+import { AIColumnMapperService } from '../services/aiColumnMapper.service';
+import { AIProductMapperService } from '../services/aiProductMapper.service';
 
 @Module({
   imports: [ConfigModule, TypeOrmModule.forFeature([ProductEntity])],

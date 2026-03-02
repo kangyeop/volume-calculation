@@ -4,7 +4,7 @@ import { PackingResultEntity } from '../entities/packing-result.entity';
 import { PackingResultDetailEntity } from '../entities/packing-result-detail.entity';
 import { PackingService } from '../services/packing.service';
 import { PackingController } from '../controllers/packing.controller';
-import { ExcelExportService } from '../services/excel-export.service';
+import { ExcelExportService } from '../services/excelExport.service';
 import { ProductsModule } from './products.module';
 import { OutboundModule } from './outbound.module';
 import { ProjectsModule } from './projects.module';
