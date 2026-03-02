@@ -9,13 +9,8 @@ import {
   Box,
   PackingResult3D,
   ParseUploadData,
-  ParseMappingUploadData,
-  ConfirmMappingUploadResponse,
-  ConfirmMappingUploadData,
   ApiResponse,
   ProductMappingData,
-  ParseMappingUploadResponse,
-  MappingResult,
 } from '@wms/types';
 
 const API_BASE = '/api';
@@ -166,13 +161,7 @@ export const api = {
 
       return apiClient
         .post<
-          ApiResponse<{
-            sessionId: string;
-            headers: string[];
-            rowCount: number;
-            mapping: MappingResult;
-            fileName: string;
-          }>
+          ApiResponse<ParseUploadData>
         >(
           `/upload/parse?type=${encodeURIComponent(type)}&projectId=${encodeURIComponent(projectId)}`,
           formData,
@@ -184,67 +173,25 @@ export const api = {
           return response.data.data;
         });
     },
-    parseMapping: async (
-      file: File,
-      type: 'outbound' | 'product',
+
+    confirm: (
       projectId: string,
-    ): Promise<ParseMappingUploadData> => {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await apiClient.post<ParseMappingUploadResponse>(
-        `/upload/parse-mapping?type=${encodeURIComponent(type)}&projectId=${encodeURIComponent(projectId)}`,
-        formData,
-      );
-
-      return unwrapResponse({ data: response.data });
-    },
-
-    confirm: (sessionId: string, mapping: Record<string, string | null>) => {
-      return fetchApi<{ imported: number; batchId?: string }>(`/upload/confirm`, {
+      orders: Array<{
+        orderId: string;
+        sku: string;
+        quantity: number;
+        recipientName?: string;
+        address?: string;
+        productId?: string | null;
+      }>,
+    ) => {
+      return fetchApi<{ imported: number; batchId?: string; batchName?: string }>(`/upload/confirm`, {
         method: 'POST',
-        data: { sessionId, mapping },
+        data: { projectId, orders },
       });
     },
-    confirmMapping: async (
-      sessionId: string,
-      columnMapping: Record<string, string | null>,
-      productMapping?: Record<number, string[] | null>,
-    ): Promise<ConfirmMappingUploadData> => {
-      const response = await apiClient.post<ConfirmMappingUploadResponse>(
-        `/upload/confirm-mapping`,
-        { sessionId, columnMapping, productMapping },
-      );
 
-      return unwrapResponse({ data: response.data });
-    },
-    updateMapping: async (
-      sessionId: string,
-      columnMapping: Record<string, string | null>,
-    ): Promise<void> => {
-      await apiClient.post<ApiResponse<void>>(`/upload/update-mapping`, {
-        sessionId,
-        columnMapping,
-      });
-    },
-    productMapping: async (
-      sessionId: string,
-      columnMapping: Record<string, string | null>,
-    ): Promise<ProductMappingData> => {
-      const response = await apiClient.post<ApiResponse<ProductMappingData>>(
-        `/upload/product-mapping`,
-        {
-          sessionId,
-          columnMapping,
-        },
-      );
-
-      return unwrapResponse({ data: response.data });
-    },
-    deleteSession: (sessionId: string) => {
-      return apiClient.delete(`/upload/${sessionId}`);
-    },
-    /** Stateless: map products for outbound rows without session */
+    /** Stateless: map products for outbound rows */
     mapProducts: async (
       projectId: string,
       columnMapping: Record<string, string | null>,

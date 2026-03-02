@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useProducts } from '@/hooks/queries';
-import { useUploadParse, useUploadConfirm } from '@/hooks/queries';
+import { useProducts, useCreateProducts, useUploadParse } from '@/hooks/queries';
 import { useProductUpload } from '@/hooks/useProductUpload';
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { AlertCircle, Loader2 } from 'lucide-react';
@@ -14,7 +13,7 @@ export const ProductManager: React.FC = () => {
   const { id: projectId } = useParams<{ id: string }>();
   const { data: products = [] } = useProducts(projectId || '');
   const uploadParse = useUploadParse();
-  const uploadConfirm = useUploadConfirm();
+  const createProducts = useCreateProducts(projectId || '');
   const uploadState = useProductUpload(projectId || '');
   const [isAutoConfirming, setIsAutoConfirming] = useState(false);
 
@@ -62,12 +61,43 @@ export const ProductManager: React.FC = () => {
         mapping[field] = fieldMapping?.columnName || null;
       });
 
-      await uploadConfirm.mutateAsync({
-        sessionId: uploadSession.sessionId,
-        mapping,
-      });
+      // Build product data from parsed rows using the AI mapping
+      const rows = uploadSession.rows || [];
+      const validProducts: Array<{ sku: string; name: string; width: number; length: number; height: number }> = [];
 
-      toast.success('가져오기 완료', { description: '상품이 성공적으로 등록되었습니다.' });
+      for (const row of rows) {
+        const sku = mapping.sku ? String(row[mapping.sku] || '').trim() : '';
+        const name = mapping.name ? String(row[mapping.name] || '').trim() : '';
+
+        if (!sku && !name) continue;
+
+        let width = 0, length = 0, height = 0;
+
+        if (mapping.dimensions) {
+          const dims = String(row[mapping.dimensions] || '').trim();
+          const cleaned = dims.replace(/(cm|mm|m|in|inch)$/i, '').trim();
+          const parts = cleaned.split(/[*xX×]/).map((p) => parseFloat(p.trim()));
+          if (parts.length >= 2) {
+            width = parts[0] || 0;
+            length = parts[1] || 0;
+            height = parts[2] ?? 1;
+          }
+        }
+
+        validProducts.push({
+          sku: sku || name,
+          name: name || sku,
+          width,
+          length,
+          height,
+        });
+      }
+
+      if (validProducts.length > 0) {
+        await createProducts.mutateAsync(validProducts);
+      }
+
+      toast.success('가져오기 완료', { description: `${validProducts.length}개의 상품이 등록되었습니다.` });
       uploadState.setShowMappingUI(false);
     } catch (error) {
       console.error('Failed to auto-confirm mapping:', error);

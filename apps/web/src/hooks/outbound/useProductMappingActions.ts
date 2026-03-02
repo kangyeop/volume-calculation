@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import {
   currentStepAtom,
   columnMappingAtom,
+  parsedRowsAtom,
   productMappingDataAtom,
   packingResultsAtom,
   isProcessingAtom,
@@ -18,6 +19,7 @@ export const useProductMappingActions = () => {
   const { data: boxes = [] } = useBoxes();
   const [productMappingData, setProductMappingData] = useAtom(productMappingDataAtom);
   const columnMapping = useAtomValue(columnMappingAtom);
+  const parsedRows = useAtomValue(parsedRowsAtom);
   const setCurrentStep = useSetAtom(currentStepAtom);
   const setPackingResults = useSetAtom(packingResultsAtom);
   const setIsProcessing = useSetAtom(isProcessingAtom);
@@ -33,7 +35,7 @@ export const useProductMappingActions = () => {
     });
   };
 
-  const handleCalculate = async (sessionId: string) => {
+  const handleCalculate = async (_sessionId: string) => {
     const unmappedCount = productMappingData.filter(
       (r) => !r.productIds || r.productIds.length === 0,
     ).length;
@@ -50,27 +52,26 @@ export const useProductMappingActions = () => {
       return;
     }
 
+    if (!projectId) return;
+
     setIsProcessing(true);
 
     try {
-      const productMappingParam: Record<number, string[] | null> = {};
-      productMappingData.forEach((result) => {
-        if (result.productIds && result.productIds.length > 0) {
-          productMappingParam[result.outboundItemIndex] = result.productIds;
-        }
-      });
+      // Build orders array from parsedRows + columnMapping + productMapping
+      const orders = buildOrdersFromMapping(parsedRows, columnMapping, productMappingData);
 
-      const data = await api.upload.confirmMapping(sessionId, columnMapping, productMappingParam);
+      const data = await api.upload.confirm(projectId, orders);
 
       toast.success('가져오기 완료', {
         description: `${data.imported}개의 데이터가 등록되었습니다.`,
       });
 
-      const uniqueOrderIds = data.orderIds || [];
+      // Calculate packing for each unique orderId
+      const uniqueOrderIds = Array.from(new Set(orders.map((o) => o.orderId)));
 
       const results: PackingResult3D[] = [];
       for (const orderId of uniqueOrderIds) {
-        const result = await api.packing.calculateOrder(projectId!, orderId);
+        const result = await api.packing.calculateOrder(projectId, orderId);
         results.push(result);
       }
 
@@ -88,3 +89,50 @@ export const useProductMappingActions = () => {
 
   return { handleMappingChange, handleCalculate };
 };
+
+/**
+ * Build the orders array for the confirm endpoint from parsed rows,
+ * column mapping, and product mapping data.
+ */
+function buildOrdersFromMapping(
+  rows: Record<string, unknown>[],
+  columnMapping: Record<string, string | null>,
+  productMappingData: Array<{ outboundItemIndex: number; productIds?: string[] | null }>,
+): Array<{
+  orderId: string;
+  sku: string;
+  quantity: number;
+  recipientName?: string;
+  address?: string;
+  productId?: string | null;
+}> {
+  return rows
+    .map((row, index) => {
+      const orderId = columnMapping.orderId ? String(row[columnMapping.orderId] || '') : '';
+      const sku = columnMapping.sku ? String(row[columnMapping.sku] || '') : '';
+      const quantity = columnMapping.quantity
+        ? parseInt(String(row[columnMapping.quantity] || '1'), 10) || 1
+        : 1;
+      const recipientName = columnMapping.recipientName
+        ? String(row[columnMapping.recipientName] || '')
+        : undefined;
+      const address = columnMapping.address
+        ? String(row[columnMapping.address] || '')
+        : undefined;
+
+      const mapping = productMappingData.find((m) => m.outboundItemIndex === index);
+      const productId = mapping?.productIds?.[0] || null;
+
+      if (!orderId || !sku) return null;
+
+      return {
+        orderId,
+        sku,
+        quantity,
+        recipientName,
+        address,
+        productId,
+      };
+    })
+    .filter((o): o is NonNullable<typeof o> => o !== null);
+}

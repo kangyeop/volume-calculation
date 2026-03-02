@@ -51,9 +51,19 @@ export function useUploadConfirm() {
   return useMutation<
     ConfirmUploadResponse['data'],
     Error,
-    { sessionId: string; mapping: Record<string, string | null> }
+    {
+      projectId: string;
+      orders: Array<{
+        orderId: string;
+        sku: string;
+        quantity: number;
+        recipientName?: string;
+        address?: string;
+        productId?: string | null;
+      }>;
+    }
   >({
-    mutationFn: ({ sessionId, mapping }) => api.upload.confirm(sessionId, mapping),
+    mutationFn: ({ projectId, orders }) => api.upload.confirm(projectId, orders),
     onSuccess: (data) => {
       toast.success('가져오기 완료', {
         description: `${data.imported}개의 데이터가 등록되었습니다.`,

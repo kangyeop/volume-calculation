@@ -1,9 +1,11 @@
-import { useAtom, useSetAtom } from 'jotai';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import {
   currentStepAtom,
   columnMappingAtom,
+  parsedRowsAtom,
   productMappingDataAtom,
   productMappingStatsAtom,
   isProcessingAtom,
@@ -12,44 +14,30 @@ import type { ProductMatchResult } from '@wms/types';
 
 /** 컬럼 매핑 스텝: 매핑 변경 + 다음(제품 매핑)으로 전환 */
 export const useColumnMappingActions = () => {
+  const { id: projectId } = useParams<{ id: string }>();
   const [columnMapping, setColumnMapping] = useAtom(columnMappingAtom);
+  const parsedRows = useAtomValue(parsedRowsAtom);
   const setCurrentStep = useSetAtom(currentStepAtom);
   const setProductMappingData = useSetAtom(productMappingDataAtom);
   const setProductMappingStats = useSetAtom(productMappingStatsAtom);
   const setIsProcessing = useSetAtom(isProcessingAtom);
 
-  const handleMappingChange = async (
-    sessionId: string,
+  const handleMappingChange = (
+    _sessionId: string,
     field: string,
     value: string | null,
   ) => {
     const newMapping = { ...columnMapping, [field]: value };
     setColumnMapping(newMapping);
-
-    if (field === 'sku' && value) {
-      setIsProcessing(true);
-      try {
-        await api.upload.updateMapping(sessionId, newMapping);
-        toast.success('컬럼 매핑 업데이트 완료');
-      } catch (error) {
-        console.error('Update mapping failed:', error);
-        toast.error('매핑 업데이트 실패', {
-          description:
-            error instanceof Error ? error.message : '매핑 업데이트 중 오류가 발생했습니다.',
-        });
-      } finally {
-        setIsProcessing(false);
-      }
-    }
   };
 
-  const handleNext = async (sessionId: string) => {
-    if (!sessionId) return;
+  const handleNext = async (_sessionId: string) => {
+    if (!projectId) return;
 
     setIsProcessing(true);
 
     try {
-      const result = await api.upload.productMapping(sessionId, columnMapping);
+      const result = await api.upload.mapProducts(projectId, columnMapping, parsedRows);
 
       setProductMappingData(result.results);
 

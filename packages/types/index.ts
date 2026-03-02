@@ -131,6 +131,7 @@ export interface ParseUploadData {
   sessionId: string;
   headers: string[];
   rowCount: number;
+  rows: Record<string, unknown>[];
   mapping: MappingResult;
   fileName: string;
 }

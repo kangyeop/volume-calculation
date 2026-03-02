@@ -6,6 +6,7 @@ import {
   currentStepAtom,
   headersAtom,
   rowCountAtom,
+  parsedRowsAtom,
   columnMappingAtom,
   isProcessingAtom,
 } from '@/store/outboundWizardAtoms';
@@ -18,6 +19,7 @@ export const useUploadAction = () => {
   const setCurrentStep = useSetAtom(currentStepAtom);
   const setHeaders = useSetAtom(headersAtom);
   const setRowCount = useSetAtom(rowCountAtom);
+  const setParsedRows = useSetAtom(parsedRowsAtom);
   const setColumnMapping = useSetAtom(columnMappingAtom);
   const setIsProcessing = useSetAtom(isProcessingAtom);
 
@@ -27,7 +29,7 @@ export const useUploadAction = () => {
     setIsProcessing(true);
 
     try {
-      const response = await api.upload.parseMapping(file, 'outbound', projectId);
+      const response = await api.upload.parse(file, 'outbound', projectId);
 
       if (!response) {
         throw new Error('Invalid response from server');
@@ -35,10 +37,11 @@ export const useUploadAction = () => {
 
       setHeaders(response.headers);
       setRowCount(response.rowCount);
+      setParsedRows(response.rows);
 
       const initialMapping: Record<string, string | null> = {};
       OUTBOUND_FIELDS.forEach((field) => {
-        const fieldMapping = response?.columnMapping.mapping[field];
+        const fieldMapping = response?.mapping.mapping[field];
         initialMapping[field] = fieldMapping?.columnName || null;
       });
       setColumnMapping(initialMapping);

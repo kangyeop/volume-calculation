@@ -9,6 +9,7 @@ export const currentStepAtom = atom<WizardStep>('upload');
 // --- Upload / Parse ---
 export const headersAtom = atom<string[]>([]);
 export const rowCountAtom = atom<number>(0);
+export const parsedRowsAtom = atom<Record<string, unknown>[]>([]);
 
 // --- Column Mapping ---
 export const columnMappingAtom = atom<Record<string, string | null>>({});
@@ -47,6 +48,7 @@ export const resetWizardAtom = atom(null, (_get, set) => {
   set(currentStepAtom, 'upload');
   set(headersAtom, []);
   set(rowCountAtom, 0);
+  set(parsedRowsAtom, []);
   set(columnMappingAtom, {});
   set(productMappingDataAtom, []);
   set(productMappingStatsAtom, { totalItems: 0, matchedItems: 0, needsReview: 0 });
