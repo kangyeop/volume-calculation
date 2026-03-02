@@ -9,8 +9,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiConsumes, ApiResponse, ApiBody } from '@nestjs/swagger';
-import { UploadParseService } from '../services/uploadParse.service';
-import { UploadConfirmService } from '../services/uploadConfirm.service';
+import { UploadService } from '../services/upload.service';
 import { DataTransformerService } from '../services/dataTransformer.service';
 import { ProductsService } from '../services/products.service';
 import { ParseUploadDto } from '../dto/parse-upload.dto';
@@ -22,8 +21,7 @@ import { ConfirmUploadResponseDto } from '../dto/confirm-upload-response.dto';
 @Controller('upload')
 export class UploadController {
   constructor(
-    private readonly uploadParseService: UploadParseService,
-    private readonly uploadConfirmService: UploadConfirmService,
+    private readonly uploadService: UploadService,
     private readonly dataTransformerService: DataTransformerService,
     private readonly productsService: ProductsService,
   ) {}
@@ -49,7 +47,7 @@ export class UploadController {
     if (!query.type || !query.projectId)
       throw new BadRequestException('Type and projectId are required');
 
-    const data = await this.uploadParseService.parseFile(file, query.projectId, query.type);
+    const data = await this.uploadService.parseFile(file, query.projectId, query.type);
     return { success: true, data };
   }
 
@@ -92,7 +90,7 @@ export class UploadController {
   })
   @ApiResponse({ status: 400, description: 'Bad Request' })
   async confirm(@Body() confirmUploadDto: ConfirmUploadDto): Promise<ConfirmUploadResponseDto> {
-    const result = await this.uploadConfirmService.confirmUpload(confirmUploadDto);
+    const result = await this.uploadService.confirmUpload(confirmUploadDto);
     return { success: true, data: result };
   }
 }

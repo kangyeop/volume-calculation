@@ -55,6 +55,12 @@ export class ParseUploadDataDto implements ParseUploadData {
   rowCount!: number;
 
   @ApiProperty({
+    description: 'Parsed row data from the Excel file',
+    type: [Object],
+  })
+  rows!: Record<string, unknown>[];
+
+  @ApiProperty({
     description: 'AI-suggested column mapping',
     type: MappingResultDto,
   })

@@ -8,8 +8,7 @@ import { PackingModule } from './packing.module';
 import { FileStorageService } from '../services/fileStorage.service';
 import { UploadController } from '../controllers/upload.controller';
 import { UploadRepository } from '../repositories';
-import { UploadParseService } from '../services/uploadParse.service';
-import { UploadConfirmService } from '../services/uploadConfirm.service';
+import { UploadService } from '../services/upload.service';
 import { DataTransformerService } from '../services/dataTransformer.service';
 import { OutboundEntity } from '../entities/outbound.entity';
 import { ProductEntity } from '../entities/product.entity';
@@ -38,14 +37,12 @@ import { OrderEntity } from '../entities/order.entity';
   providers: [
     FileStorageService,
     UploadRepository,
-    UploadParseService,
-    UploadConfirmService,
+    UploadService,
     DataTransformerService,
   ],
   exports: [
     FileStorageService,
-    UploadParseService,
-    UploadConfirmService,
+    UploadService,
   ],
 })
 export class UploadModule {}
