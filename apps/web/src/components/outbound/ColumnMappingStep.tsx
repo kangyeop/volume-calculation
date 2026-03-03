@@ -9,8 +9,7 @@ import {
   isProcessingAtom,
 } from '@/store/outboundWizardAtoms';
 
-const OUTBOUND_FIELDS = ['orderId', 'sku', 'quantity', 'recipientName'];
-
+const OUTBOUND_FIELDS = ['orderId', 'sku', 'quantity', 'orderQty', 'recipientName'];
 interface ColumnMappingStepProps {
   sessionId: string;
 }

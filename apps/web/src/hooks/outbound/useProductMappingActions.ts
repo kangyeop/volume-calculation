@@ -101,6 +101,7 @@ function buildOrdersFromMapping(
 ): Array<{
   orderId: string;
   sku: string;
+  orderQty?: number;
   quantity: number;
   recipientName?: string;
   address?: string;
@@ -110,6 +111,9 @@ function buildOrdersFromMapping(
     .map((row, index) => {
       const orderId = columnMapping.orderId ? String(row[columnMapping.orderId] || '') : '';
       const sku = columnMapping.sku ? String(row[columnMapping.sku] || '') : '';
+      const orderQty = columnMapping.orderQty
+        ? parseInt(String(row[columnMapping.orderQty] || '1'), 10) || 1
+        : 1;
       const quantity = columnMapping.quantity
         ? parseInt(String(row[columnMapping.quantity] || '1'), 10) || 1
         : 1;
@@ -128,6 +132,7 @@ function buildOrdersFromMapping(
       return {
         orderId,
         sku,
+        orderQty,
         quantity,
         recipientName,
         address,
