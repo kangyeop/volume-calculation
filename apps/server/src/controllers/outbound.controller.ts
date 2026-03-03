@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { OutboundService } from '../services/outbound.service';
-import { CreateOutboundDto } from '../dto/create-outbound.dto';
+import { CreateOutboundDto } from '../dto/createOutbound.dto';
 
 interface CreateBulkWithFileBody {
   createOutboundDtos: CreateOutboundDto[];

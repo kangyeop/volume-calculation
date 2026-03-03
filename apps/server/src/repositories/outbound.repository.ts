@@ -71,9 +71,7 @@ export class OutboundRepository {
     projectId: string,
     outbounds: Partial<OutboundEntity>[],
   ): Promise<OutboundEntity[]> {
-    const entities = outbounds.map((dto) =>
-      this.repository.create({ ...dto, projectId }),
-    );
+    const entities = outbounds.map((dto) => this.repository.create({ ...dto, projectId }));
 
     const savedEntities = await this.repository.manager.save(entities);
     return savedEntities;

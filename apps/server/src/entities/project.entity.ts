@@ -4,7 +4,7 @@ import { Project } from '@wms/types';
 import { ProductEntity } from './product.entity';
 import { OutboundEntity } from './outbound.entity';
 import { OrderEntity } from './order.entity';
-import { PackingResultEntity } from './packing-result.entity';
+import { PackingResultEntity } from './packingResult.entity';
 
 @Entity('projects')
 export class ProjectEntity extends BaseEntity implements Project {

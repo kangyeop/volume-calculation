@@ -34,15 +34,7 @@ import { OrderEntity } from '../entities/order.entity';
     }),
   ],
   controllers: [UploadController],
-  providers: [
-    FileStorageService,
-    UploadRepository,
-    UploadService,
-    DataTransformerService,
-  ],
-  exports: [
-    FileStorageService,
-    UploadService,
-  ],
+  providers: [FileStorageService, UploadRepository, UploadService, DataTransformerService],
+  exports: [FileStorageService, UploadService],
 })
 export class UploadModule {}

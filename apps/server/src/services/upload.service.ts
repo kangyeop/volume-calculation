@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ExcelService } from './excel.service';
 import { AIService } from './ai.service';
 import { UploadRepository } from '../repositories/upload.repository';
-import { ConfirmUploadDto } from '../dto/confirm-upload.dto';
+import { ConfirmUploadDto } from '../dto/confirmUpload.dto';
 import type { ParseUploadData } from '@wms/types';
 
 @Injectable()
@@ -20,10 +20,7 @@ export class UploadService {
   ): Promise<ParseUploadData> {
     const parseResult = this.excelService.parseExcelFile(file);
 
-    const mapping = await this.aiService.mapOutboundColumns(
-      parseResult.headers,
-      parseResult.rows,
-    );
+    const mapping = await this.aiService.mapOutboundColumns(parseResult.headers, parseResult.rows);
 
     return {
       sessionId: crypto.randomUUID(),
@@ -35,10 +32,15 @@ export class UploadService {
     };
   }
 
-  async confirmUpload(confirmUploadDto: ConfirmUploadDto): Promise<{ imported: number; batchId: string; batchName: string }> {
+  async confirmUpload(
+    confirmUploadDto: ConfirmUploadDto,
+  ): Promise<{ imported: number; batchId: string; batchName: string }> {
     const { projectId, orders } = confirmUploadDto;
 
-    const { outbounds, batchId, batchName } = await this.uploadRepository.createOutboundsWithOrder(projectId, orders);
+    const { outbounds, batchId, batchName } = await this.uploadRepository.createOutboundsWithOrder(
+      projectId,
+      orders,
+    );
 
     return { imported: outbounds.length, batchId, batchName };
   }

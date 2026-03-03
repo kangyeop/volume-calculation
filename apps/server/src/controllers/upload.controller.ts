@@ -12,10 +12,10 @@ import { ApiTags, ApiOperation, ApiConsumes, ApiResponse, ApiBody } from '@nestj
 import { UploadService } from '../services/upload.service';
 import { DataTransformerService } from '../services/dataTransformer.service';
 import { ProductsService } from '../services/products.service';
-import { ParseUploadDto } from '../dto/parse-upload.dto';
-import { ConfirmUploadDto } from '../dto/confirm-upload.dto';
-import { ParseUploadResponseDto } from '../dto/parse-upload-response.dto';
-import { ConfirmUploadResponseDto } from '../dto/confirm-upload-response.dto';
+import { ParseUploadDto } from '../dto/parseUpload.dto';
+import { ConfirmUploadDto } from '../dto/confirmUpload.dto';
+import { ParseUploadResponseDto } from '../dto/parseUploadResponse.dto';
+import { ConfirmUploadResponseDto } from '../dto/confirmUploadResponse.dto';
 
 @ApiTags('upload')
 @Controller('upload')
@@ -58,7 +58,9 @@ export class UploadController {
     description: 'Products mapped successfully',
   })
   @ApiResponse({ status: 400, description: 'Bad Request' })
-  async mapProducts(@Body() body: MapProductsDto): Promise<{ success: boolean; data: MapProductsResponseDto }> {
+  async mapProducts(
+    @Body() body: MapProductsDto,
+  ): Promise<{ success: boolean; data: MapProductsResponseDto }> {
     const { parsedOrders } = await this.dataTransformerService.transformAndMapOutbound(
       body.columnMapping,
       body.rows,

@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsArray, IsObject } from 'class-validator';
+import { IsString, IsNotEmpty, IsArray, IsObject, IsInt, IsOptional } from 'class-validator';
 
 export class OutboundItemDto {
   @IsString()
@@ -9,6 +9,11 @@ export class OutboundItemDto {
   @IsNotEmpty()
   sku!: string;
 
+  @IsInt()
+  @IsOptional()
+  orderQty?: number;
+
+  @IsInt()
   @IsNotEmpty()
   quantity!: number;
 

@@ -1,9 +1,8 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
 import * as ExcelJS from 'exceljs';
 import * as xlsx from 'xlsx';
-import { PackingResultDetailEntity } from '../entities/packing-result-detail.entity';
+import { PackingResultDetailsRepository } from '../repositories/packing-result-details.repository';
+import { PackingResultDetailEntity } from '../entities/packingResultDetail.entity';
 import { FileStorageService } from './fileStorage.service';
 
 interface ParseResult {
@@ -17,8 +16,7 @@ export class ExcelService {
   private readonly logger = new Logger(ExcelService.name);
 
   constructor(
-    @InjectRepository(PackingResultDetailEntity)
-    private readonly packingResultDetailRepository: Repository<PackingResultDetailEntity>,
+    private readonly packingResultDetailRepository: PackingResultDetailsRepository,
     private readonly fileStorageService: FileStorageService,
   ) {}
 
@@ -84,10 +82,9 @@ export class ExcelService {
     await originalWorkbook.xlsx.load(fileBuffer as any);
 
     const results = await this.packingResultDetailRepository
-      .createQueryBuilder('result')
-      .where('result.batchId = :batchId', { batchId })
-      .orderBy('result.orderId', 'ASC')
-      .addOrderBy('result.sku', 'ASC')
+      .createQueryBuilderWithWhere('detail', { batchId })
+      .orderBy('detail.orderId', 'ASC')
+      .addOrderBy('detail.sku', 'ASC')
       .getMany();
 
     const worksheet = originalWorkbook.worksheets[0];
@@ -131,8 +128,8 @@ export class ExcelService {
 
     for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber++) {
       const row = worksheet.getRow(rowNumber);
-      const orderIdValue = String(row.getCell(orderIdIndex + 1).value || '');
-      const skuValue = String(row.getCell(skuIndex + 1).value || '');
+      const orderIdValue = String(row.getCell(orderIdIndex + 1).value ?? '');
+      const skuValue = String(row.getCell(skuIndex + 1).value ?? '');
 
       const key = [orderIdValue, skuValue].join('_');
       const result = rowMap.get(key);
@@ -162,12 +159,10 @@ export class ExcelService {
 
   private async exportWithoutOriginalFile(projectId: string, batchId: string): Promise<Buffer> {
     const results = await this.packingResultDetailRepository
-      .createQueryBuilder('result')
-      .where('result.projectId = :projectId', { projectId })
-      .andWhere('result.batchId = :batchId', { batchId })
-      .orderBy('result.orderId', 'ASC')
-      .addOrderBy('result.boxIndex', 'ASC')
-      .addOrderBy('result.boxNumber', 'ASC')
+      .createQueryBuilderWithWhere('detail', { projectId, batchId })
+      .orderBy('detail.orderId', 'ASC')
+      .addOrderBy('detail.boxIndex', 'ASC')
+      .addOrderBy('detail.boxNumber', 'ASC')
       .getMany();
 
     const workbook = new ExcelJS.Workbook();

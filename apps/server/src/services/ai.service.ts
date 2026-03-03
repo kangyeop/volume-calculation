@@ -1,8 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { ProductEntity } from '../entities/product.entity';
+import { ProductsRepository } from '../repositories/products.repository';
 import { OutboundMappingSchema, OutboundMappingResult } from './schemas/outbound-mapping.schema';
 import { SingleProductMatchSchema } from './schemas/product-match.schema';
 import { ChatOpenAI } from '@langchain/openai';
@@ -32,8 +30,7 @@ export class AIService {
 
   constructor(
     @Inject('LLM_PROVIDER') private readonly apiKey: string,
-    @InjectRepository(ProductEntity)
-    private readonly productsRepository: Repository<ProductEntity>,
+    private readonly productsRepository: ProductsRepository,
     private readonly configService: ConfigService,
   ) {
     this.cacheTTL = this.configService.get('PRODUCT_CACHE_TTL', 3600000);
@@ -100,10 +97,7 @@ export class AIService {
     }
 
     this.logger.log(`Loading products for project ${projectId}`);
-    const products = await this.productsRepository.find({
-      where: { projectId },
-      select: ['id', 'sku', 'name'],
-    });
+    const products = await this.productsRepository.findWithSelect(projectId, ['id', 'sku', 'name']);
 
     const cachedProducts: CachedProduct[] = products.map((p) => ({
       id: p.id,
@@ -186,10 +180,14 @@ Required fields to map:
 - orderId: for tracking order
   Pattern: Long numeric string
 
+- orderQty: order quantity (multiplier for item quantity)
+  Pattern: Number
+  Example: if orderQty=2 and quantity=5, final quantity=10
+
 - sku: sku name
   Pattern: (상품명 / 개수ea)
 
-- quantity: order quantity
+- quantity: item quantity per unit
   Pattern: Number
 
 - recipientName

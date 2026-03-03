@@ -5,8 +5,8 @@ import { Transactional } from 'typeorm-transactional';
 import { OutboundEntity } from '../entities/outbound.entity';
 import { ProductEntity } from '../entities/product.entity';
 import { OrderEntity, OrderStatus } from '../entities/order.entity';
-import { CreateOutboundDto } from '../dto/create-outbound.dto';
-import { CreateProductDto } from '../dto/create-product.dto';
+import { CreateOutboundDto } from '../dto/createOutbound.dto';
+import { CreateProductDto } from '../dto/createProduct.dto';
 
 @Injectable()
 export class UploadRepository {
@@ -28,23 +28,26 @@ export class UploadRepository {
     const batchName = `Upload ${new Date().toLocaleString()}`;
 
     const uniqueOrderIds = [...new Set(outbounds.map((dto) => dto.orderId))];
+    const orderMap = new Map<string, OrderEntity>();
 
     for (const orderId of uniqueOrderIds) {
-      const existingOrder = await this.orderRepository.findOne({
+      let order = await this.orderRepository.findOne({
         where: { projectId, orderId },
       });
 
-      if (!existingOrder) {
+      if (!order) {
         const firstOutboundForOrder = outbounds.find((dto) => dto.orderId === orderId);
-        const order = this.orderRepository.create({
+        order = this.orderRepository.create({
           projectId,
           orderId,
           recipientName: firstOutboundForOrder?.recipientName,
           address: firstOutboundForOrder?.address,
           status: OrderStatus.PENDING,
         });
-        await this.orderRepository.save(order);
+        order = await this.orderRepository.save(order);
       }
+
+      orderMap.set(orderId, order);
     }
 
     const outboundEntities = outbounds.map((dto) =>
@@ -53,6 +56,8 @@ export class UploadRepository {
         projectId,
         batchId,
         batchName,
+        orderId: orderMap.get(dto.orderId)!.id,
+        orderCode: dto.orderId,
       }),
     );
 

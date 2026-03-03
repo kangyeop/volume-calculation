@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { CreateProductDto } from '../dto/create-product.dto';
-import { OutboundItemDto } from '../dto/confirm-upload.dto';
+import { CreateProductDto } from '../dto/createProduct.dto';
+import { OutboundItemDto } from '../dto/confirmUpload.dto';
 
 @Injectable()
 export class DataTransformerService {
@@ -15,12 +15,16 @@ export class DataTransformerService {
       })
       .flatMap((row) => {
         const mapped = this.mapRow(row, columnMapping);
+        const orderQty = parseInt(String(mapped.orderQty ?? '1'), 10) || 1;
+        const quantity = parseInt(String(mapped.quantity ?? '1'), 10) || 1;
+        const finalQuantity = orderQty * quantity;
 
         return [
           {
-            orderId: String(mapped.orderId || ''),
-            sku: String(mapped.sku || ''),
-            quantity: parseInt(String(mapped.quantity || '1'), 10) || 1,
+            orderId: String(mapped.orderId ?? ''),
+            sku: String(mapped.sku ?? ''),
+            orderQty,
+            quantity: finalQuantity,
             recipientName: mapped.recipientName ? String(mapped.recipientName) : undefined,
             address: mapped.address ? String(mapped.address) : undefined,
           },
@@ -96,7 +100,10 @@ export class DataTransformerService {
     };
   }
 
-  transformProductRows(rows: Record<string, unknown>[], separator: string = 'x'): CreateProductDto[] {
+  transformProductRows(
+    rows: Record<string, unknown>[],
+    separator: string = 'x',
+  ): CreateProductDto[] {
     return rows
       .filter((row) => row.sku && row.name)
       .map((row) => {

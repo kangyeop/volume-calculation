@@ -2,9 +2,9 @@ import { Controller, Get, Post, Param, Body, Query } from '@nestjs/common';
 import { PackingService } from '../services/packing.service';
 import { ExcelService } from '../services/excel.service';
 import { PackingRecommendation, PackingResult3D } from '@wms/types';
-import { PackingResultEntity } from '../entities/packing-result.entity';
-import { CalculatePackingDto } from '../dto/calculate-packing.dto';
-import { CalculateOrderPackingDto } from '../dto/calculate-order-packing.dto';
+import { PackingResultEntity } from '../entities/packingResult.entity';
+import { CalculatePackingDto } from '../dto/calculatePacking.dto';
+import { CalculateOrderPackingDto } from '../dto/calculateOrderPacking.dto';
 
 @Controller('projects/:projectId/packing')
 export class PackingController {

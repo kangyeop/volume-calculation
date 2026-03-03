@@ -1,16 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
 import { OrderEntity, OrderStatus } from '../entities/order.entity';
-import { OutboundEntity } from '../entities/outbound.entity';
-import { ProductEntity } from '../entities/product.entity';
+import { OrdersRepository } from '../repositories/orders.repository';
+import { OutboundRepository } from '../repositories/outbound.repository';
+import { ProductsRepository } from '../repositories/products.repository';
 
 @Injectable()
 export class OrdersService {
   constructor(
-    @InjectRepository(OrderEntity)
-    private readonly ordersRepository: Repository<OrderEntity>,
+    private readonly ordersRepository: OrdersRepository,
+    private readonly outboundRepository: OutboundRepository,
+    private readonly productsRepository: ProductsRepository,
   ) {}
 
   async findOrCreate(
@@ -19,29 +19,23 @@ export class OrdersService {
     recipientName?: string,
     address?: string,
   ): Promise<OrderEntity> {
-    let order = await this.ordersRepository.findOne({
-      where: { projectId, orderId },
-    });
+    let order = await this.ordersRepository.findOne(projectId, orderId);
 
     if (!order) {
-      order = this.ordersRepository.create({
+      order = await this.ordersRepository.create({
         projectId,
         orderId,
         recipientName,
         address,
         status: OrderStatus.PENDING,
       });
-      order = await this.ordersRepository.save(order);
     }
 
     return order;
   }
 
   async findByProjectAndOrderId(projectId: string, orderId: string): Promise<OrderEntity> {
-    const order = await this.ordersRepository.findOne({
-      where: { projectId, orderId },
-      relations: ['outbounds', 'outbounds.product'],
-    });
+    const order = await this.ordersRepository.findOneWithRelations(projectId, orderId);
 
     if (!order) {
       throw new NotFoundException(
@@ -54,9 +48,7 @@ export class OrdersService {
 
   @Transactional()
   async mapProducts(projectId: string, orderId: string): Promise<number> {
-    const order = await this.ordersRepository.manager.findOne(OrderEntity, {
-      where: { projectId, orderId },
-    });
+    const order = await this.ordersRepository.findOne(projectId, orderId);
 
     if (!order) {
       throw new NotFoundException(
@@ -64,19 +56,20 @@ export class OrdersService {
       );
     }
 
-    const outbounds = await this.ordersRepository.manager.find(OutboundEntity, {
-      where: { projectId, orderId },
-    });
+    const outbounds = await this.outboundRepository.findAll(projectId);
 
     let mappedCount = 0;
     for (const outbound of outbounds) {
-      const product = await this.ordersRepository.manager.findOne(ProductEntity, {
-        where: { projectId, sku: outbound.sku },
-      });
+      if (outbound.orderId !== orderId) continue;
 
-      if (product) {
-        outbound.productId = product.id;
-        await this.ordersRepository.manager.save(outbound);
+      const products = await this.productsRepository.findBySku(projectId, outbound.sku);
+
+      if (products.length > 0) {
+        const product = products[0];
+        await this.outboundRepository.create(projectId, {
+          ...outbound,
+          productId: product.id,
+        });
         mappedCount++;
       }
     }

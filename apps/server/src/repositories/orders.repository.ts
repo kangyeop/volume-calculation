@@ -19,10 +19,7 @@ export class OrdersRepository {
     return await this.repository.findOne({ where: { projectId, orderId } });
   }
 
-  async findOneWithRelations(
-    projectId: string,
-    orderId: string,
-  ): Promise<OrderEntity | null> {
+  async findOneWithRelations(projectId: string, orderId: string): Promise<OrderEntity | null> {
     return await this.repository.findOne({
       where: { projectId, orderId },
       relations: ['outbounds', 'outbounds.product'],

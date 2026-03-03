@@ -6,11 +6,19 @@ import { ProductEntity } from '../entities/product.entity';
 import { OrdersService } from '../services/orders.service';
 import { OrdersController } from '../controllers/orders.controller';
 import { ProductsModule } from './products.module';
+import { OutboundModule } from './outbound.module';
+import { OrdersRepository } from '../repositories/orders.repository';
+import { OutboundRepository } from '../repositories/outbound.repository';
+import { ProductsRepository } from '../repositories/products.repository';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([OrderEntity, OutboundEntity, ProductEntity]), ProductsModule],
+  imports: [
+    TypeOrmModule.forFeature([OrderEntity, OutboundEntity, ProductEntity]),
+    ProductsModule,
+    OutboundModule,
+  ],
   controllers: [OrdersController],
-  providers: [OrdersService],
+  providers: [OrdersService, OrdersRepository, OutboundRepository, ProductsRepository],
   exports: [OrdersService],
 })
 export class OrdersModule {}

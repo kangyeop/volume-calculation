@@ -7,6 +7,10 @@ export class CreateOutboundDto {
   @IsString()
   sku!: string;
 
+  @IsOptional()
+  @IsInt()
+  orderQty?: number;
+
   @IsInt()
   @IsPositive()
   quantity!: number;

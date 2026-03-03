@@ -1,8 +1,6 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { PackingResultEntity } from '../entities/packing-result.entity';
-import { PackingResultDetailEntity } from '../entities/packing-result-detail.entity';
+import { PackingResultEntity } from '../entities/packingResult.entity';
+import { PackingResultDetailEntity } from '../entities/packingResultDetail.entity';
 import { OutboundService } from './outbound.service';
 import { ProductsService } from './products.service';
 import { BoxesService } from './boxes.service';
@@ -10,16 +8,16 @@ import { calculatePacking } from '../modules/packing/algorithms/packing.algorith
 import { calculateOrderPacking3D } from '../modules/packing/algorithms/packing.3d.algorithm';
 import { SKU, PackingRecommendation, PackingGroupingOption, PackingResult3D } from '@wms/types';
 import { OutboundEntity } from '../entities/outbound.entity';
+import { PackingResultsRepository } from '../repositories/packing-results.repository';
+import { PackingResultDetailsRepository } from '../repositories/packing-result-details.repository';
 
 @Injectable()
 export class PackingService {
   private readonly logger = new Logger(PackingService.name);
 
   constructor(
-    @InjectRepository(PackingResultEntity)
-    private readonly packingResultRepository: Repository<PackingResultEntity>,
-    @InjectRepository(PackingResultDetailEntity)
-    private readonly packingResultDetailRepository: Repository<PackingResultDetailEntity>,
+    private readonly packingResultRepository: PackingResultsRepository,
+    private readonly packingResultDetailRepository: PackingResultDetailsRepository,
     private readonly outboundService: OutboundService,
     private readonly productsService: ProductsService,
     private readonly boxesService: BoxesService,
@@ -190,30 +188,28 @@ export class PackingService {
       grandTotalAvailableVolume += groupAvailableVolume;
     }
 
-    await this.packingResultRepository.delete({ projectId });
-    await this.packingResultDetailRepository.delete({ projectId });
+    await this.packingResultRepository.removeAll(projectId);
+    await this.packingResultDetailRepository.removeAll(projectId);
 
     const allRecommendedBoxes = groups.flatMap((g) =>
       g.boxes.map((b) => ({ ...b, groupLabel: g.groupLabel })),
     );
 
-    const results = allRecommendedBoxes.map((rb) =>
-      this.packingResultRepository.create({
-        projectId,
-        boxId: rb.box.id,
-        boxName: rb.box.name,
-        packedCount: rb.packedSKUs.reduce((acc, s) => acc + s.quantity, 0),
-        remainingQuantity: 0,
-        efficiency: 0,
-        totalCBM: (rb.box.width * rb.box.length * rb.box.height * rb.count) / 1000000,
-        groupLabel: rb.groupLabel,
-      }),
-    );
+    const results = allRecommendedBoxes.map((rb) => ({
+      projectId,
+      boxId: rb.box.id,
+      boxName: rb.box.name,
+      packedCount: rb.packedSKUs.reduce((acc, s) => acc + s.quantity, 0),
+      remainingQuantity: 0,
+      efficiency: 0,
+      totalCBM: (rb.box.width * rb.box.length * rb.box.height * rb.count) / 1000000,
+      groupLabel: rb.groupLabel,
+    }));
 
-    await this.packingResultRepository.save(results);
+    await this.packingResultRepository.createBulk(results);
 
     if (detailResults.length > 0) {
-      await this.packingResultDetailRepository.save(detailResults);
+      await this.packingResultDetailRepository.createBulk(detailResults);
     }
 
     const allUnpackedItems = groups.flatMap((g) => g.unpackedItems || []);
@@ -272,10 +268,7 @@ export class PackingService {
   }
 
   async findAll(projectId: string): Promise<PackingResultEntity[]> {
-    return this.packingResultRepository.find({
-      where: { projectId },
-      order: { createdAt: 'DESC' },
-    });
+    return await this.packingResultRepository.findAll(projectId);
   }
 
   async calculateOrderPacking(
@@ -337,37 +330,34 @@ export class PackingService {
   }
 
   async findByOrderId(projectId: string, orderId: string): Promise<PackingResultEntity[]> {
-    return this.packingResultRepository.find({
-      where: { projectId, orderId },
-      order: { createdAt: 'DESC' },
-    });
+    return await this.packingResultRepository.findByOrderId(projectId, orderId);
   }
 
   private async savePackingResults3D(projectId: string, result: PackingResult3D) {
-    await this.packingResultRepository.delete({ projectId, orderId: result.orderId });
+    await this.packingResultRepository.removeAllByProjectAndOrder(projectId, result.orderId);
 
-    for (const box of result.boxes) {
-      await this.packingResultRepository.save({
-        projectId,
-        orderId: result.orderId,
-        boxId: box.boxId,
-        boxName: box.boxName,
-        boxNumber: box.boxNumber,
-        packedCount: box.items.reduce((acc, item) => acc + item.quantity, 0),
-        remainingQuantity: 0,
-        efficiency: box.efficiency,
-        totalCBM: box.totalCBM,
-        groupLabel: result.groupLabel,
-        placements: box.items.flatMap((item) =>
-          item.placements.map((p) => ({
-            skuId: item.skuId,
-            x: p.x,
-            y: p.y,
-            z: p.z,
-            rotation: p.rotation,
-          })),
-        ),
-      });
-    }
+    const results = result.boxes.map((box) => ({
+      projectId,
+      orderId: result.orderId,
+      boxId: box.boxId,
+      boxName: box.boxName,
+      boxNumber: box.boxNumber,
+      packedCount: box.items.reduce((acc, item) => acc + item.quantity, 0),
+      remainingQuantity: 0,
+      efficiency: box.efficiency,
+      totalCBM: box.totalCBM,
+      groupLabel: result.groupLabel,
+      placements: box.items.flatMap((item) =>
+        item.placements.map((p) => ({
+          skuId: item.skuId,
+          x: p.x,
+          y: p.y,
+          z: p.z,
+          rotation: p.rotation,
+        })),
+      ),
+    }));
+
+    await this.packingResultRepository.createBulk(results);
   }
 }

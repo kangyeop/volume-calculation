@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { BoxesService } from '../services/boxes.service';
-import { CreateBoxDto } from '../dto/create-box.dto';
-import { UpdateBoxDto } from '../dto/update-box.dto';
+import { CreateBoxDto } from '../dto/createBox.dto';
+import { UpdateBoxDto } from '../dto/updateBox.dto';
 
 @Controller('boxes')
 export class BoxesController {

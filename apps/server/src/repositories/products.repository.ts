@@ -45,14 +45,19 @@ export class ProductsRepository {
     return (result.affected ?? 0) > 0;
   }
 
+  async findWithSelect(projectId: string, select: string[]): Promise<ProductEntity[]> {
+    return await this.repository.find({
+      where: { projectId },
+      select: select as any,
+    });
+  }
+
   @Transactional()
   async createBulk(
     projectId: string,
     products: Partial<ProductEntity>[],
   ): Promise<ProductEntity[]> {
-    const entities = products.map((dto) =>
-      this.repository.create({ ...dto, projectId }),
-    );
+    const entities = products.map((dto) => this.repository.create({ ...dto, projectId }));
 
     await this.repository
       .createQueryBuilder()

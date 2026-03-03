@@ -1,37 +1,24 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
 import { ProductEntity } from '../entities/product.entity';
-import { CreateProductDto } from '../dto/create-product.dto';
-import { UpdateProductDto } from '../dto/update-product.dto';
+import { CreateProductDto } from '../dto/createProduct.dto';
+import { UpdateProductDto } from '../dto/updateProduct.dto';
+import { ProductsRepository } from '../repositories/products.repository';
 
 @Injectable()
 export class ProductsService {
-  constructor(
-    @InjectRepository(ProductEntity)
-    private readonly productsRepository: Repository<ProductEntity>,
-  ) {}
+  constructor(private readonly productsRepository: ProductsRepository) {}
 
   async create(projectId: string, createProductDto: CreateProductDto): Promise<ProductEntity> {
-    const product = this.productsRepository.create({
-      ...createProductDto,
-      projectId,
-    });
-    return await this.productsRepository.save(product);
+    return await this.productsRepository.create(projectId, createProductDto);
   }
 
   async findAll(projectId: string): Promise<ProductEntity[]> {
-    return await this.productsRepository.find({
-      where: { projectId },
-      order: { createdAt: 'DESC' },
-    });
+    return await this.productsRepository.findAll(projectId);
   }
 
   async findOne(id: string): Promise<ProductEntity> {
-    const product = await this.productsRepository.findOne({
-      where: { id },
-    });
+    const product = await this.productsRepository.findOne(id);
     if (!product) {
       throw new NotFoundException(`Product with ID "${id}" not found`);
     }
@@ -39,22 +26,18 @@ export class ProductsService {
   }
 
   async update(id: string, updateProductDto: UpdateProductDto): Promise<ProductEntity> {
-    const product = await this.findOne(id);
-    Object.assign(product, updateProductDto);
-    return await this.productsRepository.save(product);
+    return await this.productsRepository.update(id, updateProductDto);
   }
 
   async remove(id: string): Promise<void> {
-    const result = await this.productsRepository.delete(id);
-    if (result.affected === 0) {
+    const removed = await this.productsRepository.remove(id);
+    if (!removed) {
       throw new NotFoundException(`Product with ID "${id}" not found`);
     }
   }
 
   async findBySku(projectId: string, sku: string): Promise<ProductEntity[]> {
-    return await this.productsRepository.find({
-      where: { projectId, sku },
-    });
+    return await this.productsRepository.findBySku(projectId, sku);
   }
 
   @Transactional()
@@ -62,21 +45,6 @@ export class ProductsService {
     projectId: string,
     createProductDtos: CreateProductDto[],
   ): Promise<ProductEntity[]> {
-    const products = createProductDtos.map((dto) =>
-      this.productsRepository.create({
-        ...dto,
-        projectId,
-      }),
-    );
-
-    await this.productsRepository
-      .createQueryBuilder()
-      .insert()
-      .into(ProductEntity)
-      .values(products)
-      .orUpdate(['name', 'width', 'length', 'height'], ['projectId', 'sku'])
-      .execute();
-
-    return products;
+    return await this.productsRepository.createBulk(projectId, createProductDtos);
   }
 }

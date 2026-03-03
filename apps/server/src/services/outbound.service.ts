@@ -1,50 +1,41 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
 import { OutboundEntity } from '../entities/outbound.entity';
-import { CreateOutboundDto } from '../dto/create-outbound.dto';
+import { CreateOutboundDto } from '../dto/createOutbound.dto';
 import { OrderEntity, OrderStatus } from '../entities/order.entity';
+import { OutboundRepository } from '../repositories/outbound.repository';
+import { OrdersRepository } from '../repositories/orders.repository';
 
 @Injectable()
 export class OutboundService {
   constructor(
-    @InjectRepository(OutboundEntity)
-    private readonly outboundRepository: Repository<OutboundEntity>,
+    private readonly outboundRepository: OutboundRepository,
+    private readonly ordersRepository: OrdersRepository,
   ) {}
 
   @Transactional()
   async create(projectId: string, createOutboundDto: CreateOutboundDto): Promise<OutboundEntity> {
-    const existingOrder = await this.outboundRepository.manager.findOne(OrderEntity, {
-      where: { projectId, orderId: createOutboundDto.orderId },
-    });
+    let order = await this.ordersRepository.findOne(projectId, createOutboundDto.orderId);
 
-    if (!existingOrder) {
-      const order = this.outboundRepository.manager.create(OrderEntity, {
+    if (!order) {
+      order = await this.ordersRepository.create({
         projectId,
         orderId: createOutboundDto.orderId,
         recipientName: createOutboundDto.recipientName,
         address: createOutboundDto.address,
         status: OrderStatus.PENDING,
       });
-      await this.outboundRepository.manager.save(order);
     }
 
-    const outbound = this.outboundRepository.create({
+    return await this.outboundRepository.create(projectId, {
       ...createOutboundDto,
-      projectId,
+      orderId: order.id,
+      orderCode: createOutboundDto.orderId,
     });
-    return await this.outboundRepository.save(outbound);
   }
 
   async findAll(projectId: string, batchId?: string): Promise<OutboundEntity[]> {
-    const query = this.outboundRepository
-      .createQueryBuilder('outbound')
-      .where('outbound.projectId = :projectId', { projectId });
-    if (batchId) {
-      query.andWhere('outbound.batchId = :batchId', { batchId });
-    }
-    return query.orderBy('outbound.id', 'DESC').getMany();
+    return await this.outboundRepository.findAll(projectId, batchId);
   }
 
   async findBatches(projectId: string): Promise<
@@ -55,30 +46,12 @@ export class OutboundService {
       createdAt: Date;
     }[]
   > {
-    const results = await this.outboundRepository
-      .createQueryBuilder('outbound')
-      .select('outbound.batchId', 'batchId')
-      .addSelect('outbound.batchName', 'batchName')
-      .addSelect('MIN(outbound.createdAt)', 'createdAt')
-      .addSelect('COUNT(*)', 'count')
-      .where('outbound.projectId = :projectId', { projectId })
-      .andWhere('outbound.batchId IS NOT NULL')
-      .groupBy('outbound.batchId')
-      .addGroupBy('outbound.batchName')
-      .orderBy('createdAt', 'DESC')
-      .getRawMany();
-
-    return results.map((r) => ({
-      batchId: r.batchId,
-      batchName: r.batchName,
-      count: parseInt(r.count, 10),
-      createdAt: r.createdAt,
-    }));
+    return await this.outboundRepository.findBatches(projectId);
   }
 
   async remove(id: string): Promise<void> {
-    const result = await this.outboundRepository.delete(id);
-    if (result.affected === 0) {
+    const removed = await this.outboundRepository.remove(id);
+    if (!removed) {
       throw new NotFoundException(`Outbound with ID "${id}" not found`);
     }
   }
@@ -92,40 +65,39 @@ export class OutboundService {
     const batchName = `Upload ${new Date().toLocaleString()}`;
 
     const uniqueOrderIds = [...new Set(createOutboundDtos.map((dto) => dto.orderId))];
+    const orderMap = new Map<string, OrderEntity>();
 
     for (const orderId of uniqueOrderIds) {
-      const existingOrder = await this.outboundRepository.manager.findOne(OrderEntity, {
-        where: { projectId, orderId },
-      });
+      let order = await this.ordersRepository.findOne(projectId, orderId);
 
-      if (!existingOrder) {
+      if (!order) {
         const firstOutboundForOrder = createOutboundDtos.find((dto) => dto.orderId === orderId);
-        const order = this.outboundRepository.manager.create(OrderEntity, {
+        order = await this.ordersRepository.create({
           projectId,
           orderId,
           recipientName: firstOutboundForOrder?.recipientName,
           address: firstOutboundForOrder?.address,
           status: OrderStatus.PENDING,
         });
-        await this.outboundRepository.manager.save(order);
       }
+
+      orderMap.set(orderId, order);
     }
 
-    const outbounds = createOutboundDtos.map((dto) =>
-      this.outboundRepository.create({
-        ...dto,
-        projectId,
-        batchId,
-        batchName,
-        productId: dto.productId ?? null,
-      }),
-    );
+    const outbounds = createOutboundDtos.map((dto) => ({
+      ...dto,
+      batchId,
+      batchName,
+      orderId: orderMap.get(dto.orderId)!.id,
+      orderCode: dto.orderId,
+      productId: dto.productId ?? null,
+    }));
 
-    const savedOutbounds = await this.outboundRepository.manager.save(outbounds);
+    const savedOutbounds = await this.outboundRepository.createBulk(projectId, outbounds);
     return { outbounds: savedOutbounds, batchId, batchName };
   }
 
   async removeAll(projectId: string): Promise<void> {
-    await this.outboundRepository.delete({ projectId });
+    await this.outboundRepository.removeAll(projectId);
   }
 }

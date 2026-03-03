@@ -251,13 +251,13 @@ function calculatePacking3D(items: SKU[], boxes: Box[]): PackingResult3D {
       boxCounter++;
 
       remainingItems = remainingItems.filter((_, index) =>
-        bestResult!.unpackedIndices.includes(index),
+        bestResult.unpackedIndices.includes(index),
       );
     } else {
       const oversizedItem = remainingItems[0];
       const existingUnpacked = unpackedItems.find((u) => u.skuId === oversizedItem.id);
       if (existingUnpacked) {
-        existingUnpacked.quantity += 1;
+        existingUnpacked.quantity = existingUnpacked.quantity + 1;
       } else {
         const fitsInLargest = doesItemFitInBox(oversizedItem, largestBox);
         unpackedItems.push({
