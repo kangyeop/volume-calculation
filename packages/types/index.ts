@@ -107,6 +107,7 @@ export interface Outbound {
   projectId: string;
   orderId: string;
   sku: string;
+  orderQty?: number;
   quantity: number;
   recipientName?: string;
   batchId?: string;
