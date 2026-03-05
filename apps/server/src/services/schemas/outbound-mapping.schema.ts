@@ -7,11 +7,6 @@ export const OutboundMappingSchema = z.object({
         columnName: z.string(),
       })
       .nullable(),
-    orderQty: z
-      .object({
-        columnName: z.string(),
-      })
-      .nullable(),
     sku: z
       .object({
         columnName: z.string(),

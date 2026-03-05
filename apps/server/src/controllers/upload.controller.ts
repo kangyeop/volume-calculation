@@ -16,6 +16,7 @@ import { ParseUploadDto } from '../dto/parseUpload.dto';
 import { ConfirmUploadDto } from '../dto/confirmUpload.dto';
 import { ParseUploadResponseDto } from '../dto/parseUploadResponse.dto';
 import { ConfirmUploadResponseDto } from '../dto/confirmUploadResponse.dto';
+import type { ProductMappingData, ProductMatchResult } from '@wms/types';
 
 @ApiTags('upload')
 @Controller('upload')
@@ -60,27 +61,32 @@ export class UploadController {
   @ApiResponse({ status: 400, description: 'Bad Request' })
   async mapProducts(
     @Body() body: MapProductsDto,
-  ): Promise<{ success: boolean; data: MapProductsResponseDto }> {
+  ): Promise<{ success: boolean; data: ProductMappingData }> {
     const { parsedOrders } = await this.dataTransformerService.transformAndMapOutbound(
       body.columnMapping,
       body.rows,
     );
 
-    const mappedItems: Array<{ sku: string; productId: string }> = [];
-    const unmappedItems: Array<{ sku: string; reason: string }> = [];
+    const results: ProductMatchResult[] = [];
+    let itemIndex = 0;
 
     for (const order of parsedOrders) {
       for (const item of order.outboundItems) {
         const products = await this.productsService.findBySku(body.projectId, item.sku);
-        if (products.length > 0) {
-          mappedItems.push({ sku: item.sku, productId: products[0].id });
-        } else {
-          unmappedItems.push({ sku: item.sku, reason: 'Product not found' });
-        }
+        const productIds = products.length > 0 ? products.map((p) => p.id) : null;
+
+        results.push({
+          outboundItemIndex: itemIndex,
+          orderId: order.orderId,
+          productIds,
+          rawValue: item.sku,
+        });
+
+        itemIndex++;
       }
     }
 
-    return { success: true, data: { parsedOrders, mappedItems, unmappedItems } };
+    return { success: true, data: { results } };
   }
 
   @Post('confirm')
@@ -101,20 +107,4 @@ export interface MapProductsDto {
   projectId: string;
   columnMapping: Record<string, string>;
   rows: Record<string, unknown>[];
-}
-
-export interface MapProductsResponseDto {
-  parsedOrders: Array<{
-    orderId: string;
-    recipientName: string;
-    address: string;
-    outboundItems: Array<{
-      sku: string;
-      quantity: number;
-      productId?: string | null;
-      productName?: string;
-    }>;
-  }>;
-  mappedItems: Array<{ sku: string; productId: string }>;
-  unmappedItems: Array<{ sku: string; reason: string }>;
 }

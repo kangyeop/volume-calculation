@@ -79,7 +79,6 @@ export function useUploadConfirm() {
   });
 }
 
-/** Stateless: map products for outbound items */
 export function useUploadMapProducts() {
   return useMutation<
     ProductMappingData,
@@ -99,4 +98,3 @@ export function useUploadMapProducts() {
     },
   });
 }
-

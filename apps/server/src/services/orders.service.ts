@@ -16,6 +16,7 @@ export class OrdersService {
   async findOrCreate(
     projectId: string,
     orderId: string,
+    quantity?: number,
     recipientName?: string,
     address?: string,
   ): Promise<OrderEntity> {
@@ -25,6 +26,7 @@ export class OrdersService {
       order = await this.ordersRepository.create({
         projectId,
         orderId,
+        quantity: quantity || 1,
         recipientName,
         address,
         status: OrderStatus.PENDING,

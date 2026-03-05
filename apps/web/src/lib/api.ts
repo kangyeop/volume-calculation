@@ -91,17 +91,7 @@ export const api = {
       formData.append('file', file);
       formData.append('createOutboundDtos', JSON.stringify(createOutboundDtos));
 
-      return apiClient
-        .post<{
-          success: boolean;
-          data?: unknown;
-          message?: string;
-        }>(`/projects/${projectId}/outbounds/bulk-with-file`, formData)
-        .then((response) => {
-          if (!response.data.success) {
-            throw new Error(response.data.message || 'API request failed');
-          }
-        });
+      return apiClient.post(`/projects/${projectId}/outbounds/bulk-with-file`, formData);
     },
     deleteAll: (projectId: string) =>
       fetchApi<void>(`/projects/${projectId}/outbounds`, { method: 'DELETE' }),
@@ -162,10 +152,7 @@ export const api = {
       return apiClient
         .post<
           ApiResponse<ParseUploadData>
-        >(
-          `/upload/parse?type=${encodeURIComponent(type)}&projectId=${encodeURIComponent(projectId)}`,
-          formData,
-        )
+        >(`/upload/parse?type=${encodeURIComponent(type)}&projectId=${encodeURIComponent(projectId)}`, formData)
         .then((response) => {
           if (!response.data.success) {
             throw new Error(response.data.message || response.data.error || 'API request failed');
@@ -174,7 +161,7 @@ export const api = {
         });
     },
 
-    confirm: (
+    confirm: async (
       projectId: string,
       orders: Array<{
         orderId: string;
@@ -184,14 +171,13 @@ export const api = {
         address?: string;
         productId?: string | null;
       }>,
-    ) => {
-      return fetchApi<{ imported: number; batchId?: string; batchName?: string }>(`/upload/confirm`, {
-        method: 'POST',
-        data: { projectId, orders },
-      });
+    ): Promise<{ imported: number; batchId?: string; batchName?: string }> => {
+      const response = await apiClient.post<
+        ApiResponse<{ imported: number; batchId?: string; batchName?: string }>
+      >(`/upload/confirm`, { projectId, orders });
+      return unwrapResponse({ data: response.data });
     },
 
-    /** Stateless: map products for outbound rows */
     mapProducts: async (
       projectId: string,
       columnMapping: Record<string, string | null>,

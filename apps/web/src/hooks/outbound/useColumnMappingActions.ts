@@ -22,11 +22,7 @@ export const useColumnMappingActions = () => {
   const setProductMappingStats = useSetAtom(productMappingStatsAtom);
   const setIsProcessing = useSetAtom(isProcessingAtom);
 
-  const handleMappingChange = (
-    _sessionId: string,
-    field: string,
-    value: string | null,
-  ) => {
+  const handleMappingChange = (_sessionId: string, field: string, value: string | null) => {
     const newMapping = { ...columnMapping, [field]: value };
     setColumnMapping(newMapping);
   };

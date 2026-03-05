@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductEntity } from '../entities/product.entity';
 import { AIService } from '../services/ai.service';
+import { ProductsRepository } from '../repositories/products.repository';
 
 @Module({
   imports: [ConfigModule, TypeOrmModule.forFeature([ProductEntity])],
@@ -15,7 +16,8 @@ import { AIService } from '../services/ai.service';
       inject: [ConfigService],
     },
     AIService,
+    ProductsRepository,
   ],
-  exports: ['LLM_PROVIDER', AIService],
+  exports: ['LLM_PROVIDER', AIService, ProductsRepository],
 })
 export class AIModule {}

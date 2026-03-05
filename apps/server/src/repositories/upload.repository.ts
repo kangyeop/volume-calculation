@@ -40,6 +40,7 @@ export class UploadRepository {
         order = this.orderRepository.create({
           projectId,
           orderId,
+          quantity: firstOutboundForOrder?.quantity || 1,
           recipientName: firstOutboundForOrder?.recipientName,
           address: firstOutboundForOrder?.address,
           status: OrderStatus.PENDING,
@@ -57,7 +58,6 @@ export class UploadRepository {
         batchId,
         batchName,
         orderId: orderMap.get(dto.orderId)!.id,
-        orderCode: dto.orderId,
       }),
     );
 

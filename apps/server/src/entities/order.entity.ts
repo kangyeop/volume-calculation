@@ -21,6 +21,9 @@ export class OrderEntity extends BaseEntity {
   @Column({ nullable: true })
   address?: string;
 
+  @Column()
+  quantity!: number;
+
   @Column({
     type: 'enum',
     enum: OrderStatus,

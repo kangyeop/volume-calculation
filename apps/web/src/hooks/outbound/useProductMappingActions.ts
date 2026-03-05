@@ -101,7 +101,6 @@ function buildOrdersFromMapping(
 ): Array<{
   orderId: string;
   sku: string;
-  orderQty?: number;
   quantity: number;
   recipientName?: string;
   address?: string;
@@ -111,18 +110,13 @@ function buildOrdersFromMapping(
     .map((row, index) => {
       const orderId = columnMapping.orderId ? String(row[columnMapping.orderId] || '') : '';
       const sku = columnMapping.sku ? String(row[columnMapping.sku] || '') : '';
-      const orderQty = columnMapping.orderQty
-        ? parseInt(String(row[columnMapping.orderQty] || '1'), 10) || 1
-        : 1;
       const quantity = columnMapping.quantity
         ? parseInt(String(row[columnMapping.quantity] || '1'), 10) || 1
         : 1;
       const recipientName = columnMapping.recipientName
         ? String(row[columnMapping.recipientName] || '')
         : undefined;
-      const address = columnMapping.address
-        ? String(row[columnMapping.address] || '')
-        : undefined;
+      const address = columnMapping.address ? String(row[columnMapping.address] || '') : undefined;
 
       const mapping = productMappingData.find((m) => m.outboundItemIndex === index);
       const productId = mapping?.productIds?.[0] || null;
@@ -132,7 +126,6 @@ function buildOrdersFromMapping(
       return {
         orderId,
         sku,
-        orderQty,
         quantity,
         recipientName,
         address,

@@ -1,11 +1,8 @@
-import { IsUUID, IsOptional, IsString } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 
 export class CalculateOrderPackingDto {
-  @IsUUID()
+  @IsString()
   orderId!: string;
-
-  @IsUUID()
-  projectId!: string;
 
   @IsOptional()
   @IsString()

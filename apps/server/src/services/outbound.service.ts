@@ -30,7 +30,6 @@ export class OutboundService {
     return await this.outboundRepository.create(projectId, {
       ...createOutboundDto,
       orderId: order.id,
-      orderCode: createOutboundDto.orderId,
     });
   }
 
@@ -89,7 +88,6 @@ export class OutboundService {
       batchId,
       batchName,
       orderId: orderMap.get(dto.orderId)!.id,
-      orderCode: dto.orderId,
       productId: dto.productId ?? null,
     }));
 

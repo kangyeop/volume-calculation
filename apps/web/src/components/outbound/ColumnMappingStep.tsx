@@ -9,7 +9,7 @@ import {
   isProcessingAtom,
 } from '@/store/outboundWizardAtoms';
 
-const OUTBOUND_FIELDS = ['orderId', 'sku', 'quantity', 'orderQty', 'recipientName'];
+const OUTBOUND_FIELDS = ['orderId', 'sku', 'quantity', 'recipientName'];
 interface ColumnMappingStepProps {
   sessionId: string;
 }
@@ -32,8 +32,8 @@ export const ColumnMappingStep: React.FC<ColumnMappingStepProps> = ({ sessionId 
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p className="text-sm text-blue-800">
-          AI가 자동으로 컬럼을 매핑했습니다. 필요한 경우 컬럼을 직접 선택하여 수정할 수
-          있습니다. 필수 필드: <span className="font-bold">주문번호, SKU, 수량</span>
+          AI가 자동으로 컬럼을 매핑했습니다. 필요한 경우 컬럼을 직접 선택하여 수정할 수 있습니다.
+          필수 필드: <span className="font-bold">주문번호, SKU, 수량</span>
         </p>
       </div>
 
@@ -43,9 +43,7 @@ export const ColumnMappingStep: React.FC<ColumnMappingStepProps> = ({ sessionId 
             <div className="w-40 text-sm font-medium text-gray-700">{field}</div>
             <select
               value={columnMapping[field] || ''}
-              onChange={(e) =>
-                handleMappingChange(sessionId, field, e.target.value || null)
-              }
+              onChange={(e) => handleMappingChange(sessionId, field, e.target.value || null)}
               disabled={isProcessing}
               className="flex-1 h-10 px-3 rounded-md border border-input bg-background text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
             >

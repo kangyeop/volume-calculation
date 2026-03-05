@@ -15,16 +15,13 @@ export class DataTransformerService {
       })
       .flatMap((row) => {
         const mapped = this.mapRow(row, columnMapping);
-        const orderQty = parseInt(String(mapped.orderQty ?? '1'), 10) || 1;
         const quantity = parseInt(String(mapped.quantity ?? '1'), 10) || 1;
-        const finalQuantity = orderQty * quantity;
 
         return [
           {
             orderId: String(mapped.orderId ?? ''),
             sku: String(mapped.sku ?? ''),
-            orderQty,
-            quantity: finalQuantity,
+            quantity,
             recipientName: mapped.recipientName ? String(mapped.recipientName) : undefined,
             address: mapped.address ? String(mapped.address) : undefined,
           },
@@ -38,6 +35,7 @@ export class DataTransformerService {
   ): Promise<{
     parsedOrders: Array<{
       orderId: string;
+      quantity: number;
       recipientName: string;
       address: string;
       outboundItems: Array<{
@@ -54,6 +52,7 @@ export class DataTransformerService {
       string,
       {
         orderId: string;
+        quantity: number;
         recipientName: string;
         address: string;
         outboundItems: Array<{
@@ -71,6 +70,7 @@ export class DataTransformerService {
       if (!orderMap.has(orderId)) {
         orderMap.set(orderId, {
           orderId,
+          quantity: item.quantity || 1,
           recipientName: item.recipientName || '',
           address: item.address || '',
           outboundItems: [],

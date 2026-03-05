@@ -15,7 +15,6 @@ interface OutboundFieldMapping {
   orderId: FieldMapping;
   sku: FieldMapping;
   quantity: FieldMapping;
-  orderQty: FieldMapping;
   recipientName: FieldMapping;
   recipientPhone: FieldMapping;
   zipCode: FieldMapping;
@@ -51,7 +50,6 @@ const outboundFields: OutboundFieldMapping = {
   orderId: { fieldName: 'orderId', displayName: '주문번호', required: true },
   sku: { fieldName: 'sku', displayName: '상품 코드', required: true },
   quantity: { fieldName: 'quantity', displayName: '수량', required: true },
-  orderQty: { fieldName: 'orderQty', displayName: '주문 수량', required: false },
   recipientName: { fieldName: 'recipientName', displayName: '수취인', required: true },
   recipientPhone: { fieldName: 'recipientPhone', displayName: '전화번호', required: false },
   zipCode: { fieldName: 'zipCode', displayName: '우편번호', required: false },

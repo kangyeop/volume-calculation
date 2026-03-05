@@ -95,6 +95,7 @@ export interface Order {
   id: string;
   projectId: string;
   orderId: string;
+  quantity: number;
   recipientName?: string;
   address?: string;
   status: OrderStatus;
@@ -107,7 +108,6 @@ export interface Outbound {
   projectId: string;
   orderId: string;
   sku: string;
-  orderQty?: number;
   quantity: number;
   recipientName?: string;
   batchId?: string;

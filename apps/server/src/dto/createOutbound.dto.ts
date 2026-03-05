@@ -1,4 +1,4 @@
-import { IsString, IsInt, IsPositive, IsOptional } from 'class-validator';
+import { IsString, IsInt, IsOptional } from 'class-validator';
 
 export class CreateOutboundDto {
   @IsString()
@@ -7,12 +7,7 @@ export class CreateOutboundDto {
   @IsString()
   sku!: string;
 
-  @IsOptional()
   @IsInt()
-  orderQty?: number;
-
-  @IsInt()
-  @IsPositive()
   quantity!: number;
 
   @IsOptional()

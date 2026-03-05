@@ -11,9 +11,6 @@ export class OutboundEntity extends BaseEntity {
   @Column()
   orderId!: string;
 
-  @Column({ name: 'orderCode' })
-  orderCode!: string;
-
   @Column()
   sku!: string;
 

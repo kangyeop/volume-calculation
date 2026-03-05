@@ -180,10 +180,6 @@ Required fields to map:
 - orderId: for tracking order
   Pattern: Long numeric string
 
-- orderQty: order quantity (multiplier for item quantity)
-  Pattern: Number
-  Example: if orderQty=2 and quantity=5, final quantity=10
-
 - sku: sku name
   Pattern: (상품명 / 개수ea)
 

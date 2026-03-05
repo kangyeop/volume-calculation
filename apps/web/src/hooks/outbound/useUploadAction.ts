@@ -11,7 +11,7 @@ import {
   isProcessingAtom,
 } from '@/store/outboundWizardAtoms';
 
-const OUTBOUND_FIELDS = ['orderId', 'sku', 'quantity', 'orderQty', 'recipientName'];
+const OUTBOUND_FIELDS = ['orderId', 'sku', 'quantity', 'recipientName'];
 
 /** 업로드 스텝: 파일 파싱 → 헤더/매핑 세팅 → columnMapping 스텝으로 전환 */
 export const useUploadAction = () => {
