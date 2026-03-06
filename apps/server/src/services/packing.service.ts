@@ -10,6 +10,7 @@ import { SKU, PackingRecommendation, PackingGroupingOption, PackingResult3D } fr
 import { OutboundEntity } from '../entities/outbound.entity';
 import { PackingResultsRepository } from '../repositories/packing-results.repository';
 import { PackingResultDetailsRepository } from '../repositories/packing-result-details.repository';
+import { OrdersRepository } from '../repositories/orders.repository';
 
 @Injectable()
 export class PackingService {
@@ -21,6 +22,7 @@ export class PackingService {
     private readonly outboundService: OutboundService,
     private readonly productsService: ProductsService,
     private readonly boxesService: BoxesService,
+    private readonly ordersRepository: OrdersRepository,
   ) {}
 
   async calculate(
@@ -278,6 +280,12 @@ export class PackingService {
   ): Promise<PackingResult3D> {
     this.logger.log(`Calculating 3D packing for order: ${orderId}`);
 
+    const order = await this.ordersRepository.findOne(projectId, orderId);
+
+    if (!order) {
+      throw new BadRequestException(`주문 ID ${orderId}에 대한 출고 정보가 없습니다.`);
+    }
+
     const outbounds = await this.outboundService.findAll(projectId);
     const products = await this.productsService.findAll(projectId);
     const boxes = await this.boxesService.findAll();
@@ -290,11 +298,7 @@ export class PackingService {
 
     const productMap = new Map(products.map((p) => [p.sku, p]));
 
-    const orderOutbounds = outbounds.filter((o) => o.orderId === orderId);
-
-    if (orderOutbounds.length === 0) {
-      throw new BadRequestException(`주문 ID ${orderId}에 대한 출고 정보가 없습니다.`);
-    }
+    const orderOutbounds = outbounds.filter((o) => o.orderId === order.id);
 
     const skuMap = new Map<string, SKU>();
 

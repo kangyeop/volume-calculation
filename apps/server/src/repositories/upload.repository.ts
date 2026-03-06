@@ -51,13 +51,24 @@ export class UploadRepository {
       orderMap.set(orderId, order);
     }
 
-    const outboundEntities = outbounds.map((dto) =>
-      this.outboundRepository.create({
-        ...dto,
-        projectId,
-        batchId,
-        batchName,
-        orderId: orderMap.get(dto.orderId)!.id,
+    const outboundEntities = await Promise.all(
+      outbounds.map(async (dto) => {
+        let sku = dto.sku;
+        if (dto.productId) {
+          const product = await this.productRepository.findOne({ where: { id: dto.productId } });
+          if (product) {
+            sku = product.sku;
+          }
+        }
+
+        return this.outboundRepository.create({
+          ...dto,
+          sku,
+          projectId,
+          batchId,
+          batchName,
+          orderId: orderMap.get(dto.orderId)!.id,
+        });
       }),
     );
 

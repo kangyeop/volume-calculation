@@ -72,7 +72,7 @@ export class UploadController {
 
     for (const order of parsedOrders) {
       for (const item of order.outboundItems) {
-        const products = await this.productsService.findBySku(body.projectId, item.sku);
+        const products = await this.productsService.findByName(body.projectId, item.sku);
         const productIds = products.length > 0 ? products.map((p) => p.id) : null;
 
         results.push({

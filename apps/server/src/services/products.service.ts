@@ -40,6 +40,10 @@ export class ProductsService {
     return await this.productsRepository.findBySku(projectId, sku);
   }
 
+  async findByName(projectId: string, name: string): Promise<ProductEntity[]> {
+    return await this.productsRepository.findByName(projectId, name);
+  }
+
   @Transactional()
   async createBulk(
     projectId: string,

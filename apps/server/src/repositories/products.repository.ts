@@ -31,6 +31,10 @@ export class ProductsRepository {
     return await this.repository.find({ where: { projectId, sku } });
   }
 
+  async findByName(projectId: string, name: string): Promise<ProductEntity[]> {
+    return await this.repository.find({ where: { projectId, name } });
+  }
+
   async update(id: string, product: Partial<ProductEntity>): Promise<ProductEntity> {
     await this.repository.update(id, product);
     const entity = await this.findOne(id);

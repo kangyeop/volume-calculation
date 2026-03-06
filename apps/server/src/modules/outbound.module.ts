@@ -11,6 +11,6 @@ import { OrdersRepository } from '../repositories/orders.repository';
   imports: [TypeOrmModule.forFeature([OutboundEntity, OrderEntity])],
   controllers: [OutboundController],
   providers: [OutboundService, OutboundRepository, OrdersRepository],
-  exports: [OutboundService, OutboundRepository],
+  exports: [OutboundService, OutboundRepository, OrdersRepository],
 })
 export class OutboundModule {}
