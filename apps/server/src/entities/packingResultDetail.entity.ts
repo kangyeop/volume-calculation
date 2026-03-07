@@ -1,16 +1,11 @@
-import { Entity, Column } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from '../common/entities/base.entity';
+import { ProjectEntity } from './project.entity';
 
 @Entity('packing_result_details')
 export class PackingResultDetailEntity extends BaseEntity {
   @Column()
   projectId!: string;
-
-  @Column({ nullable: true })
-  batchId!: string;
-
-  @Column()
-  batchName!: string;
 
   @Column()
   orderId!: string;
@@ -21,16 +16,16 @@ export class PackingResultDetailEntity extends BaseEntity {
   @Column()
   sku!: string;
 
-  @Column({ nullable: true })
+  @Column()
   productName!: string;
 
-  @Column('int')
+  @Column()
   quantity!: number;
 
   @Column()
   boxName!: string;
 
-  @Column('int')
+  @Column()
   boxNumber!: number;
 
   @Column('int')
@@ -48,7 +43,7 @@ export class PackingResultDetailEntity extends BaseEntity {
 
   @Column('decimal', {
     precision: 10,
-    scale: 2,
+    scale: 4,
     transformer: {
       to: (value: number) => value,
       from: (value: string) => parseFloat(value),
@@ -61,4 +56,11 @@ export class PackingResultDetailEntity extends BaseEntity {
 
   @Column({ nullable: true })
   unpackedReason!: string;
+
+  @Column({ type: 'json', nullable: true })
+  placements!: any[] | null;
+
+  @ManyToOne(() => ProjectEntity, (project) => project.packingResults)
+  @JoinColumn({ name: 'projectId' })
+  project!: ProjectEntity;
 }

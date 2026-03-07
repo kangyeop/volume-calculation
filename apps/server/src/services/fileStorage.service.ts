@@ -52,9 +52,4 @@ export class FileStorageService {
       throw new Error(`Failed to delete file: ${filePath}`);
     }
   }
-
-  getOutboundPath(batchId: string, originalFilename: string): string {
-    const ext = originalFilename.split('.').pop();
-    return join(this.outboundDir, `${batchId}.${ext || 'xlsx'}`);
-  }
 }

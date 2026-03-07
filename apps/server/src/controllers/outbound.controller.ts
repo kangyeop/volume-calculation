@@ -32,11 +32,6 @@ export class OutboundController {
     return this.outboundService.findAll(projectId);
   }
 
-  @Get('projects/:projectId/outbounds/batches')
-  findBatches(@Param('projectId') projectId: string) {
-    return this.outboundService.findBatches(projectId);
-  }
-
   @Post('projects/:projectId/outbounds/bulk')
   createBulk(
     @Param('projectId') projectId: string,

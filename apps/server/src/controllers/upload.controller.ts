@@ -79,7 +79,9 @@ export class UploadController {
           outboundItemIndex: itemIndex,
           orderId: order.orderId,
           productIds,
-          rawValue: item.sku,
+          sku: item.sku,
+          rawValue: item.rawValue || item.sku,
+          quantity: item.quantity,
         });
 
         itemIndex++;

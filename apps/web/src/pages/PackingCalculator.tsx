@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   useBoxes,
-  useBatches,
   usePackingHistory,
   useCalculatePacking,
   useExportPacking,
@@ -20,7 +19,6 @@ import { PackingGroupingOption, PackingRecommendation } from '@wms/types';
 export const PackingCalculator: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { data: boxes = [] } = useBoxes();
-  const { data: batches = [] } = useBatches(id || '');
   const { data: history = [] } = usePackingHistory(id || '');
   const calculatePacking = useCalculatePacking();
   const exportPacking = useExportPacking();
@@ -32,7 +30,6 @@ export const PackingCalculator: React.FC = () => {
   const [groupingOption, setGroupingOption] = useState<PackingGroupingOption>(
     PackingGroupingOption.ORDER,
   );
-  const [selectedBatchId, setSelectedBatchId] = useState<string>('');
 
   const { normalizedBoxes, unpackedItems } = usePackingNormalizer(result);
 
@@ -51,7 +48,6 @@ export const PackingCalculator: React.FC = () => {
       const data = await calculatePacking.mutateAsync({
         projectId: id,
         groupingOption,
-        batchId: selectedBatchId || undefined,
       });
       setResult(data);
     } catch (error: unknown) {
@@ -68,12 +64,8 @@ export const PackingCalculator: React.FC = () => {
 
   const handleExport = async () => {
     if (!id) return;
-    if (!selectedBatchId) {
-      toast.warning('배치 선택 필요', { description: '내보낼 배치를 선택해주세요.' });
-      return;
-    }
     try {
-      await exportPacking.mutateAsync({ projectId: id, batchId: selectedBatchId });
+      await exportPacking.mutateAsync({ projectId: id });
     } catch (error: unknown) {
       console.error('Export failed:', error);
       const message = error instanceof Error ? error.message : '엑셀 다운로드에 실패했습니다.';
@@ -92,12 +84,9 @@ export const PackingCalculator: React.FC = () => {
         </div>
 
         <PackingControls
-          batches={batches}
-          selectedBatchId={selectedBatchId}
           groupingOption={groupingOption}
           loading={loading || calculatePacking.isPending}
           exportPending={exportPacking.isPending}
-          onBatchChange={setSelectedBatchId}
           onGroupingChange={setGroupingOption}
           onCalculate={handleCalculate}
           onExport={handleExport}

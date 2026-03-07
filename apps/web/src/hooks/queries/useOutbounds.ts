@@ -16,14 +16,6 @@ export function useOutbounds(projectId: string) {
   });
 }
 
-export function useBatches(projectId: string) {
-  return useQuery({
-    ...outbounds.batches(projectId),
-    queryFn: () => api.outbound.listBatches(projectId),
-    enabled: !!projectId,
-  });
-}
-
 export function useCreateOutbound(
   projectId: string,
 ): UseMutationResult<Outbound, Error, Omit<Outbound, 'id' | 'projectId' | 'createdAt'>> {
@@ -46,7 +38,6 @@ export function useCreateOutbounds(
     mutationFn: (data) => api.outbound.createBulk(projectId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: outbounds.all._def });
-      queryClient.invalidateQueries({ queryKey: outbounds.batches._def });
     },
   });
 }
@@ -65,7 +56,6 @@ export function useCreateOutboundsWithFile(
       api.outbound.createBulkWithFile(projectId, file, createOutboundDtos),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: outbounds.all._def });
-      queryClient.invalidateQueries({ queryKey: outbounds.batches._def });
     },
   });
 }
@@ -77,7 +67,6 @@ export function useDeleteOutbounds(projectId: string): UseMutationResult<void, E
     mutationFn: () => api.outbound.deleteAll(projectId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: outbounds.all._def });
-      queryClient.invalidateQueries({ queryKey: outbounds.batches._def });
     },
   });
 }

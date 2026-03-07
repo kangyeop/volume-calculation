@@ -32,19 +32,8 @@ export class OutboundService {
     });
   }
 
-  async findAll(projectId: string, batchId?: string): Promise<OutboundEntity[]> {
-    return await this.outboundRepository.findAll(projectId, batchId);
-  }
-
-  async findBatches(projectId: string): Promise<
-    {
-      batchId: string;
-      batchName: string;
-      count: number;
-      createdAt: Date;
-    }[]
-  > {
-    return await this.outboundRepository.findBatches(projectId);
+  async findAll(projectId: string): Promise<OutboundEntity[]> {
+    return await this.outboundRepository.findAll(projectId);
   }
 
   async remove(id: string): Promise<void> {
@@ -58,10 +47,7 @@ export class OutboundService {
   async createBulk(
     projectId: string,
     createOutboundDtos: CreateOutboundDto[],
-  ): Promise<{ outbounds: OutboundEntity[]; batchId: string; batchName: string }> {
-    const batchId = crypto.randomUUID();
-    const batchName = `Upload ${new Date().toLocaleString()}`;
-
+  ): Promise<{ outbounds: OutboundEntity[] }> {
     const uniqueOrderIds = [...new Set(createOutboundDtos.map((dto) => dto.orderId))];
     const orderMap = new Map<string, OrderEntity>();
 
@@ -83,8 +69,6 @@ export class OutboundService {
       const order = orderMap.get(dto.orderId)!;
       return {
         ...dto,
-        batchId,
-        batchName,
         orderId: order.id,
         orderIdentifier: dto.orderId,
         productId: dto.productId ?? null,
@@ -92,7 +76,7 @@ export class OutboundService {
     });
 
     const savedOutbounds = await this.outboundRepository.createBulk(projectId, outbounds);
-    return { outbounds: savedOutbounds, batchId, batchName };
+    return { outbounds: savedOutbounds };
   }
 
   async removeAll(projectId: string): Promise<void> {

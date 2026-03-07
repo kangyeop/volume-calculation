@@ -6,54 +6,25 @@ import {
 } from 'lucide-react';
 import { PackingGroupingOption } from '@wms/types';
 
-interface Batch {
-  batchId: string;
-  batchName: string;
-  count: number;
-}
-
 interface PackingControlsProps {
-  batches: Batch[];
-  selectedBatchId: string;
   groupingOption: PackingGroupingOption;
   loading: boolean;
   exportPending: boolean;
-  onBatchChange: (batchId: string) => void;
   onGroupingChange: (option: PackingGroupingOption) => void;
   onCalculate: () => void;
   onExport: () => void;
 }
 
 export const PackingControls: React.FC<PackingControlsProps> = ({
-  batches,
-  selectedBatchId,
   groupingOption,
   loading,
   exportPending,
-  onBatchChange,
   onGroupingChange,
   onCalculate,
   onExport,
 }) => {
   return (
     <div className="flex items-center gap-4 bg-card p-2 rounded-lg border shadow-sm">
-      {batches.length > 0 && (
-        <div className="flex items-center gap-2 px-2 border-r pr-4 mr-2">
-          <span className="text-sm font-medium">Batch:</span>
-          <select
-            value={selectedBatchId}
-            onChange={(e) => onBatchChange(e.target.value)}
-            className="h-9 w-[200px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            <option value="">All Batches</option>
-            {batches.map((batch) => (
-              <option key={batch.batchId} value={batch.batchId}>
-                {batch.batchName} ({batch.count} items)
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
       <div className="flex items-center gap-2 px-2">
         <Settings className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm font-medium">Grouping:</span>

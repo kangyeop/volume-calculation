@@ -168,7 +168,9 @@ export interface ProductMatchResult {
   outboundItemIndex: number;
   orderId?: string;
   productIds?: string[] | null;
+  sku?: string;
   rawValue?: string;
+  quantity?: number;
 }
 
 export interface ProductMappingData {

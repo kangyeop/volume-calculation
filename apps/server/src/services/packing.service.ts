@@ -8,7 +8,13 @@ import {
   calculatePacking,
   calculateOrderPackingUnified,
 } from '../modules/packing/algorithms/packing.algorithm';
-import { SKU, PackingRecommendation, PackingGroupingOption, PackingResult3D } from '@wms/types';
+import {
+  SKU,
+  PackingRecommendation,
+  PackingGroup,
+  PackingGroupingOption,
+  PackingResult3D,
+} from '@wms/types';
 import { OutboundEntity } from '../entities/outbound.entity';
 import { PackingResultsRepository } from '../repositories/packing-results.repository';
 import { PackingResultDetailsRepository } from '../repositories/packing-result-details.repository';
@@ -30,13 +36,12 @@ export class PackingService {
   async calculate(
     projectId: string,
     groupingOption: PackingGroupingOption,
-    batchId?: string,
   ): Promise<PackingRecommendation> {
     this.logger.log(
-      `Calculating packing for project: ${projectId} with grouping: ${groupingOption}, batch: ${batchId}`,
+      `Calculating packing for project: ${projectId} with grouping: ${groupingOption}`,
     );
 
-    const outbounds = await this.outboundService.findAll(projectId, batchId);
+    const outbounds = await this.outboundService.findAll(projectId);
     const products = await this.productsService.findAll(projectId);
     const boxes = await this.boxesService.findAll();
 
@@ -50,7 +55,7 @@ export class PackingService {
 
     const groupedOutbounds = this.groupOutbounds(outbounds, groupingOption);
 
-    const groups: PackingRecommendation['groups'] = [];
+    const groups: PackingGroup[] = [];
     let grandTotalCBM = 0;
     let grandTotalUsedVolume = 0;
     let grandTotalAvailableVolume = 0;
@@ -120,7 +125,6 @@ export class PackingService {
 
       let boxIndex = 1;
       const skuBoxMap = new Map<string, { boxName: string; boxNumber: number; boxIndex: number }>();
-
       for (const box of boxesWithNames) {
         for (let i = 0; i < box.count; i++) {
           box.packedSKUs.forEach(() => {
@@ -131,8 +135,8 @@ export class PackingService {
               boxIndex,
             });
           });
-          boxIndex++;
         }
+        boxIndex++;
       }
 
       for (const outbound of group) {
@@ -146,9 +150,10 @@ export class PackingService {
           boxIndex: 0,
         };
 
-        const isUnpacked = unpackedWithNames.some((u) => u.skuId === product.id && u.quantity > 0);
-
-        const unpackedItem = unpackedWithNames.find((u) => u.skuId === product.id);
+        const unpackedItem = unpackedWithNames.find(
+          (u) => u.skuId === product.id && u.quantity > 0,
+        );
+        const isUnpacked = !!unpackedItem;
 
         const boxCBM = boxInfo.boxIndex > 0 ? (boxVolMap.get(boxInfo.boxName) || 0) / 1000000 : 0;
 
@@ -161,8 +166,6 @@ export class PackingService {
         detailResults.push(
           this.packingResultDetailRepository.create({
             projectId,
-            batchId: outbound.batchId,
-            batchName: outbound.batchName,
             orderId: outbound.orderId,
             recipientName: '',
             sku: outbound.sku,
@@ -236,15 +239,17 @@ export class PackingService {
     for (const outbound of outbounds) {
       let key = '';
       const orderIdentifier = outbound.orderIdentifier || outbound.orderId;
+      const recipientName = outbound.order?.recipientName || 'Unknown Recipient';
+
       switch (option) {
         case PackingGroupingOption.ORDER:
-          key = orderIdentifier;
+          key = `order:${orderIdentifier}`;
           break;
         case PackingGroupingOption.RECIPIENT:
-          key = orderIdentifier;
+          key = `recipient:${recipientName}`;
           break;
         case PackingGroupingOption.ORDER_RECIPIENT:
-          key = orderIdentifier;
+          key = `order_recipient:${orderIdentifier}_${recipientName}`;
           break;
         default:
           key = 'default';
@@ -261,13 +266,15 @@ export class PackingService {
 
   private generateGroupLabel(outbound: OutboundEntity, option: PackingGroupingOption): string {
     const orderIdentifier = outbound.orderIdentifier || outbound.orderId;
+    const recipientName = outbound.order?.recipientName || 'Unknown Recipient';
+
     switch (option) {
       case PackingGroupingOption.ORDER:
         return `Order: ${orderIdentifier}`;
       case PackingGroupingOption.RECIPIENT:
-        return `Order: ${orderIdentifier}`;
+        return `Recipient: ${recipientName}`;
       case PackingGroupingOption.ORDER_RECIPIENT:
-        return `Order: ${orderIdentifier}`;
+        return `Order: ${orderIdentifier}, Recipient: ${recipientName}`;
       default:
         return 'Default Group';
     }

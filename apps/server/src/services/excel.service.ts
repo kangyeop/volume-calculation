@@ -1,9 +1,7 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 import * as xlsx from 'xlsx';
 import { PackingResultDetailsRepository } from '../repositories/packing-result-details.repository';
-import { PackingResultDetailEntity } from '../entities/packingResultDetail.entity';
-import { FileStorageService } from './fileStorage.service';
 
 interface ParseResult {
   headers: string[];
@@ -15,10 +13,7 @@ interface ParseResult {
 export class ExcelService {
   private readonly logger = new Logger(ExcelService.name);
 
-  constructor(
-    private readonly packingResultDetailRepository: PackingResultDetailsRepository,
-    private readonly fileStorageService: FileStorageService,
-  ) {}
+  constructor(private readonly packingResultDetailRepository: PackingResultDetailsRepository) {}
 
   parseExcelFile(file: Express.Multer.File): ParseResult {
     try {
@@ -59,115 +54,13 @@ export class ExcelService {
     }
   }
 
-  async exportPackingResults(projectId: string, batchId: string): Promise<Buffer> {
-    if (!batchId) {
-      throw new BadRequestException('batchId is required for export');
-    }
-
-    const filePath = `${this.fileStorageService['outboundDir']}/${batchId}.xlsx`;
-
-    const fileExists = await this.fileStorageService.fileExists(filePath);
-
-    if (fileExists) {
-      return this.exportWithOriginalFile(filePath, batchId);
-    }
-
-    return this.exportWithoutOriginalFile(projectId, batchId);
+  async exportPackingResults(projectId: string): Promise<Buffer> {
+    return this.exportWithoutOriginalFile(projectId);
   }
 
-  private async exportWithOriginalFile(filePath: string, batchId: string): Promise<Buffer> {
-    const fileBuffer = await this.fileStorageService.readFile(filePath);
-
-    const originalWorkbook = new ExcelJS.Workbook();
-    await originalWorkbook.xlsx.load(fileBuffer as any);
-
+  private async exportWithoutOriginalFile(projectId: string): Promise<Buffer> {
     const results = await this.packingResultDetailRepository
-      .createQueryBuilderWithWhere('detail', { batchId })
-      .orderBy('detail.orderId', 'ASC')
-      .addOrderBy('detail.sku', 'ASC')
-      .getMany();
-
-    const worksheet = originalWorkbook.worksheets[0];
-
-    if (!worksheet) {
-      throw new BadRequestException('Invalid Excel file: No worksheet found');
-    }
-
-    const boxColumnLetter = String.fromCharCode(65 + worksheet.columnCount);
-    const boxNumberColumnLetter = String.fromCharCode(66 + worksheet.columnCount);
-
-    worksheet.getColumn(boxColumnLetter).header = '박스명';
-    worksheet.getColumn(boxNumberColumnLetter).header = '박스 번호';
-
-    const rowMap = new Map<string, PackingResultDetailEntity>();
-
-    for (const result of results) {
-      const key = `${result.orderId}_${result.sku}`;
-      if (!rowMap.has(key)) {
-        rowMap.set(key, result);
-      }
-    }
-
-    const headerRow = worksheet.getRow(1);
-    headerRow.getCell(boxColumnLetter).value = '박스명';
-    headerRow.getCell(boxNumberColumnLetter).value = '박스 번호';
-    headerRow.font = { bold: true };
-
-    const dataRows = worksheet.getSheetValues();
-    const headerColumns: string[] = (dataRows[0] || []) as string[];
-
-    let orderIdIndex = headerColumns.findIndex(
-      (h) => h?.toLowerCase().includes('주문') || h?.toLowerCase().includes('order'),
-    );
-    let skuIndex = headerColumns.findIndex(
-      (h) => h?.toLowerCase().includes('sku') || h?.toLowerCase().includes('상품'),
-    );
-
-    if (orderIdIndex === -1) orderIdIndex = 0;
-    if (skuIndex === -1) skuIndex = 1;
-
-    for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber++) {
-      const row = worksheet.getRow(rowNumber);
-      const orderIdValue = this.safeString(row.getCell(orderIdIndex + 1).value ?? '');
-      const skuValue = this.safeString(row.getCell(skuIndex + 1).value ?? '');
-
-      const key = [orderIdValue, skuValue].join('_');
-      const result = rowMap.get(key);
-
-      if (result) {
-        const boxNameCell = row.getCell(boxColumnLetter);
-        const boxNumberCell = row.getCell(boxNumberColumnLetter);
-
-        boxNameCell.value = result.boxName;
-        boxNumberCell.value = result.boxNumber || 0;
-
-        if (result.unpacked) {
-          row.eachCell({ includeEmpty: false }, (cell) => {
-            cell.fill = {
-              type: 'pattern',
-              pattern: 'solid',
-              fgColor: { argb: 'FFFFCCCC' },
-            };
-          });
-        }
-      }
-    }
-
-    const buffer = await originalWorkbook.xlsx.writeBuffer();
-    return Buffer.from(buffer);
-  }
-
-  private safeString(val: unknown): string {
-    if (val === null || val === undefined) return '';
-    if (typeof val === 'string') return val;
-    if (typeof val === 'number') return val.toString();
-    if (typeof val === 'boolean') return val.toString();
-    return '';
-  }
-
-  private async exportWithoutOriginalFile(projectId: string, batchId: string): Promise<Buffer> {
-    const results = await this.packingResultDetailRepository
-      .createQueryBuilderWithWhere('detail', { projectId, batchId })
+      .createQueryBuilderWithWhere('detail', { projectId })
       .orderBy('detail.orderId', 'ASC')
       .addOrderBy('detail.boxIndex', 'ASC')
       .addOrderBy('detail.boxNumber', 'ASC')

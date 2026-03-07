@@ -59,16 +59,6 @@ export const api = {
   },
   outbound: {
     list: (projectId: string) => fetchApi<Outbound[]>(`/projects/${projectId}/outbounds`),
-    listBatches: (projectId: string) =>
-      fetchApi<
-        {
-          batchId: string;
-          batchName: string;
-          count: number;
-          createdAt: string;
-          originalFilePath?: string;
-        }[]
-      >(`/projects/${projectId}/outbounds/batches`),
     create: (projectId: string, outbound: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>) =>
       fetchApi<Outbound>(`/projects/${projectId}/outbounds`, {
         method: 'POST',
@@ -100,11 +90,10 @@ export const api = {
     calculate: (
       projectId: string,
       groupingOption: PackingGroupingOption = PackingGroupingOption.ORDER,
-      batchId?: string,
     ) =>
       fetchApi<PackingRecommendation>(`/projects/${projectId}/packing/calculate`, {
         method: 'POST',
-        data: { groupingOption, batchId },
+        data: { groupingOption },
       }),
     calculateOrder: async (projectId: string, orderId: string, groupLabel?: string) => {
       return fetchApi<PackingResult3D>(`/projects/${projectId}/packing/calculate-order`, {
@@ -114,16 +103,16 @@ export const api = {
     },
     history: (projectId: string) =>
       fetchApi<PackingResult[]>(`/projects/${projectId}/packing/results`),
-    export: (projectId: string, batchId: string) => {
+    export: (projectId: string) => {
       return apiClient
-        .get(`/projects/${projectId}/packing/export?batchId=${encodeURIComponent(batchId)}`, {
+        .get(`/projects/${projectId}/packing/export`, {
           responseType: 'blob',
         })
         .then((response) => {
           const url = window.URL.createObjectURL(response.data);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `packing_results_${batchId}.xlsx`;
+          a.download = `packing_results_${projectId}.xlsx`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -169,9 +158,9 @@ export const api = {
         quantity: number;
         productId?: string | null;
       }>,
-    ): Promise<{ imported: number; batchId?: string; batchName?: string }> => {
+    ): Promise<{ imported: number }> => {
       const response = await apiClient.post<
-        ApiResponse<{ imported: number; batchId?: string; batchName?: string }>
+        ApiResponse<{ imported: number }>
       >(`/upload/confirm`, { projectId, outbounds });
       return unwrapResponse({ data: response.data });
     },

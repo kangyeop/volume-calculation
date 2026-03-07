@@ -42,6 +42,7 @@ export class DataTransformerService {
         quantity: number;
         productId?: string | null;
         productName?: string;
+        rawValue?: string;
       }>;
     }>;
   }> {
@@ -59,6 +60,7 @@ export class DataTransformerService {
           quantity: number;
           productId?: string | null;
           productName?: string;
+          rawValue?: string;
         }>;
       }
     >();
@@ -77,20 +79,29 @@ export class DataTransformerService {
       }
 
       const order = orderMap.get(orderId)!;
-      const sku = item.sku.toLowerCase();
+      const sku = item.sku.trim();
       const skuItems = sku.split('\n');
 
       for (const skuItem of skuItems) {
-        const match = skuItem.match(/\((.+?)\s*\/\s*(\d+)ea\)?/);
-        if (!match) continue;
+        const trimmedSku = skuItem.trim();
+        if (!trimmedSku) continue;
 
-        const productName = match[1].trim();
-        const quantity = parseInt(match[2], 10);
-
-        order.outboundItems.push({
-          sku: productName,
-          quantity,
-        });
+        const parsed = this.parseSkuItem(trimmedSku);
+        if (parsed) {
+          order.outboundItems.push({
+            sku: parsed.productName,
+            quantity: parsed.quantity,
+            productId: item.productId || null,
+            rawValue: trimmedSku,
+          });
+        } else {
+          order.outboundItems.push({
+            sku: trimmedSku,
+            quantity: item.quantity || 1,
+            productId: item.productId || null,
+            rawValue: trimmedSku,
+          });
+        }
       }
     }
 
@@ -130,6 +141,32 @@ export class DataTransformerService {
           height,
         };
       });
+  }
+
+  parseSkuItem(skuItem: string): { productName: string; quantity: number } | null {
+    if (!skuItem) return null;
+
+    const patterns = [
+      /\((.+?)\s*[/:]\s*(\d+)(?:ea)?\)?/i,
+      /\((.+?)\s[x×*]\s*(\d+)(?:ea)?\)?/i,
+      /(.+?)\s*[/:]\s*(\d+)(?:ea)?$/i,
+      /(.+?)\s[x×*]\s*(\d+)(?:ea)?$/i,
+      /(.+?)\s+(\d+)(?:ea)\s*$/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = skuItem.match(pattern);
+      if (match) {
+        let productName = match[1].trim();
+        const quantity = parseInt(match[2], 10);
+        if (!isNaN(quantity) && quantity > 0) {
+          productName = productName.replace(/^\(|\)$/g, '');
+          return { productName, quantity };
+        }
+      }
+    }
+
+    return null;
   }
 
   private safeString(val: unknown): string {

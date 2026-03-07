@@ -23,10 +23,17 @@ export class PackingResultsRepository {
   }
 
   async findByOrderId(projectId: string, orderId: string): Promise<PackingResultEntity[]> {
-    return await this.repository.find({
-      where: { projectId, orderId },
-      order: { createdAt: 'DESC' },
-    });
+    return await this.repository
+      .createQueryBuilder('packingResult')
+      .innerJoinAndSelect(
+        'packingResultDetail',
+        'detail',
+        'packingResult.projectId = detail.projectId AND detail.orderId = :orderId',
+        { orderId },
+      )
+      .where('packingResult.projectId = :projectId', { projectId })
+      .orderBy('packingResult.createdAt', 'DESC')
+      .getMany();
   }
 
   async removeAll(projectId: string): Promise<void> {
@@ -34,7 +41,16 @@ export class PackingResultsRepository {
   }
 
   async removeAllByProjectAndOrder(projectId: string, orderId: string): Promise<void> {
-    await this.repository.delete({ projectId, orderId });
+    await this.repository
+      .createQueryBuilder('packingResult')
+      .leftJoin(
+        'packingResultDetail',
+        'detail',
+        'packingResult.projectId = detail.projectId AND detail.orderId = :orderId',
+        { orderId },
+      )
+      .where('packingResult.projectId = :projectId', { projectId })
+      .delete();
   }
 
   async createBulk(results: Partial<PackingResultEntity>[]): Promise<PackingResultEntity[]> {

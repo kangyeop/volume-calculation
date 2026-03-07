@@ -5,8 +5,6 @@ import { Transactional } from 'typeorm-transactional';
 import { OutboundEntity } from '../entities/outbound.entity';
 import { ProductEntity } from '../entities/product.entity';
 import { OrderEntity, OrderStatus } from '../entities/order.entity';
-import { OutboundItemDto } from '../dto/confirmUpload.dto';
-import { CreateProductDto } from '../dto/createProduct.dto';
 
 @Injectable()
 export class UploadRepository {
@@ -23,10 +21,7 @@ export class UploadRepository {
   async createOutboundsWithOrder(
     projectId: string,
     outbounds: OutboundItemDto[],
-  ): Promise<{ outbounds: OutboundEntity[]; batchId: string; batchName: string }> {
-    const batchId = crypto.randomUUID();
-    const batchName = `Upload ${new Date().toLocaleString()}`;
-
+  ): Promise<{ outbounds: OutboundEntity[] }> {
     const uniqueOrderIds = [...new Set(outbounds.map((dto) => dto.orderId))];
     const orderMap = new Map<string, OrderEntity>();
 
@@ -36,14 +31,14 @@ export class UploadRepository {
       });
 
       if (!order) {
-        const firstOutboundForOrder = outbounds.find((dto) => dto.orderId === orderId);
-        order = this.orderRepository.create({
+        const outboundsForOrder = outbounds.filter((dto) => dto.orderId === orderId);
+        const totalQuantity = outboundsForOrder.reduce((sum, dto) => sum + dto.quantity, 0);
+        order = await this.orderRepository.create({
           projectId,
           orderId,
-          quantity: firstOutboundForOrder?.quantity || 1,
+          quantity: totalQuantity,
           status: OrderStatus.PENDING,
         });
-        order = await this.orderRepository.save(order);
       }
 
       orderMap.set(orderId, order);
@@ -52,26 +47,21 @@ export class UploadRepository {
     const outboundEntities = await Promise.all(
       outbounds.map(async (dto) => {
         const product = await this.productRepository.findOne({ where: { id: dto.productId } });
-
-        if (!product) {
-          throw new Error(`Product not found for ID: ${dto.productId}`);
-        }
-
         const order = orderMap.get(dto.orderId)!;
+
         return this.outboundRepository.create({
-          ...dto,
           sku: product.name,
+          quantity: dto.quantity,
           projectId,
-          batchId,
-          batchName,
           orderId: order.id,
           orderIdentifier: dto.orderId,
+          productId: dto.productId,
         });
       }),
     );
 
     const savedOutbounds = await this.outboundRepository.manager.save(outboundEntities);
-    return { outbounds: savedOutbounds, batchId, batchName };
+    return { outbounds: savedOutbounds };
   }
 
   @Transactional()

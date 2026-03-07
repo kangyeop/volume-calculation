@@ -53,10 +53,10 @@ export const useProductMappingActions = () => {
     setIsProcessing(true);
 
     try {
-      const outbounds = productMappingData.map(({ orderId, productIds, rawValue }) => ({
+      const outbounds = productMappingData.map(({ orderId, productIds, sku, quantity }) => ({
         orderId: orderId!,
-        sku: rawValue!,
-        quantity: 1,
+        sku: sku!,
+        quantity: quantity ?? 1,
         productId: productIds![0],
       }));
 

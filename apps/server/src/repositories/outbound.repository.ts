@@ -16,45 +16,13 @@ export class OutboundRepository {
     return await this.repository.save(entity);
   }
 
-  async findAll(projectId: string, batchId?: string): Promise<OutboundEntity[]> {
-    const query = this.repository
+  async findAll(projectId: string): Promise<OutboundEntity[]> {
+    return this.repository
       .createQueryBuilder('outbound')
-      .where('outbound.projectId = :projectId', { projectId });
-
-    if (batchId) {
-      query.andWhere('outbound.batchId = :batchId', { batchId });
-    }
-
-    return query.orderBy('outbound.id', 'DESC').getMany();
-  }
-
-  async findBatches(projectId: string): Promise<
-    {
-      batchId: string;
-      batchName: string;
-      count: number;
-      createdAt: Date;
-    }[]
-  > {
-    const results = await this.repository
-      .createQueryBuilder('outbound')
-      .select('outbound.batchId', 'batchId')
-      .addSelect('outbound.batchName', 'batchName')
-      .addSelect('MIN(outbound.createdAt)', 'createdAt')
-      .addSelect('COUNT(*)', 'count')
+      .leftJoinAndSelect('outbound.order', 'order')
       .where('outbound.projectId = :projectId', { projectId })
-      .andWhere('outbound.batchId IS NOT NULL')
-      .groupBy('outbound.batchId')
-      .addGroupBy('outbound.batchName')
-      .orderBy('createdAt', 'DESC')
-      .getRawMany();
-
-    return results.map((r) => ({
-      batchId: r.batchId,
-      batchName: r.batchName,
-      count: parseInt(r.count, 10),
-      createdAt: r.createdAt,
-    }));
+      .orderBy('outbound.id', 'DESC')
+      .getMany();
   }
 
   async remove(id: string): Promise<boolean> {

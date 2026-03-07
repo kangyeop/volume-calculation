@@ -19,13 +19,13 @@ export function usePackingHistory(projectId: string) {
 export function useCalculatePacking(): UseMutationResult<
   PackingRecommendation,
   Error,
-  { projectId: string; groupingOption?: string; batchId?: string }
+  { projectId: string; groupingOption?: string }
 > {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ projectId, groupingOption, batchId }) =>
-      api.packing.calculate(projectId, groupingOption as PackingGroupingOption, batchId),
+    mutationFn: ({ projectId, groupingOption }) =>
+      api.packing.calculate(projectId, groupingOption as PackingGroupingOption),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: packing.history._def });
     },
@@ -35,9 +35,9 @@ export function useCalculatePacking(): UseMutationResult<
 export function useExportPacking(): UseMutationResult<
   void,
   Error,
-  { projectId: string; batchId?: string }
+  { projectId: string }
 > {
   return useMutation({
-    mutationFn: ({ projectId, batchId }) => api.packing.export(projectId, batchId!),
+    mutationFn: ({ projectId }) => api.packing.export(projectId),
   });
 }

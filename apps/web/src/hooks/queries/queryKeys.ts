@@ -11,7 +11,6 @@ export const products = createQueryKeys('products', {
 
 export const outbounds = createQueryKeys('outbounds', {
   all: (projectId: string) => [projectId],
-  batches: (projectId: string) => [projectId, 'batches'],
 });
 
 export const boxes = createQueryKeys('boxes', {
