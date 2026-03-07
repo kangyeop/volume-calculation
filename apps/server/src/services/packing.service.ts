@@ -4,8 +4,7 @@ import { PackingResultDetailEntity } from '../entities/packingResultDetail.entit
 import { OutboundService } from './outbound.service';
 import { ProductsService } from './products.service';
 import { BoxesService } from './boxes.service';
-import { calculatePacking } from '../modules/packing/algorithms/packing.algorithm';
-import { calculateOrderPacking3D } from '../modules/packing/algorithms/packing.3d.algorithm';
+import { calculatePacking, calculateOrderPackingUnified } from '../modules/packing/algorithms/packing.algorithm';
 import { SKU, PackingRecommendation, PackingGroupingOption, PackingResult3D } from '@wms/types';
 import { OutboundEntity } from '../entities/outbound.entity';
 import { PackingResultsRepository } from '../repositories/packing-results.repository';
@@ -298,7 +297,7 @@ export class PackingService {
 
     const productMap = new Map(products.map((p) => [p.sku, p]));
 
-    const orderOutbounds = outbounds.filter((o) => o.orderId === order.id);
+    const orderOutbounds = outbounds.filter((o) => o.orderId === order.orderId);
 
     const skuMap = new Map<string, SKU>();
 
@@ -326,7 +325,7 @@ export class PackingService {
 
     const skus = Array.from(skuMap.values());
 
-    const result = calculateOrderPacking3D(orderId, skus, boxes, groupLabel);
+    const result = calculateOrderPackingUnified(orderId, skus, boxes, groupLabel);
 
     await this.savePackingResults3D(projectId, result);
 

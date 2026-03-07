@@ -1,13 +1,21 @@
-import { SKU, Box, PackingCalculationResult } from '@wms/types';
+import { SKU, Box, PackingCalculationResult, PackedBox3D, PackingResult3D } from '@wms/types';
 
 const EFFICIENCY_THRESHOLD = 0.9;
 
 export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationResult {
   // Check if we have boxes to pack into
   if (!boxes || boxes.length === 0) {
+    const unpackedItems: PackingCalculationResult['unpackedItems'] = [];
+    for (const sku of skus) {
+      unpackedItems.push({
+        skuId: sku.id,
+        quantity: sku.quantity,
+        reason: 'Too large for any box',
+      });
+    }
     return {
       boxes: [],
-      unpackedItems: [],
+      unpackedItems,
       totalCBM: 0,
       totalEfficiency: 0,
     };
@@ -172,30 +180,77 @@ export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationR
     }
   }
 
-  // Merge identical boxes in recommendation
-  const mergedBoxes: PackingCalculationResult['boxes'] = [];
-  for (const rb of recommendedBoxes) {
-    const existing = mergedBoxes.find((b) => b.box.id === rb.box.id);
-    if (existing) {
-      existing.count += 1;
-      // Merge packedSKUs
-      for (const ps of rb.packedSKUs) {
-        const existingSKU = existing.packedSKUs.find((s) => s.skuId === ps.skuId);
-        if (existingSKU) {
-          existingSKU.quantity += ps.quantity;
-        } else {
-          existing.packedSKUs.push(ps);
+  return {
+    boxes: recommendedBoxes,
+    unpackedItems,
+    totalCBM,
+    totalEfficiency: totalAvailableVolume > 0 ? totalUsedVolume / totalAvailableVolume : 0,
+  };
+}
+
+export function calculateOrderPackingUnified(
+  orderId: string,
+  items: SKU[],
+  boxes: Box[],
+  groupLabel?: string,
+): PackingResult3D {
+  const result = calculatePacking(items, boxes);
+
+  const skuDetailsMap = new Map<string, SKU>();
+  for (const sku of items) {
+    skuDetailsMap.set(sku.id, sku);
+  }
+
+  const packedBoxes: PackedBox3D[] = [];
+  let boxNumber = 1;
+
+  for (const boxResult of result.boxes) {
+    for (let i = 0; i < boxResult.count; i++) {
+      const boxVolume = boxResult.box.width * boxResult.box.length * boxResult.box.height;
+
+      let usedVolume = 0;
+      for (const packedSku of boxResult.packedSKUs) {
+        const sku = skuDetailsMap.get(packedSku.skuId);
+        if (sku) {
+          usedVolume += sku.width * sku.length * sku.height * packedSku.quantity;
         }
       }
-    } else {
-      mergedBoxes.push(rb);
+
+      const boxCBM = boxVolume / 1000000;
+
+      packedBoxes.push({
+        boxId: boxResult.box.id,
+        boxName: boxResult.box.name,
+        boxNumber,
+        width: boxResult.box.width,
+        length: boxResult.box.length,
+        height: boxResult.box.height,
+        items: boxResult.packedSKUs.map((sku) => ({
+          skuId: sku.skuId,
+          name: skuDetailsMap.get(sku.skuId)?.name,
+          quantity: sku.quantity,
+          placements: [],
+        })),
+        totalCBM: boxCBM,
+        efficiency: usedVolume / boxVolume,
+        usedVolume,
+        availableVolume: boxVolume,
+      });
+      boxNumber++;
     }
   }
 
   return {
-    boxes: mergedBoxes,
-    unpackedItems,
-    totalCBM,
-    totalEfficiency: totalAvailableVolume > 0 ? totalUsedVolume / totalAvailableVolume : 0,
+    orderId,
+    groupLabel,
+    boxes: packedBoxes,
+    unpackedItems: result.unpackedItems.map((item) => ({
+      skuId: item.skuId,
+      name: skuDetailsMap.get(item.skuId)?.name,
+      quantity: item.quantity,
+      reason: item.reason || 'Could not pack',
+    })),
+    totalCBM: result.totalCBM,
+    totalEfficiency: result.totalEfficiency,
   };
 }
