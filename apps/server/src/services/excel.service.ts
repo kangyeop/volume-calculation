@@ -128,8 +128,8 @@ export class ExcelService {
 
     for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber++) {
       const row = worksheet.getRow(rowNumber);
-      const orderIdValue = String(row.getCell(orderIdIndex + 1).value ?? '');
-      const skuValue = String(row.getCell(skuIndex + 1).value ?? '');
+      const orderIdValue = this.safeString(row.getCell(orderIdIndex + 1).value ?? '');
+      const skuValue = this.safeString(row.getCell(skuIndex + 1).value ?? '');
 
       const key = [orderIdValue, skuValue].join('_');
       const result = rowMap.get(key);
@@ -155,6 +155,14 @@ export class ExcelService {
 
     const buffer = await originalWorkbook.xlsx.writeBuffer();
     return Buffer.from(buffer);
+  }
+
+  private safeString(val: unknown): string {
+    if (val === null || val === undefined) return '';
+    if (typeof val === 'string') return val;
+    if (typeof val === 'number') return val.toString();
+    if (typeof val === 'boolean') return val.toString();
+    return '';
   }
 
   private async exportWithoutOriginalFile(projectId: string, batchId: string): Promise<Buffer> {

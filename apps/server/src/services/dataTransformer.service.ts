@@ -15,15 +15,15 @@ export class DataTransformerService {
       })
       .flatMap((row) => {
         const mapped = this.mapRow(row, columnMapping);
-        const quantity = parseInt(String(mapped.quantity ?? '1'), 10) || 1;
+        const quantity = parseInt(this.safeString(mapped.quantity ?? '1'), 10) || 1;
 
         return [
           {
-            orderId: String(mapped.orderId ?? ''),
-            sku: String(mapped.sku ?? ''),
+            orderId: this.safeString(mapped.orderId ?? ''),
+            sku: this.safeString(mapped.sku ?? ''),
             quantity,
-            recipientName: mapped.recipientName ? String(mapped.recipientName) : undefined,
-            address: mapped.address ? String(mapped.address) : undefined,
+            recipientName: mapped.recipientName ? this.safeString(mapped.recipientName) : undefined,
+            address: mapped.address ? this.safeString(mapped.address) : undefined,
           },
         ];
       });
@@ -112,7 +112,7 @@ export class DataTransformerService {
         let height = 0;
 
         if (row.dimensions) {
-          const dims = String(row.dimensions).trim();
+          const dims = this.safeString(row.dimensions).trim();
           const cleaned = dims.replace(/(cm|mm|m|in|inch)$/i, '').trim();
           const parts = cleaned.split(separator).map((p) => parseFloat(p.trim()));
 
@@ -124,13 +124,21 @@ export class DataTransformerService {
         }
 
         return {
-          sku: String(row.sku || ''),
-          name: String(row.name || ''),
+          sku: this.safeString(row.sku || ''),
+          name: this.safeString(row.name || ''),
           width,
           length,
           height,
         };
       });
+  }
+
+  private safeString(val: unknown): string {
+    if (val === null || val === undefined) return '';
+    if (typeof val === 'string') return val;
+    if (typeof val === 'number') return val.toString();
+    if (typeof val === 'boolean') return val.toString();
+    return '';
   }
 
   mapRow(
