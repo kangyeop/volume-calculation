@@ -35,11 +35,9 @@ export class UploadService {
   async confirmUpload(
     confirmUploadDto: ConfirmUploadDto,
   ): Promise<{ imported: number; batchId: string; batchName: string }> {
-    const { projectId, orders } = confirmUploadDto;
-
     const { outbounds, batchId, batchName } = await this.uploadRepository.createOutboundsWithOrder(
-      projectId,
-      orders,
+      confirmUploadDto.projectId,
+      confirmUploadDto.outbounds,
     );
 
     return { imported: outbounds.length, batchId, batchName };

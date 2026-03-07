@@ -4,7 +4,10 @@ import { PackingResultDetailEntity } from '../entities/packingResultDetail.entit
 import { OutboundService } from './outbound.service';
 import { ProductsService } from './products.service';
 import { BoxesService } from './boxes.service';
-import { calculatePacking, calculateOrderPackingUnified } from '../modules/packing/algorithms/packing.algorithm';
+import {
+  calculatePacking,
+  calculateOrderPackingUnified,
+} from '../modules/packing/algorithms/packing.algorithm';
 import { SKU, PackingRecommendation, PackingGroupingOption, PackingResult3D } from '@wms/types';
 import { OutboundEntity } from '../entities/outbound.entity';
 import { PackingResultsRepository } from '../repositories/packing-results.repository';
@@ -279,14 +282,12 @@ export class PackingService {
   ): Promise<PackingResult3D> {
     this.logger.log(`Calculating 3D packing for order: ${orderId}`);
 
-    const order = await this.ordersRepository.findOne(projectId, orderId);
+    const order = await this.ordersRepository.findOneWithRelations(projectId, orderId);
 
     if (!order) {
       throw new BadRequestException(`주문 ID ${orderId}에 대한 출고 정보가 없습니다.`);
     }
 
-    const outbounds = await this.outboundService.findAll(projectId);
-    const products = await this.productsService.findAll(projectId);
     const boxes = await this.boxesService.findAll();
 
     if (boxes.length === 0) {
@@ -295,16 +296,14 @@ export class PackingService {
       );
     }
 
-    const productMap = new Map(products.map((p) => [p.sku, p]));
-
-    const orderOutbounds = outbounds.filter((o) => o.orderId === order.orderId);
-
     const skuMap = new Map<string, SKU>();
 
-    for (const outbound of orderOutbounds) {
-      const product = productMap.get(outbound.sku);
+    for (const outbound of order.outbounds) {
+      const product = outbound.product;
       if (!product) {
-        this.logger.warn(`Product not found for SKU: ${outbound.sku}`);
+        this.logger.warn(
+          `Product not found for SKU: ${outbound.sku} (Outbound ID: ${outbound.id})`,
+        );
         continue;
       }
 
@@ -325,7 +324,11 @@ export class PackingService {
 
     const skus = Array.from(skuMap.values());
 
-    const result = calculateOrderPackingUnified(orderId, skus, boxes, groupLabel);
+    if (skus.length === 0) {
+      throw new BadRequestException(`주문 ID ${orderId}에 포장할 수 있는 유효한 상품이 없습니다.`);
+    }
+
+    const result = calculateOrderPackingUnified(orderId, skus, boxes, groupLabel || order.orderId);
 
     await this.savePackingResults3D(projectId, result);
 

@@ -163,7 +163,7 @@ export const api = {
 
     confirm: async (
       projectId: string,
-      orders: Array<{
+      outbounds: Array<{
         orderId: string;
         sku: string;
         quantity: number;
@@ -174,7 +174,7 @@ export const api = {
     ): Promise<{ imported: number; batchId?: string; batchName?: string }> => {
       const response = await apiClient.post<
         ApiResponse<{ imported: number; batchId?: string; batchName?: string }>
-      >(`/upload/confirm`, { projectId, orders });
+      >(`/upload/confirm`, { projectId, outbounds });
       return unwrapResponse({ data: response.data });
     },
 

@@ -18,7 +18,6 @@ export class CreateOutboundDto {
   @IsString()
   address?: string;
 
-  @IsOptional()
   @IsString()
-  productId?: string | null;
+  productId!: string;
 }

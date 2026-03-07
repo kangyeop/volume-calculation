@@ -24,6 +24,7 @@ export class DataTransformerService {
             quantity,
             recipientName: mapped.recipientName ? this.safeString(mapped.recipientName) : undefined,
             address: mapped.address ? this.safeString(mapped.address) : undefined,
+            productId: mapped.productId ? this.safeString(mapped.productId) : '',
           },
         ];
       });

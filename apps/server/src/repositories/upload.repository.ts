@@ -19,14 +19,6 @@ export class UploadRepository {
     private readonly orderRepository: Repository<OrderEntity>,
   ) {}
 
-  private parseSku(sku: string): string {
-    const match = sku.match(/\((.+?)\s*\/\s*(\d+)ea\)?/);
-    if (match) {
-      return match[1].trim();
-    }
-    return sku;
-  }
-
   @Transactional()
   async createOutboundsWithOrder(
     projectId: string,
@@ -61,20 +53,15 @@ export class UploadRepository {
 
     const outboundEntities = await Promise.all(
       outbounds.map(async (dto) => {
-        let sku = dto.sku;
+        const product = await this.productRepository.findOne({ where: { id: dto.productId } });
 
-        if (dto.productId) {
-          const product = await this.productRepository.findOne({ where: { id: dto.productId } });
-          if (product) {
-            sku = product.sku;
-          }
+        if (!product) {
+          throw new Error(`Product not found for ID: ${dto.productId}`);
         }
-
-        const parsedSku = this.parseSku(sku);
 
         return this.outboundRepository.create({
           ...dto,
-          sku: parsedSku,
+          sku: product.name,
           projectId,
           batchId,
           batchName,

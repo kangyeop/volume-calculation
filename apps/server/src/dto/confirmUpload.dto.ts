@@ -17,7 +17,7 @@ export class OutboundItemDto {
 
   address?: string;
 
-  productId?: string | null;
+  productId!: string;
 }
 
 export class ConfirmUploadDto {
@@ -27,5 +27,5 @@ export class ConfirmUploadDto {
 
   @IsArray()
   @IsObject({ each: true })
-  orders!: OutboundItemDto[];
+  outbounds!: OutboundItemDto[];
 }
