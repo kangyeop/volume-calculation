@@ -109,9 +109,6 @@ export interface Outbound {
   orderId: string;
   sku: string;
   quantity: number;
-  recipientName?: string;
-  batchId?: string;
-  batchName?: string;
   productId?: string | null;
   createdAt: Date | string;
 }
@@ -149,8 +146,6 @@ export interface ConfirmUploadRequest {
 
 export interface ConfirmUploadData {
   imported: number;
-  batchId?: string;
-  batchName?: string;
 }
 
 export interface ConfirmUploadResponse {
@@ -173,13 +168,7 @@ export interface ProductMatchResult {
   outboundItemIndex: number;
   orderId?: string;
   productIds?: string[] | null;
-  isPatternDetected?: boolean;
-  hasMultiplePatterns?: boolean;
   rawValue?: string;
-  expandedPatterns?: Array<{
-    productName: string;
-    quantity: number;
-  }>;
 }
 
 export interface ProductMappingData {
@@ -208,8 +197,6 @@ export interface ConfirmMappingUploadRequest {
 
 export interface ConfirmMappingUploadData {
   imported: number;
-  batchId?: string;
-  batchName?: string;
   mappedCount: number;
   unmappedCount: number;
   orderIds?: string[];

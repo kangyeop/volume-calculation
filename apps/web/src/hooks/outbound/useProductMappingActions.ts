@@ -57,9 +57,7 @@ export const useProductMappingActions = () => {
         orderId: orderId!,
         sku: rawValue!,
         quantity: 1,
-        recipientName: '',
-        address: '',
-        productId: productIds?.[0]!,
+        productId: productIds![0],
       }));
 
       if (outbounds.length === 0) {

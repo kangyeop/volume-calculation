@@ -40,27 +40,8 @@ export const MappingPreview: React.FC<MappingPreviewProps> = ({
     return products.filter((p) => result.productIds?.includes(p.id));
   };
 
-  const patternCount = results.filter((r) => r.isPatternDetected).length;
-  const multiplePatternCount = results.filter((r) => r.hasMultiplePatterns).length;
-
   return (
     <div className="space-y-6">
-      {patternCount > 0 && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-          <div className="flex items-center gap-2">
-            <div className="text-green-600">
-              <div className="text-lg font-bold">{patternCount}개 행</div>
-              <div className="text-sm">패턴 감지됨</div>
-            </div>
-            {multiplePatternCount > 0 && (
-              <div className="text-green-600">
-                <div className="text-lg font-bold">{multiplePatternCount}개 행</div>
-                <div className="text-sm">다중 패턴 분할</div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="grid grid-cols-2 gap-4 text-center">
@@ -107,13 +88,6 @@ export const MappingPreview: React.FC<MappingPreviewProps> = ({
                         } ${matchedProducts.length === 0 ? 'bg-red-50' : 'bg-green-50'}`}
                       >
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-2 mb-1">
-                            {result.isPatternDetected && (
-                              <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded">
-                                패턴
-                              </span>
-                            )}
-                          </div>
                           {editingIndex === result.outboundItemIndex ? (
                             <div className="space-y-2">
                               <div className="relative">

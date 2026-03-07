@@ -164,7 +164,7 @@ export class PackingService {
             batchId: outbound.batchId,
             batchName: outbound.batchName,
             orderId: outbound.orderId,
-            recipientName: outbound.recipientName,
+            recipientName: '',
             sku: outbound.sku,
             productName: product.name,
             quantity: outbound.quantity,
@@ -235,15 +235,16 @@ export class PackingService {
 
     for (const outbound of outbounds) {
       let key = '';
+      const orderIdentifier = outbound.orderIdentifier || outbound.orderId;
       switch (option) {
         case PackingGroupingOption.ORDER:
-          key = outbound.orderId;
+          key = orderIdentifier;
           break;
         case PackingGroupingOption.RECIPIENT:
-          key = outbound.recipientName || 'Unknown';
+          key = orderIdentifier;
           break;
         case PackingGroupingOption.ORDER_RECIPIENT:
-          key = `${outbound.orderId}_${outbound.recipientName || 'Unknown'}`;
+          key = orderIdentifier;
           break;
         default:
           key = 'default';
@@ -259,13 +260,14 @@ export class PackingService {
   }
 
   private generateGroupLabel(outbound: OutboundEntity, option: PackingGroupingOption): string {
+    const orderIdentifier = outbound.orderIdentifier || outbound.orderId;
     switch (option) {
       case PackingGroupingOption.ORDER:
-        return `Order: ${outbound.orderId}`;
+        return `Order: ${orderIdentifier}`;
       case PackingGroupingOption.RECIPIENT:
-        return `Recipient: ${outbound.recipientName || 'Unknown'}`;
+        return `Order: ${orderIdentifier}`;
       case PackingGroupingOption.ORDER_RECIPIENT:
-        return `Order: ${outbound.orderId} - ${outbound.recipientName || 'Unknown'}`;
+        return `Order: ${orderIdentifier}`;
       default:
         return 'Default Group';
     }

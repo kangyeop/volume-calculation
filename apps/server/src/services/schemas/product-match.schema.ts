@@ -2,7 +2,9 @@ import { z } from 'zod';
 
 export const ProductMatchResultSchema = z.object({
   outboundItemIndex: z.number(),
-  productIds: z.array(z.string()),
+  orderId: z.string().optional(),
+  productIds: z.array(z.string()).optional().nullable(),
+  rawValue: z.string().optional(),
 });
 
 export const SingleProductMatchSchema = z.object({

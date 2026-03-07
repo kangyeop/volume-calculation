@@ -1,4 +1,4 @@
-import { IsString, IsInt, IsOptional } from 'class-validator';
+import { IsString, IsInt } from 'class-validator';
 
 export class CreateOutboundDto {
   @IsString()
@@ -9,14 +9,6 @@ export class CreateOutboundDto {
 
   @IsInt()
   quantity!: number;
-
-  @IsOptional()
-  @IsString()
-  recipientName?: string;
-
-  @IsOptional()
-  @IsString()
-  address?: string;
 
   @IsString()
   productId!: string;

@@ -17,15 +17,6 @@ export class OutboundEntity extends BaseEntity {
   @Column()
   quantity!: number;
 
-  @Column({ nullable: true })
-  recipientName!: string;
-
-  @Column({ nullable: true })
-  batchId!: string;
-
-  @Column({ nullable: true })
-  batchName!: string;
-
   @Column()
   projectId!: string;
 
@@ -39,6 +30,9 @@ export class OutboundEntity extends BaseEntity {
   @ManyToOne(() => OrderEntity, (order) => order.outbounds, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'orderId' })
   order?: OrderEntity;
+
+  @Column({ nullable: true })
+  orderIdentifier?: string;
 
   @ManyToOne(() => ProductEntity)
   @JoinColumn({ name: 'productId' })

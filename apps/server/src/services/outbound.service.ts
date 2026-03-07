@@ -21,8 +21,6 @@ export class OutboundService {
       order = await this.ordersRepository.create({
         projectId,
         orderId: createOutboundDto.orderId,
-        recipientName: createOutboundDto.recipientName,
-        address: createOutboundDto.address,
         status: OrderStatus.PENDING,
       });
     }
@@ -30,6 +28,7 @@ export class OutboundService {
     return await this.outboundRepository.create(projectId, {
       ...createOutboundDto,
       orderId: order.id,
+      orderIdentifier: createOutboundDto.orderId,
     });
   }
 
@@ -70,12 +69,9 @@ export class OutboundService {
       let order = await this.ordersRepository.findOne(projectId, orderId);
 
       if (!order) {
-        const firstOutboundForOrder = createOutboundDtos.find((dto) => dto.orderId === orderId);
         order = await this.ordersRepository.create({
           projectId,
           orderId,
-          recipientName: firstOutboundForOrder?.recipientName,
-          address: firstOutboundForOrder?.address,
           status: OrderStatus.PENDING,
         });
       }
@@ -83,13 +79,17 @@ export class OutboundService {
       orderMap.set(orderId, order);
     }
 
-    const outbounds = createOutboundDtos.map((dto) => ({
-      ...dto,
-      batchId,
-      batchName,
-      orderId: orderMap.get(dto.orderId)!.id,
-      productId: dto.productId ?? null,
-    }));
+    const outbounds = createOutboundDtos.map((dto) => {
+      const order = orderMap.get(dto.orderId)!;
+      return {
+        ...dto,
+        batchId,
+        batchName,
+        orderId: order.id,
+        orderIdentifier: dto.orderId,
+        productId: dto.productId ?? null,
+      };
+    });
 
     const savedOutbounds = await this.outboundRepository.createBulk(projectId, outbounds);
     return { outbounds: savedOutbounds, batchId, batchName };

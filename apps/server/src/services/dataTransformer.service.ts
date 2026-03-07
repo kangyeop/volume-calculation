@@ -22,8 +22,6 @@ export class DataTransformerService {
             orderId: this.safeString(mapped.orderId ?? ''),
             sku: this.safeString(mapped.sku ?? ''),
             quantity,
-            recipientName: mapped.recipientName ? this.safeString(mapped.recipientName) : undefined,
-            address: mapped.address ? this.safeString(mapped.address) : undefined,
             productId: mapped.productId ? this.safeString(mapped.productId) : '',
           },
         ];
@@ -72,8 +70,8 @@ export class DataTransformerService {
         orderMap.set(orderId, {
           orderId,
           quantity: item.quantity || 1,
-          recipientName: item.recipientName || '',
-          address: item.address || '',
+          recipientName: '',
+          address: '',
           outboundItems: [],
         });
       }

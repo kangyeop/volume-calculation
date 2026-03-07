@@ -167,8 +167,6 @@ export const api = {
         orderId: string;
         sku: string;
         quantity: number;
-        recipientName?: string;
-        address?: string;
         productId?: string | null;
       }>,
     ): Promise<{ imported: number; batchId?: string; batchName?: string }> => {

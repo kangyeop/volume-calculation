@@ -5,7 +5,7 @@ import { Transactional } from 'typeorm-transactional';
 import { OutboundEntity } from '../entities/outbound.entity';
 import { ProductEntity } from '../entities/product.entity';
 import { OrderEntity, OrderStatus } from '../entities/order.entity';
-import { CreateOutboundDto } from '../dto/createOutbound.dto';
+import { OutboundItemDto } from '../dto/confirmUpload.dto';
 import { CreateProductDto } from '../dto/createProduct.dto';
 
 @Injectable()
@@ -22,7 +22,7 @@ export class UploadRepository {
   @Transactional()
   async createOutboundsWithOrder(
     projectId: string,
-    outbounds: CreateOutboundDto[],
+    outbounds: OutboundItemDto[],
   ): Promise<{ outbounds: OutboundEntity[]; batchId: string; batchName: string }> {
     const batchId = crypto.randomUUID();
     const batchName = `Upload ${new Date().toLocaleString()}`;
@@ -41,8 +41,6 @@ export class UploadRepository {
           projectId,
           orderId,
           quantity: firstOutboundForOrder?.quantity || 1,
-          recipientName: firstOutboundForOrder?.recipientName,
-          address: firstOutboundForOrder?.address,
           status: OrderStatus.PENDING,
         });
         order = await this.orderRepository.save(order);
@@ -59,13 +57,15 @@ export class UploadRepository {
           throw new Error(`Product not found for ID: ${dto.productId}`);
         }
 
+        const order = orderMap.get(dto.orderId)!;
         return this.outboundRepository.create({
           ...dto,
           sku: product.name,
           projectId,
           batchId,
           batchName,
-          orderId: orderMap.get(dto.orderId)!.id,
+          orderId: order.id,
+          orderIdentifier: dto.orderId,
         });
       }),
     );
