@@ -42,15 +42,24 @@ export class PackingResultsRepository {
 
   async removeAllByProjectAndOrder(projectId: string, orderId: string): Promise<void> {
     await this.repository
-      .createQueryBuilder('packingResult')
-      .leftJoin(
-        'packingResultDetail',
-        'detail',
-        'packingResult.projectId = detail.projectId AND detail.orderId = :orderId',
-        { orderId },
+      .createQueryBuilder()
+      .delete()
+      .from(PackingResultEntity)
+      .where('projectId = :projectId', { projectId })
+      .andWhere(
+        'id IN ' +
+          this.repository
+            .createQueryBuilder('pr')
+            .select('pr.id')
+            .innerJoin(
+              'packingResultDetail',
+              'detail',
+              'pr.projectId = detail.projectId AND detail.orderId = :orderId',
+              { orderId },
+            )
+            .getQuery(),
       )
-      .where('packingResult.projectId = :projectId', { projectId })
-      .delete();
+      .execute();
   }
 
   async createBulk(results: Partial<PackingResultEntity>[]): Promise<PackingResultEntity[]> {

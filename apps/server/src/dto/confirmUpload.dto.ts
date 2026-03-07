@@ -12,6 +12,9 @@ export class OutboundItemDto {
   @IsInt()
   @IsNotEmpty()
   quantity!: number;
+
+  @IsString()
+  productId?: string;
 }
 
 export class ConfirmUploadDto {

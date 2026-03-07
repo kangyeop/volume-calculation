@@ -6,7 +6,7 @@ import { ProductManager } from './pages/ProductManager';
 import { OutboundWizard } from './pages/OutboundWizard';
 import { PackingCalculator } from './pages/PackingCalculator';
 import { BoxManager } from './pages/BoxManager';
-import { Toaster } from './hooks/useToast';
+import { Toaster } from './components/Toaster';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './App.css';
 

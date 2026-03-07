@@ -5,6 +5,8 @@ import { Transactional } from 'typeorm-transactional';
 import { OutboundEntity } from '../entities/outbound.entity';
 import { ProductEntity } from '../entities/product.entity';
 import { OrderEntity, OrderStatus } from '../entities/order.entity';
+import { OutboundItemDto } from '../dto/confirmUpload.dto';
+import { CreateProductDto } from '../dto/createProduct.dto';
 
 @Injectable()
 export class UploadRepository {
@@ -33,7 +35,7 @@ export class UploadRepository {
       if (!order) {
         const outboundsForOrder = outbounds.filter((dto) => dto.orderId === orderId);
         const totalQuantity = outboundsForOrder.reduce((sum, dto) => sum + dto.quantity, 0);
-        order = await this.orderRepository.create({
+        order = this.orderRepository.create({
           projectId,
           orderId,
           quantity: totalQuantity,
@@ -46,16 +48,18 @@ export class UploadRepository {
 
     const outboundEntities = await Promise.all(
       outbounds.map(async (dto) => {
-        const product = await this.productRepository.findOne({ where: { id: dto.productId } });
+        const product = dto.productId
+          ? await this.productRepository.findOne({ where: { id: dto.productId } })
+          : null;
         const order = orderMap.get(dto.orderId)!;
 
         return this.outboundRepository.create({
-          sku: product.name,
+          sku: product ? product.name : dto.sku,
           quantity: dto.quantity,
           projectId,
           orderId: order.id,
           orderIdentifier: dto.orderId,
-          productId: dto.productId,
+          productId: dto.productId ?? null,
         });
       }),
     );
@@ -84,6 +88,11 @@ export class UploadRepository {
       .orUpdate(['name', 'width', 'length', 'height'], ['projectId', 'sku'])
       .execute();
 
-    return productEntities;
+    const skus = products.map((dto) => dto.sku);
+    return this.productRepository
+      .createQueryBuilder('product')
+      .where('product.projectId = :projectId', { projectId })
+      .andWhere('product.sku IN (:...skus)', { skus })
+      .getMany();
   }
 }
