@@ -41,6 +41,7 @@ export class UploadRepository {
           quantity: totalQuantity,
           status: OrderStatus.PENDING,
         });
+        order = await this.orderRepository.save(order);
       }
 
       orderMap.set(orderId, order);

@@ -11,6 +11,7 @@ import { OrdersModule } from './modules/orders.module';
 import { PackingModule } from './modules/packing.module';
 import { BoxesModule } from './modules/boxes.module';
 import { UploadModule } from './modules/upload.module';
+import { ProductUploadModule } from './modules/productUpload.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { UploadModule } from './modules/upload.module';
     PackingModule,
     BoxesModule,
     UploadModule,
+    ProductUploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PackingResultEntity } from '../entities/packingResult.entity';
+import { PackingResultDetailEntity } from '../entities/packingResultDetail.entity';
 
 @Injectable()
 export class PackingResultsRepository {
@@ -26,7 +27,7 @@ export class PackingResultsRepository {
     return await this.repository
       .createQueryBuilder('packingResult')
       .innerJoinAndSelect(
-        'packingResultDetail',
+        PackingResultDetailEntity,
         'detail',
         'packingResult.projectId = detail.projectId AND detail.orderId = :orderId',
         { orderId },
@@ -41,25 +42,28 @@ export class PackingResultsRepository {
   }
 
   async removeAllByProjectAndOrder(projectId: string, orderId: string): Promise<void> {
-    await this.repository
-      .createQueryBuilder()
-      .delete()
-      .from(PackingResultEntity)
-      .where('projectId = :projectId', { projectId })
-      .andWhere(
-        'id IN ' +
-          this.repository
-            .createQueryBuilder('pr')
-            .select('pr.id')
-            .innerJoin(
-              'packingResultDetail',
-              'detail',
-              'pr.projectId = detail.projectId AND detail.orderId = :orderId',
-              { orderId },
-            )
-            .getQuery(),
+    const records = await this.repository
+      .createQueryBuilder('pr')
+      .select('pr.id')
+      .innerJoin(
+        PackingResultDetailEntity,
+        'detail',
+        'pr.projectId = detail.projectId AND detail.orderId = :orderId',
+        { orderId },
       )
-      .execute();
+      .where('pr.projectId = :projectId', { projectId })
+      .getMany();
+
+    const ids = records.map((r) => r.id);
+    if (ids.length > 0) {
+      await this.repository
+        .createQueryBuilder()
+        .delete()
+        .from(PackingResultEntity)
+        .where('projectId = :projectId', { projectId })
+        .andWhere('id IN (:...ids)', { ids })
+        .execute();
+    }
   }
 
   async createBulk(results: Partial<PackingResultEntity>[]): Promise<PackingResultEntity[]> {

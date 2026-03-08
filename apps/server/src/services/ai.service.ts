@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ProductsRepository } from '../repositories/products.repository';
 import { OutboundMappingSchema, OutboundMappingResult } from './schemas/outbound-mapping.schema';
+import { ProductMappingSchema, ProductMappingResult } from './schemas/product-mapping.schema';
 import { SingleProductMatchSchema } from './schemas/product-match.schema';
 import { ChatOpenAI } from '@langchain/openai';
 
@@ -58,6 +59,32 @@ export class AIService {
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Failed to map outbound columns using AI: ${err.message}`, err.stack);
+      throw error;
+    }
+  }
+
+  async mapProductColumns(headers: string[], sampleRows: any[]): Promise<ProductMappingResult> {
+    try {
+      this.logger.log(`Mapping product columns for ${headers.length} headers`);
+
+      const llm = this.createLLM();
+      const structuredLlm = llm.withStructuredOutput(ProductMappingSchema);
+      const prompt = this.buildProductPrompt(headers, sampleRows);
+
+      const result = await structuredLlm.invoke([
+        [
+          'system',
+          'You are a helpful data mapping assistant. Analyze CSV/Excel headers and sample data to map columns to product fields.',
+        ],
+        ['human', prompt],
+      ]);
+
+      this.logger.log(`Successfully mapped product columns (format: ${result.dimensionFormat})`);
+
+      return result;
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(`Failed to map product columns using AI: ${err.message}`, err.stack);
       throw error;
     }
   }
@@ -197,6 +224,43 @@ Mapping Rules:
 2. Look for common patterns in actual data values
 3. Ignore system/internal fields
 5. Ignore complex/formatted columns`;
+  }
+
+  private buildProductPrompt(headers: string[], sampleRows: any[]): string {
+    const fullData = sampleRows.map((row) =>
+      Object.fromEntries(headers.map((h) => [h, row[h] ?? ''])),
+    );
+
+    return `Analyze following Excel data and map columns to product fields.
+
+Headers: ${headers.join(', ')}
+
+Complete Data (JSON format, ${sampleRows.length} rows):
+${JSON.stringify(fullData, null, 2)}
+
+Required fields to map:
+- sku: Product SKU / code / identifier
+  Pattern: Alphanumeric code, product code, 상품코드, SKU
+
+- name: Product name / display name
+  Pattern: 상품명, product name, item name
+
+- dimensions: Combined dimension string (if dimensions are in a single column)
+  Pattern: "10x20x30", "10*20*30", "100x200x150cm"
+  Only map this if dimensions are combined in one column.
+
+- width: Width/가로 (only if dimensions are in separate columns)
+- length: Length/세로/Depth (only if dimensions are in separate columns)  
+- height: Height/높이 (only if dimensions are in separate columns)
+
+Mapping Rules:
+1. Prefer columns with exact Korean field names (상품코드, 상품명, 가로, 세로, 높이)
+2. Look at actual data values to determine the best mapping
+3. Set dimensionFormat to 'combined' if dimensions are in a single column like "10x20x30"
+4. Set dimensionFormat to 'separate' if width/length/height are in separate columns
+5. If dimensions are combined, set width/height/length to null
+6. If dimensions are separate, set dimensions to null
+7. Ignore system/internal fields`;
   }
 
   private buildMatchingPrompt(item: OutboundItem, products: CachedProduct[]): string {

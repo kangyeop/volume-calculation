@@ -1,21 +1,19 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useProducts, useCreateProducts, useUploadParse } from '@/hooks/queries';
+import { useProducts } from '@/hooks/queries';
 import { useProductUpload } from '@/hooks/useProductUpload';
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import type { ParseUploadData } from '@wms/types';
-
-const PRODUCT_FIELDS = ['sku', 'name', 'dimensions'];
+import { api } from '@/lib/api';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const ProductManager: React.FC = () => {
   const { id: projectId } = useParams<{ id: string }>();
   const { data: products = [] } = useProducts(projectId || '');
-  const uploadParse = useUploadParse();
-  const createProducts = useCreateProducts(projectId || '');
   const uploadState = useProductUpload(projectId || '');
-  const [isAutoConfirming, setIsAutoConfirming] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleUpload = async (file: File) => {
     if (!projectId) return;
@@ -23,17 +21,30 @@ export const ProductManager: React.FC = () => {
     uploadState.setUploadFile(file);
     uploadState.setUploading(true);
     uploadState.setErrors([]);
+    setIsProcessing(true);
 
     try {
-      const response = await uploadParse.mutateAsync({
-        file,
-        type: 'product',
-        projectId: projectId,
+      // Step 1: Parse via product-specific AI endpoint
+      const parseResult = await api.productUpload.parse(file, projectId);
+
+      toast.info('AI 분석 완료', {
+        description: `${parseResult.rowCount}개의 행을 분석했습니다. 상품을 등록 중...`,
       });
 
-      await autoConfirmProductMapping(response);
+      // Step 2: Confirm and save products using the AI mapping
+      const result = await api.productUpload.confirm(
+        projectId,
+        parseResult.rows,
+        parseResult.mapping,
+      );
+
+      toast.success('가져오기 완료', {
+        description: `${result.imported}개의 상품이 등록되었습니다.`,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['products'] });
     } catch (error) {
-      console.error('AI parsing failed, trying hardcoded mapping:', error);
+      console.error('AI product parsing failed, trying hardcoded mapping:', error);
       // Fallback: read file with xlsx library and process with hardcoded mapping
       try {
         const XLSX = await import('xlsx');
@@ -46,64 +57,8 @@ export const ProductManager: React.FC = () => {
         console.error('Fallback also failed:', fallbackError);
         uploadState.setErrors(['파일 처리에 실패했습니다.']);
       }
-    }
-  };
-
-  const autoConfirmProductMapping = async (uploadSession: ParseUploadData) => {
-    setIsAutoConfirming(true);
-    uploadState.setShowMappingUI(true);
-
-    try {
-      const mapping: Record<string, string | null> = {};
-
-      PRODUCT_FIELDS.forEach((field) => {
-        const fieldMapping = uploadSession.mapping.mapping[field];
-        mapping[field] = fieldMapping?.columnName || null;
-      });
-
-      // Build product data from parsed rows using the AI mapping
-      const rows = uploadSession.rows || [];
-      const validProducts: Array<{ sku: string; name: string; width: number; length: number; height: number }> = [];
-
-      for (const row of rows) {
-        const sku = mapping.sku ? String(row[mapping.sku] || '').trim() : '';
-        const name = mapping.name ? String(row[mapping.name] || '').trim() : '';
-
-        if (!sku && !name) continue;
-
-        let width = 0, length = 0, height = 0;
-
-        if (mapping.dimensions) {
-          const dims = String(row[mapping.dimensions] || '').trim();
-          const cleaned = dims.replace(/(cm|mm|m|in|inch)$/i, '').trim();
-          const parts = cleaned.split(/[*xX×]/).map((p) => parseFloat(p.trim()));
-          if (parts.length >= 2) {
-            width = parts[0] || 0;
-            length = parts[1] || 0;
-            height = parts[2] ?? 1;
-          }
-        }
-
-        validProducts.push({
-          sku: sku || name,
-          name: name || sku,
-          width,
-          length,
-          height,
-        });
-      }
-
-      if (validProducts.length > 0) {
-        await createProducts.mutateAsync(validProducts);
-      }
-
-      toast.success('가져오기 완료', { description: `${validProducts.length}개의 상품이 등록되었습니다.` });
-      uploadState.setShowMappingUI(false);
-    } catch (error) {
-      console.error('Failed to auto-confirm mapping:', error);
-      uploadState.setErrors(['매핑 확인 중 오류가 발생했습니다.']);
     } finally {
-      setIsAutoConfirming(false);
+      setIsProcessing(false);
       uploadState.setUploading(false);
     }
   };
@@ -121,11 +76,11 @@ export const ProductManager: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1">
-          {(uploadState.isUploading || isAutoConfirming) && !uploadState.showMappingUI ? (
+          {(uploadState.isUploading || isProcessing) && !uploadState.showMappingUI ? (
             <div className="bg-white border rounded-xl p-8 shadow-sm space-y-6">
               <div className="text-center space-y-2">
                 <div className="bg-blue-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  {uploadParse.isPending || isAutoConfirming ? (
+                  {isProcessing ? (
                     <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
                   ) : (
                     <div className="text-blue-600 font-bold">XLS</div>
@@ -133,26 +88,13 @@ export const ProductManager: React.FC = () => {
                 </div>
                 <h2 className="text-xl font-bold">Import Products</h2>
                 <p className="text-muted-foreground text-sm">
-                  {isAutoConfirming
+                  {isProcessing
                     ? 'Processing products...'
                     : 'Upload your Excel file containing product information.'}
                 </p>
               </div>
 
               <ExcelUpload onUpload={handleUpload} title="Click or drag Excel file here" />
-
-              {uploadParse.isError && (
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <div className="flex items-center gap-2 text-yellow-700 font-bold mb-3">
-                    <AlertCircle className="h-4 w-4" />
-                    <span>AI 분석 실패</span>
-                  </div>
-                  <p className="text-sm text-yellow-600">
-                    AI가 파일을 분석하지 못했습니다. 파일을 다시 시도하거나 기존 방식으로
-                    업로드하세요.
-                  </p>
-                </div>
-              )}
 
               {uploadState.errors.length > 0 && (
                 <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg animate-in fade-in slide-in-from-top-2">
@@ -175,7 +117,7 @@ export const ProductManager: React.FC = () => {
             <ExcelUpload onUpload={handleUpload} title="Import Products via Excel" />
           )}
 
-          {!uploadState.isUploading && !isAutoConfirming && uploadState.errors.length > 0 && (
+          {!uploadState.isUploading && !isProcessing && uploadState.errors.length > 0 && (
             <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg animate-in fade-in slide-in-from-top-2">
               <div className="flex items-center gap-2 text-red-700 font-bold mb-3">
                 <AlertCircle className="h-4 w-4" />

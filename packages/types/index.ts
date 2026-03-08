@@ -125,6 +125,33 @@ export interface MappingResult {
   notes?: string;
 }
 
+export interface ProductColumnMappingResult {
+  mapping: {
+    sku: ColumnMapping | null;
+    name: ColumnMapping | null;
+    dimensions: ColumnMapping | null;
+    width: ColumnMapping | null;
+    height: ColumnMapping | null;
+    length: ColumnMapping | null;
+  };
+  unmappedColumns: string[];
+  dimensionFormat?: 'combined' | 'separate';
+}
+
+export interface ParseProductUploadData {
+  sessionId: string;
+  headers: string[];
+  rowCount: number;
+  rows: Record<string, unknown>[];
+  mapping: ProductColumnMappingResult;
+  fileName: string;
+}
+
+export interface ParseProductUploadResponse {
+  success: boolean;
+  data: ParseProductUploadData;
+}
+
 export interface ParseUploadData {
   sessionId: string;
   headers: string[];

@@ -9,6 +9,7 @@ import {
   Box,
   PackingResult3D,
   ParseUploadData,
+  ParseProductUploadData,
   ApiResponse,
   ProductMappingData,
 } from '@wms/types';
@@ -159,9 +160,10 @@ export const api = {
         productId?: string | null;
       }>,
     ): Promise<{ imported: number }> => {
-      const response = await apiClient.post<
-        ApiResponse<{ imported: number }>
-      >(`/upload/confirm`, { projectId, outbounds });
+      const response = await apiClient.post<ApiResponse<{ imported: number }>>(`/upload/confirm`, {
+        projectId,
+        outbounds,
+      });
       return unwrapResponse({ data: response.data });
     },
 
@@ -173,6 +175,35 @@ export const api = {
       const response = await apiClient.post<ApiResponse<ProductMappingData>>(
         `/upload/map-products`,
         { projectId, columnMapping, rows },
+      );
+      return unwrapResponse({ data: response.data });
+    },
+  },
+  productUpload: {
+    parse: (file: File, projectId: string): Promise<ParseProductUploadData> => {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      return apiClient
+        .post<
+          ApiResponse<ParseProductUploadData>
+        >(`/product-upload/parse?projectId=${encodeURIComponent(projectId)}`, formData)
+        .then((response) => {
+          if (!response.data.success) {
+            throw new Error(response.data.message || response.data.error || 'API request failed');
+          }
+          return response.data.data;
+        });
+    },
+
+    confirm: async (
+      projectId: string,
+      rows: Record<string, unknown>[],
+      mapping: ParseProductUploadData['mapping'],
+    ): Promise<{ imported: number }> => {
+      const response = await apiClient.post<ApiResponse<{ imported: number }>>(
+        `/product-upload/confirm`,
+        { projectId, rows, mapping },
       );
       return unwrapResponse({ data: response.data });
     },
