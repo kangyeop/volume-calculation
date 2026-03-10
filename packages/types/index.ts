@@ -242,6 +242,17 @@ export interface OutboundWithProduct extends Outbound {
   product?: Product;
 }
 
+export interface OutboundUploadResult {
+  imported: number;
+  unmatched: {
+    sku: string;
+    rawValue?: string;
+    quantity: number;
+    reason?: string;
+  }[];
+  totalRows: number;
+}
+
 export type Rotation = 'none' | '90' | '180' | '270';
 
 export interface ItemPlacement {

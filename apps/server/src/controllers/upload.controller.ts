@@ -16,7 +16,7 @@ import { ParseUploadDto } from '../dto/parseUpload.dto';
 import { ConfirmUploadDto } from '../dto/confirmUpload.dto';
 import { ParseUploadResponseDto } from '../dto/parseUploadResponse.dto';
 import { ConfirmUploadResponseDto } from '../dto/confirmUploadResponse.dto';
-import type { ProductMappingData, ProductMatchResult } from '@wms/types';
+import type { OutboundUploadResult, ProductMappingData, ProductMatchResult } from '@wms/types';
 
 @ApiTags('upload')
 @Controller('upload')
@@ -50,6 +50,29 @@ export class UploadController {
 
     const data = await this.uploadService.parseFile(file, query.projectId, query.type);
     return { success: true, data };
+  }
+
+  @Post('outbound-direct')
+  @ApiOperation({ summary: 'Directly upload and save outbound data from Excel' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'File uploaded and saved successfully',
+  })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadOutboundDirect(
+    @UploadedFile() file: Express.Multer.File,
+    @Query('projectId') projectId: string,
+  ): Promise<{ success: boolean; data: OutboundUploadResult }> {
+    if (!file) throw new BadRequestException('File is required');
+    if (!projectId) throw new BadRequestException('projectId is required');
+
+    const result = await this.uploadService.uploadAndSaveDirect(file, projectId);
+    return { success: true, data: result };
   }
 
   @Post('map-products')
