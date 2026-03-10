@@ -3,6 +3,7 @@ import {
   Project,
   Product,
   Outbound,
+  OutboundUploadResult,
   PackingRecommendation,
   PackingResult,
   PackingGroupingOption,
@@ -86,6 +87,16 @@ export const api = {
     },
     deleteAll: (projectId: string) =>
       fetchApi<void>(`/projects/${projectId}/outbounds`, { method: 'DELETE' }),
+    uploadDirect: (projectId: string, file: File): Promise<OutboundUploadResult> => {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      return apiClient
+        .post<
+          ApiResponse<OutboundUploadResult>
+        >(`/upload/outbound-direct?projectId=${encodeURIComponent(projectId)}`, formData)
+        .then(unwrapResponse);
+    },
   },
   packing: {
     calculate: (

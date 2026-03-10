@@ -3,7 +3,7 @@ import { ProjectLayout } from './components/layout/ProjectLayout';
 import { ProjectList } from './pages/ProjectList';
 import { ProjectDashboard } from './pages/ProjectDashboard';
 import { ProductManager } from './pages/ProductManager';
-import { OutboundWizard } from './pages/OutboundWizard';
+import { OutboundUpload } from './pages/OutboundUpload';
 import { PackingCalculator } from './pages/PackingCalculator';
 import { BoxManager } from './pages/BoxManager';
 import { Toaster } from './components/Toaster';
@@ -20,7 +20,7 @@ export function App() {
           <Route path="/projects/:id" element={<ProjectLayout />}>
             <Route index element={<ProjectDashboard />} />
             <Route path="products" element={<ProductManager />} />
-            <Route path="outbound" element={<OutboundWizard />} />
+            <Route path="outbound" element={<OutboundUpload />} />
             <Route path="packing" element={<PackingCalculator />} />
           </Route>
         </Routes>
