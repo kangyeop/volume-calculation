@@ -5,7 +5,7 @@ import { UploadRepository } from '../repositories/upload.repository';
 import { OutboundRepository } from '../repositories/outbound.repository';
 import { DataTransformerService } from './dataTransformer.service';
 import { ProductsService } from './products.service';
-import { ConfirmUploadDto } from '../dto/confirmUpload.dto';
+import { ConfirmUploadDto, OutboundItemDto } from '../dto/confirmUpload.dto';
 import type { ParseUploadData, OutboundUploadResult } from '@wms/types';
 
 @Injectable()
@@ -71,14 +71,12 @@ export class UploadService {
     );
 
     const unmatched: OutboundUploadResult['unmatched'] = [];
-    const outbounds: Array<{
-      orderId: string;
-      sku: string;
-      quantity: number;
-      productId: string | null;
-    }> = [];
+    const outbounds: OutboundItemDto[] = [];
+    const orderQuantities = new Map<string, number>();
 
     for (const order of parsedOrders) {
+      orderQuantities.set(order.orderId, order.quantity);
+
       for (const item of order.outboundItems) {
         const matchingProducts = await this.productsService.findByName(projectId, item.sku);
 
@@ -103,7 +101,7 @@ export class UploadService {
     await this.outboundRepository.removeAll(projectId);
 
     if (outbounds.length > 0) {
-      await this.outboundRepository.createBulk(projectId, outbounds);
+      await this.uploadRepository.createOutboundsWithOrder(projectId, outbounds, orderQuantities);
     }
 
     return {
