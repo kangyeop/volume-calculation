@@ -239,8 +239,8 @@ Complete Data (JSON format, ${sampleRows.length} rows):
 ${JSON.stringify(fullData, null, 2)}
 
 Required fields to map:
-- sku: Product SKU / code / identifier
-  Pattern: Alphanumeric code, product code, 상품코드, SKU
+- sku: identifier / code / index
+  Pattern: Alphanumeric code, product code, 상품코드, SKU, 순번
 
 - name: Product name / display name
   Pattern: 상품명, product name, item name
@@ -248,10 +248,6 @@ Required fields to map:
 - dimensions: Combined dimension string (if dimensions are in a single column)
   Pattern: "10x20x30", "10*20*30", "100x200x150cm"
   Only map this if dimensions are combined in one column.
-
-- width: Width/가로 (only if dimensions are in separate columns)
-- length: Length/세로/Depth (only if dimensions are in separate columns)  
-- height: Height/높이 (only if dimensions are in separate columns)
 
 Mapping Rules:
 1. Prefer columns with exact Korean field names (상품코드, 상품명, 가로, 세로, 높이)

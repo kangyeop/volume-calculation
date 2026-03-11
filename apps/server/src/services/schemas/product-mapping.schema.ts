@@ -18,24 +18,6 @@ export const ProductMappingSchema = z.object({
       })
       .nullable()
       .describe('A single column containing combined dimensions like "10x20x30" or "10*20*30"'),
-    width: z
-      .object({
-        columnName: z.string(),
-      })
-      .nullable()
-      .describe('Separate width/가로 column, if dimensions are in separate columns'),
-    height: z
-      .object({
-        columnName: z.string(),
-      })
-      .nullable()
-      .describe('Separate height/높이 column, if dimensions are in separate columns'),
-    length: z
-      .object({
-        columnName: z.string(),
-      })
-      .nullable()
-      .describe('Separate length/세로/depth column, if dimensions are in separate columns'),
   }),
   unmappedColumns: z.array(z.string()),
   dimensionFormat: z

@@ -55,7 +55,7 @@ export class UploadService {
 
     const mappingResult = await this.aiService.mapOutboundColumns(
       parseResult.headers,
-      parseResult.rows,
+      parseResult.rows.slice(0, 30),
     );
 
     const columnMapping: Record<string, string> = {};

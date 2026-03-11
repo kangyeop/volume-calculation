@@ -58,21 +58,9 @@ export class ProductUploadService {
         const dims = String(row[mapping.mapping.dimensions.columnName] || '').trim();
         const cleaned = dims.replace(/(cm|mm|m|in|inch)$/i, '').trim();
         const parts = cleaned.split(/[*xX×]/).map((p) => parseFloat(p.trim()));
-        if (parts.length >= 2) {
-          width = parts[0] || 0;
-          length = parts[1] || 0;
-          height = parts[2] ?? 1;
-        }
-      } else if (mapping.dimensionFormat === 'separate') {
-        if (mapping.mapping.width) {
-          width = parseFloat(String(row[mapping.mapping.width.columnName] || '0')) || 0;
-        }
-        if (mapping.mapping.length) {
-          length = parseFloat(String(row[mapping.mapping.length.columnName] || '0')) || 0;
-        }
-        if (mapping.mapping.height) {
-          height = parseFloat(String(row[mapping.mapping.height.columnName] || '0')) || 0;
-        }
+        width = parts[0] || 1;
+        length = parts[1] || 1;
+        height = parts[2] ?? 1;
       }
 
       products.push({
