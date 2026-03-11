@@ -8,7 +8,7 @@ interface BoxGroupListProps {
 
 export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes }) => {
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" data-testid="packing-results">
       <h2 className="text-2xl font-bold border-b pb-2 flex items-center gap-2">
         <Layers className="h-6 w-6" />
         Recommended Packing by Box Type

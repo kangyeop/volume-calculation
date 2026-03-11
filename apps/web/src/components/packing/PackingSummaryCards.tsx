@@ -12,18 +12,18 @@ export const PackingSummaryCards: React.FC<PackingSummaryCardsProps> = ({
 }) => {
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <div className="rounded-xl border bg-card text-card-foreground shadow p-6">
+      <div className="rounded-xl border bg-card text-card-foreground shadow p-6" data-testid="total-info">
         <div className="flex flex-row items-center justify-between pb-2">
           <h3 className="font-semibold text-lg">Total Volume</h3>
           <Package className="h-4 w-4 text-muted-foreground" />
         </div>
         <div>
-          <div className="text-3xl font-bold">{totalCBM.toFixed(4)} CBM</div>
+          <div className="text-3xl font-bold" data-testid="total-cbm">{totalCBM.toFixed(4)} CBM</div>
           <p className="text-sm text-muted-foreground">Combined volume of all boxes</p>
         </div>
       </div>
 
-      <div className="rounded-xl border bg-card text-card-foreground shadow p-6">
+      <div className="rounded-xl border bg-card text-card-foreground shadow p-6" data-testid="efficiency-summary">
         <div className="flex flex-row items-center justify-between pb-2">
           <h3 className="font-semibold text-lg">Packing Efficiency</h3>
           <div className="text-lg font-bold">
