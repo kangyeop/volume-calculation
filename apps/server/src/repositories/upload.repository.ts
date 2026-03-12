@@ -55,7 +55,7 @@ export class UploadRepository {
         const order = orderMap.get(dto.orderId)!;
 
         return this.outboundRepository.create({
-          sku: product ? product.name : dto.sku,
+          sku: product ? product.sku : dto.sku,
           quantity: dto.quantity,
           projectId,
           orderId: order.id,

@@ -6,7 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { packing } from './queryKeys';
-import type { PackingGroupingOption, PackingRecommendation } from '@wms/types';
+import type { PackingGroupingOption, PackingRecommendation, PackingResult3D } from '@wms/types';
 
 export function usePackingHistory(projectId: string) {
   return useQuery({
@@ -29,6 +29,17 @@ export function useCalculatePacking(): UseMutationResult<
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: packing.history._def });
     },
+  });
+}
+
+export function useCalculateOrderPacking(): UseMutationResult<
+  PackingResult3D,
+  Error,
+  { projectId: string; orderId: string; groupLabel?: string }
+> {
+  return useMutation({
+    mutationFn: ({ projectId, orderId, groupLabel }) =>
+      api.packing.calculateOrder(projectId, orderId, groupLabel),
   });
 }
 

@@ -39,6 +39,12 @@ export class PackingResultEntity extends BaseEntity {
   @Column({ type: 'varchar', length: 255, nullable: true })
   groupLabel!: string;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  orderId!: string;
+
+  @Column({ type: 'int', nullable: true })
+  boxNumber!: number;
+
   @Column('uuid')
   projectId!: string;
 

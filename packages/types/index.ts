@@ -107,6 +107,7 @@ export interface Outbound {
   id: string;
   projectId: string;
   orderId: string;
+  orderIdentifier?: string;
   sku: string;
   quantity: number;
   productId?: string | null;
@@ -130,9 +131,6 @@ export interface ProductColumnMappingResult {
     sku: ColumnMapping | null;
     name: ColumnMapping | null;
     dimensions: ColumnMapping | null;
-    width: ColumnMapping | null;
-    height: ColumnMapping | null;
-    length: ColumnMapping | null;
   };
   unmappedColumns: string[];
   dimensionFormat?: 'combined' | 'separate';

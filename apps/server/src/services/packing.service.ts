@@ -51,7 +51,8 @@ export class PackingService {
       );
     }
 
-    const productMap = new Map(products.map((p) => [p.sku, p]));
+    const productMapById = new Map(products.map((p) => [p.id, p]));
+    const productMapBySku = new Map(products.map((p) => [p.sku, p]));
 
     const groupedOutbounds = this.groupOutbounds(outbounds, groupingOption);
 
@@ -67,7 +68,9 @@ export class PackingService {
 
       const skus: SKU[] = group
         .map((o) => {
-          const product = productMap.get(o.sku);
+          const product =
+            (o.productId ? productMapById.get(o.productId) : undefined) ??
+            productMapBySku.get(o.sku);
           if (!product) {
             this.logger.warn(`Product not found for SKU: ${o.sku}`);
             return null;
@@ -94,7 +97,7 @@ export class PackingService {
       const boxVolMap = new Map<string, number>();
       for (const rb of recommendation.boxes) {
         const boxVol = rb.box.width * rb.box.length * rb.box.height;
-        boxVolMap.set(rb.box.id, boxVol);
+        boxVolMap.set(rb.box.name, boxVol);
         groupAvailableVolume += boxVol * rb.count;
         for (const packedSku of rb.packedSKUs) {
           const product = products.find((prod) => prod.id === packedSku.skuId);
@@ -124,27 +127,29 @@ export class PackingService {
       });
 
       let boxIndex = 1;
-      const skuBoxMap = new Map<string, { boxName: string; boxNumber: number; boxIndex: number }>();
+      const skuToBoxMap = new Map<string, { boxName: string; boxNumber: number; boxIndex: number }>();
       for (const box of boxesWithNames) {
         for (let i = 0; i < box.count; i++) {
-          box.packedSKUs.forEach(() => {
-            const key = `${groupLabel}_${boxIndex}`;
-            skuBoxMap.set(key, {
-              boxName: box.box.name,
-              boxNumber: i + 1,
-              boxIndex,
-            });
-          });
+          for (const packedSku of box.packedSKUs) {
+            if (!skuToBoxMap.has(packedSku.skuId)) {
+              skuToBoxMap.set(packedSku.skuId, {
+                boxName: box.box.name,
+                boxNumber: i + 1,
+                boxIndex,
+              });
+            }
+          }
         }
         boxIndex++;
       }
 
       for (const outbound of group) {
-        const product = productMap.get(outbound.sku);
+        const product =
+          (outbound.productId ? productMapById.get(outbound.productId) : undefined) ??
+          productMapBySku.get(outbound.sku);
         if (!product) continue;
 
-        const key = `${groupLabel}_${skuBoxMap.size}`;
-        const boxInfo = skuBoxMap.get(key) || {
+        const boxInfo = skuToBoxMap.get(product.id) || {
           boxName: unpackedWithNames.length > 0 ? 'Unpacked' : 'Unknown',
           boxNumber: 0,
           boxIndex: 0,

@@ -78,7 +78,10 @@ export class UploadService {
       orderQuantities.set(order.orderId, order.quantity);
 
       for (const item of order.outboundItems) {
-        const matchingProducts = await this.productsService.findByName(projectId, item.sku);
+        let matchingProducts = await this.productsService.findByName(projectId, item.sku);
+        if (matchingProducts.length === 0) {
+          matchingProducts = await this.productsService.findBySku(projectId, item.sku);
+        }
 
         if (matchingProducts.length > 0) {
           outbounds.push({
