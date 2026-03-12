@@ -26,12 +26,12 @@ export function useProject(id: string) {
 export function useCreateProject(): UseMutationResult<
   Project,
   Error,
-  { name: string; description?: string }
+  { name: string }
 > {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ name, description }) => api.projects.create(name, description),
+    mutationFn: ({ name }) => api.projects.create(name),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projects.all.queryKey });
     },

@@ -39,10 +39,10 @@ async function unwrapResponse<T>(response: { data: ApiResponse<T> }): Promise<T>
 export const api = {
   projects: {
     list: () => fetchApi<Project[]>('/projects'),
-    create: (name: string, description?: string) =>
+    create: (name: string) =>
       fetchApi<Project>('/projects', {
         method: 'POST',
-        data: { name, description },
+        data: { name },
       }),
     get: (id: string) => fetchApi<Project>(`/projects/${id}`),
     delete: (id: string) => fetchApi<void>(`/projects/${id}`, { method: 'DELETE' }),

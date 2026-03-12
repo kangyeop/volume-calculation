@@ -28,7 +28,6 @@ export interface PackingResult {
   boxId: string;
   boxName: string;
   packedCount: number;
-  remainingQuantity: number;
   efficiency: number;
   totalCBM: number;
   groupLabel?: string;
@@ -68,7 +67,6 @@ export interface PackingCalculationResult {
 export interface Project {
   id: string;
   name: string;
-  description?: string;
   createdAt: Date | string;
   updatedAt: Date | string;
 }

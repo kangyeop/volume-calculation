@@ -13,9 +13,6 @@ export class PackingResultEntity extends BaseEntity {
   @Column('int')
   packedCount!: number;
 
-  @Column('int')
-  remainingQuantity!: number;
-
   @Column('decimal', {
     precision: 10,
     scale: 4,

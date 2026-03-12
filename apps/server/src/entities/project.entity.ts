@@ -11,9 +11,6 @@ export class ProjectEntity extends BaseEntity implements Project {
   @Column()
   name!: string;
 
-  @Column({ nullable: true })
-  description?: string;
-
   @OneToMany(() => ProductEntity, (product) => product.project)
   products!: ProductEntity[];
 

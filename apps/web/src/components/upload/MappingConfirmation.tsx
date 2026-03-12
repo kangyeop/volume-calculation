@@ -16,11 +16,6 @@ interface OutboundFieldMapping {
   sku: FieldMapping;
   quantity: FieldMapping;
   recipientName: FieldMapping;
-  recipientPhone: FieldMapping;
-  zipCode: FieldMapping;
-  address: FieldMapping;
-  detailAddress: FieldMapping;
-  shippingMemo: FieldMapping;
 }
 
 interface ProductFieldMapping {
@@ -51,11 +46,6 @@ const outboundFields: OutboundFieldMapping = {
   sku: { fieldName: 'sku', displayName: '상품 코드', required: true },
   quantity: { fieldName: 'quantity', displayName: '수량', required: true },
   recipientName: { fieldName: 'recipientName', displayName: '수취인', required: true },
-  recipientPhone: { fieldName: 'recipientPhone', displayName: '전화번호', required: false },
-  zipCode: { fieldName: 'zipCode', displayName: '우편번호', required: false },
-  address: { fieldName: 'address', displayName: '주소', required: true },
-  detailAddress: { fieldName: 'detailAddress', displayName: '상세주소', required: false },
-  shippingMemo: { fieldName: 'shippingMemo', displayName: '배송메모', required: false },
 };
 
 const productFields: ProductFieldMapping = {

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { usePackingHistory, useBoxes } from '@/hooks/queries';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useBoxes } from '@/hooks/queries';
 import { ArrowLeft, ChevronDown, ChevronRight } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -46,15 +46,12 @@ function buildBoxSummary(groups: PackingGroup[]): BoxSummary[] {
 }
 
 export const PackingSummary: React.FC = () => {
-  const { id: projectId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const { data: boxes = [] } = useBoxes();
-  const { data: history } = usePackingHistory(projectId || '');
 
   const recommendation: PackingRecommendation | undefined =
-    (location.state as { recommendation?: PackingRecommendation })?.recommendation ??
-    (history?.[0] as PackingRecommendation | undefined);
+    (location.state as { recommendation?: PackingRecommendation })?.recommendation;
 
   const boxSummaries = useMemo(() => {
     if (!recommendation) return [];
