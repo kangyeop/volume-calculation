@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useParams } from 'react-router-dom';
-import { Package, LayoutDashboard, Wand2 } from 'lucide-react';
+import { Package, LayoutDashboard, Wand2, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const Sidebar: React.FC = () => {
@@ -20,8 +20,13 @@ export const Sidebar: React.FC = () => {
     },
     {
       to: `/projects/${id}/outbound`,
-      label: 'Outbound Wizard',
+      label: 'Outbound Upload',
       icon: Wand2,
+    },
+    {
+      to: `/projects/${id}/outbound/list`,
+      label: 'Outbound List',
+      icon: ClipboardList,
     },
   ];
 
