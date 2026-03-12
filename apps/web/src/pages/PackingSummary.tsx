@@ -27,7 +27,7 @@ function buildBoxSummary(groups: PackingGroup[]): BoxSummary[] {
       const entry: BoxSummaryEntry = {
         groupLabel: group.groupLabel,
         count,
-        efficiency: Math.round(group.totalEfficiency),
+        efficiency: Math.round(group.totalEfficiency * 100),
       };
       if (existing) {
         existing.totalCount += count;

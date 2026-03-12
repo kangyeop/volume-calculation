@@ -34,7 +34,7 @@ export class OutboundEntity extends BaseEntity {
   @Column({ nullable: true })
   orderIdentifier?: string;
 
-  @ManyToOne(() => ProductEntity)
+  @ManyToOne(() => ProductEntity, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'productId' })
   product?: ProductEntity;
 }
