@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useProducts } from '@/hooks/queries';
+import { useProducts, useDeleteProducts } from '@/hooks/queries';
 import { useProductUpload } from '@/hooks/useProductUpload';
 import { ExcelUpload } from '@/components/ExcelUpload';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -13,7 +13,11 @@ export const ProductManager: React.FC = () => {
   const { data: products = [] } = useProducts(projectId || '');
   const uploadState = useProductUpload(projectId || '');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
+  const deleteProducts = useDeleteProducts(projectId || '');
+
+  const currentProducts = products || [];
 
   const handleUpload = async (file: File) => {
     if (!projectId) return;
@@ -24,14 +28,12 @@ export const ProductManager: React.FC = () => {
     setIsProcessing(true);
 
     try {
-      // Step 1: Parse via product-specific AI endpoint
       const parseResult = await api.productUpload.parse(file, projectId);
 
       toast.info('AI 분석 완료', {
         description: `${parseResult.rowCount}개의 행을 분석했습니다. 상품을 등록 중...`,
       });
 
-      // Step 2: Confirm and save products using the AI mapping
       const result = await api.productUpload.confirm(
         projectId,
         parseResult.rows,
@@ -45,7 +47,6 @@ export const ProductManager: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
     } catch (error) {
       console.error('AI product parsing failed, trying hardcoded mapping:', error);
-      // Fallback: read file with xlsx library and process with hardcoded mapping
       try {
         const XLSX = await import('xlsx');
         const buffer = await file.arrayBuffer();
@@ -63,7 +64,40 @@ export const ProductManager: React.FC = () => {
     }
   };
 
-  const currentProducts = products || [];
+  const handleToggleRow = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleToggleAll = () => {
+    if (selectedIds.size === currentProducts.length && currentProducts.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(currentProducts.map((p) => p.id)));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    await deleteProducts.mutateAsync(Array.from(selectedIds));
+    setSelectedIds(new Set());
+    toast.success('삭제 완료', { description: '선택한 상품이 삭제되었습니다.' });
+  };
+
+  const handleDeleteAll = async () => {
+    await deleteProducts.mutateAsync(currentProducts.map((p) => p.id));
+    setSelectedIds(new Set());
+    toast.success('삭제 완료', { description: '모든 상품이 삭제되었습니다.' });
+  };
+
+  const allSelected = currentProducts.length > 0 && selectedIds.size === currentProducts.length;
+  const someSelected = selectedIds.size > 0 && selectedIds.size < currentProducts.length;
 
   return (
     <div className="space-y-6">
@@ -144,10 +178,39 @@ export const ProductManager: React.FC = () => {
         </div>
 
         <div className="md:col-span-2 border rounded-lg overflow-hidden bg-white">
+          <div className="flex items-center justify-end gap-2 px-4 py-3 border-b bg-gray-50">
+            <button
+              onClick={handleDeleteSelected}
+              disabled={selectedIds.size === 0 || deleteProducts.isPending}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              선택 삭제
+            </button>
+            <button
+              onClick={handleDeleteAll}
+              disabled={currentProducts.length === 0 || deleteProducts.isPending}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              전체 삭제
+            </button>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="bg-gray-50 text-gray-700 font-medium border-b">
                 <tr>
+                  <th className="px-4 py-3 w-10">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = someSelected;
+                      }}
+                      onChange={handleToggleAll}
+                      className="rounded border-gray-300 cursor-pointer"
+                    />
+                  </th>
                   <th className="px-4 py-3">SKU</th>
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Dimensions (W x L x H cm)</th>
@@ -156,6 +219,14 @@ export const ProductManager: React.FC = () => {
               <tbody className="divide-y">
                 {currentProducts.map((p, i) => (
                   <tr key={`${p.sku}-${i}`} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(p.id)}
+                        onChange={() => handleToggleRow(p.id)}
+                        className="rounded border-gray-300 cursor-pointer"
+                      />
+                    </td>
                     <td className="px-4 py-3 font-mono">{p.sku}</td>
                     <td className="px-4 py-3">{p.name}</td>
                     <td className="px-4 py-3 text-gray-500">
@@ -165,7 +236,7 @@ export const ProductManager: React.FC = () => {
                 ))}
                 {currentProducts.length === 0 && (
                   <tr>
-                    <td colSpan={3} className="px-4 py-12 text-center text-gray-400">
+                    <td colSpan={4} className="px-4 py-12 text-center text-gray-400">
                       No products imported yet.
                     </td>
                   </tr>

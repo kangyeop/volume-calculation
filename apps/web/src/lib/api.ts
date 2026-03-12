@@ -58,6 +58,11 @@ export const api = {
         data: products,
       }),
     delete: (id: string) => fetchApi<void>(`/products/${id}`, { method: 'DELETE' }),
+    deleteBulk: (projectId: string, ids: string[]) =>
+      fetchApi<void>(`/projects/${projectId}/products`, {
+        method: 'DELETE',
+        data: { ids },
+      }),
   },
   outbound: {
     list: (projectId: string) => fetchApi<Outbound[]>(`/projects/${projectId}/outbounds`),

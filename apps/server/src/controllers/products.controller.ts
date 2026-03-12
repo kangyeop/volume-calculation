@@ -37,4 +37,12 @@ export class ProductsController {
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.productsService.remove(id);
   }
+
+  @Delete('projects/:projectId/products')
+  removeBulk(
+    @Param('projectId', ParseUUIDPipe) _projectId: string,
+    @Body() body: { ids: string[] },
+  ) {
+    return this.productsService.removeBulk(body.ids);
+  }
 }

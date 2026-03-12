@@ -39,3 +39,14 @@ export function useDeleteProduct(): UseMutationResult<void, Error, string> {
     },
   });
 }
+
+export function useDeleteProducts(projectId: string): UseMutationResult<void, Error, string[]> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (ids: string[]) => api.products.deleteBulk(projectId, ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: products.all._def });
+    },
+  });
+}

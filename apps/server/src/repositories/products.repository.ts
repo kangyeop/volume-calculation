@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
 import { ProductEntity } from '../entities/product.entity';
 
@@ -54,6 +54,11 @@ export class ProductsRepository {
       where: { projectId },
       select: select as any,
     });
+  }
+
+  async removeBulk(ids: string[]): Promise<number> {
+    const result = await this.repository.delete({ id: In(ids) });
+    return result.affected ?? 0;
   }
 
   @Transactional()

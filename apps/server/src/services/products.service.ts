@@ -51,4 +51,8 @@ export class ProductsService {
   ): Promise<ProductEntity[]> {
     return await this.productsRepository.createBulk(projectId, createProductDtos);
   }
+
+  async removeBulk(ids: string[]): Promise<void> {
+    await this.productsRepository.removeBulk(ids);
+  }
 }
