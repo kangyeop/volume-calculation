@@ -171,7 +171,7 @@ export class PackingService {
         detailResults.push(
           this.packingResultDetailRepository.create({
             projectId,
-            orderId: outbound.orderId,
+            orderId: outbound.orderIdentifier || outbound.orderId,
             recipientName: '',
             sku: outbound.sku,
             productName: product.name,
@@ -203,21 +203,16 @@ export class PackingService {
     await this.packingResultRepository.removeAll(projectId);
     await this.packingResultDetailRepository.removeAll(projectId);
 
-    const allRecommendedBoxes = groups.flatMap((g) =>
-      g.boxes.map((b) => ({ ...b, groupLabel: g.groupLabel })),
-    );
+    const grandTotalPackedCount = groups
+      .flatMap((g) => g.boxes)
+      .reduce((acc, b) => acc + b.packedSKUs.reduce((a, s) => a + s.quantity, 0), 0);
 
-    const results = allRecommendedBoxes.map((rb) => ({
+    await this.packingResultRepository.create({
       projectId,
-      boxId: rb.box.id,
-      boxName: rb.box.name,
-      packedCount: rb.packedSKUs.reduce((acc, s) => acc + s.quantity, 0),
-      efficiency: 0,
-      totalCBM: (rb.box.width * rb.box.length * rb.box.height * rb.count) / 1000000,
-      groupLabel: rb.groupLabel,
-    }));
-
-    await this.packingResultRepository.createBulk(results);
+      packedCount: grandTotalPackedCount,
+      efficiency: grandTotalAvailableVolume > 0 ? grandTotalUsedVolume / grandTotalAvailableVolume : 0,
+      totalCBM: grandTotalCBM,
+    });
 
     if (detailResults.length > 0) {
       await this.packingResultDetailRepository.createBulk(detailResults);
@@ -350,6 +345,10 @@ export class PackingService {
 
   async findByOrderId(projectId: string, orderId: string): Promise<PackingResultEntity[]> {
     return await this.packingResultRepository.findByOrderId(projectId, orderId);
+  }
+
+  async findAllDetails(projectId: string): Promise<PackingResultDetailEntity[]> {
+    return await this.packingResultDetailRepository.findAll(projectId);
   }
 
   private async savePackingResults3D(projectId: string, result: PackingResult3D) {

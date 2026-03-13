@@ -4,10 +4,10 @@ import { ProjectEntity } from './project.entity';
 
 @Entity('packing_results')
 export class PackingResultEntity extends BaseEntity {
-  @Column()
+  @Column({ nullable: true })
   boxId!: string;
 
-  @Column()
+  @Column({ nullable: true })
   boxName!: string;
 
   @Column('int')

@@ -33,6 +33,13 @@ export class PackingResultDetailsRepository {
     return this.repository.createQueryBuilder('packingResultDetail');
   }
 
+  async findAll(projectId: string): Promise<PackingResultDetailEntity[]> {
+    return await this.repository.find({
+      where: { projectId },
+      order: { orderId: 'ASC', boxNumber: 'ASC' },
+    });
+  }
+
   createQueryBuilderWithWhere(
     alias: string,
     where: Record<string, any>,

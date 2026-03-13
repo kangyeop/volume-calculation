@@ -1,25 +1,20 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useOutbounds, useCalculateOrderPacking, useCalculatePacking, useBoxes } from '@/hooks/queries';
+import { useOutbounds, useCalculatePacking, useBoxes } from '@/hooks/queries';
 import { ArrowLeft, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { PackingGroupingOption } from '@wms/types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PackingResult } from '@/components/PackingResult';
 import { toast } from 'sonner';
 import type { Outbound } from '@wms/types';
-import type { PackingResult3D } from '@wms/types';
 
 export const OutboundList: React.FC = () => {
   const { id: projectId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: outbounds = [], isLoading } = useOutbounds(projectId || '');
   const { data: boxes = [] } = useBoxes();
-  const calculateOrder = useCalculateOrderPacking();
   const calculateAll = useCalculatePacking();
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
-  const [packingResults, setPackingResults] = useState<Map<string, PackingResult3D>>(new Map());
-  const [calculatingOrders, setCalculatingOrders] = useState<Set<string>>(new Set());
 
   const toggleOrder = (key: string) => {
     const next = new Set(expandedOrders);
@@ -44,28 +39,6 @@ export const OutboundList: React.FC = () => {
       navigate(`/projects/${projectId}/packing/summary`, { state: { recommendation: result } });
     } catch {
       toast.error('계산 중 오류가 발생했습니다.');
-    }
-  };
-
-  const handleCalculate = async (e: React.MouseEvent, orderKey: string, items: Outbound[]) => {
-    e.stopPropagation();
-    if (boxes.length === 0) {
-      toast.error('등록된 박스가 없습니다. 먼저 박스를 등록해주세요.');
-      return;
-    }
-    const orderId = items[0].orderId;
-    setCalculatingOrders((prev) => new Set(prev).add(orderKey));
-    try {
-      const result = await calculateOrder.mutateAsync({ projectId: projectId!, orderId });
-      setPackingResults((prev) => new Map(prev).set(orderKey, result));
-    } catch {
-      toast.error('계산 중 오류가 발생했습니다.');
-    } finally {
-      setCalculatingOrders((prev) => {
-        const next = new Set(prev);
-        next.delete(orderKey);
-        return next;
-      });
     }
   };
 
@@ -127,8 +100,6 @@ export const OutboundList: React.FC = () => {
             {groupedOrders.map(([orderKey, items]) => {
               const isExpanded = expandedOrders.has(orderKey);
               const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
-              const isCalculating = calculatingOrders.has(orderKey);
-              const packingResult = packingResults.get(orderKey);
 
               return (
                 <Collapsible
@@ -144,20 +115,6 @@ export const OutboundList: React.FC = () => {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => handleCalculate(e, orderKey, items)}
-                        disabled={isCalculating}
-                        className="text-xs px-2 py-1 rounded bg-indigo-100 text-indigo-700 hover:bg-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 transition-colors"
-                      >
-                        {isCalculating ? (
-                          <>
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                            계산 중
-                          </>
-                        ) : (
-                          '계산하기'
-                        )}
-                      </button>
                       {isExpanded ? (
                         <ChevronDown className="h-4 w-4 text-gray-400" />
                       ) : (
@@ -186,11 +143,6 @@ export const OutboundList: React.FC = () => {
                         ))}
                       </TableBody>
                     </Table>
-                    {packingResult && (
-                      <div className="p-4">
-                        <PackingResult result={packingResult} />
-                      </div>
-                    )}
                   </CollapsibleContent>
                 </Collapsible>
               );

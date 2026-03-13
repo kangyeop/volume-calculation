@@ -25,8 +25,8 @@ export interface Box extends Dimensions {
 export interface PackingResult {
   id: string;
   projectId: string;
-  boxId: string;
-  boxName: string;
+  boxId?: string;
+  boxName?: string;
   packedCount: number;
   efficiency: number;
   totalCBM: number;
@@ -286,6 +286,22 @@ export interface PackingResult3D {
   unpackedItems: { skuId: string; name?: string; quantity: number; reason: string }[];
   totalCBM: number;
   totalEfficiency: number;
+}
+
+export interface PackingResultDetail {
+  id: string;
+  projectId: string;
+  orderId: string;
+  recipientName?: string;
+  sku: string;
+  productName: string;
+  quantity: number;
+  boxName: string;
+  boxNumber: number;
+  boxCBM: number;
+  efficiency: number;
+  unpacked?: boolean;
+  unpackedReason?: string;
 }
 
 export interface ApiResponse<T = unknown> {

@@ -3,6 +3,7 @@ import { PackingService } from '../services/packing.service';
 import { ExcelService } from '../services/excel.service';
 import { PackingRecommendation, PackingResult3D } from '@wms/types';
 import { PackingResultEntity } from '../entities/packingResult.entity';
+import { PackingResultDetailEntity } from '../entities/packingResultDetail.entity';
 import { CalculatePackingDto } from '../dto/calculatePacking.dto';
 import { CalculateOrderPackingDto } from '../dto/calculateOrderPacking.dto';
 
@@ -24,6 +25,11 @@ export class PackingController {
   @Get('results')
   findAll(@Param('projectId') projectId: string): Promise<PackingResultEntity[]> {
     return this.packingService.findAll(projectId);
+  }
+
+  @Get('details')
+  findAllDetails(@Param('projectId') projectId: string): Promise<PackingResultDetailEntity[]> {
+    return this.packingService.findAllDetails(projectId);
   }
 
   @Get('export')

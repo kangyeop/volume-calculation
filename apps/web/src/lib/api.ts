@@ -13,6 +13,7 @@ import {
   ParseProductUploadData,
   ApiResponse,
   ProductMappingData,
+  PackingResultDetail,
 } from '@wms/types';
 
 const API_BASE = '/api';
@@ -120,6 +121,8 @@ export const api = {
     },
     history: (projectId: string) =>
       fetchApi<PackingResult[]>(`/projects/${projectId}/packing/results`),
+    details: (projectId: string) =>
+      fetchApi<PackingResultDetail[]>(`/projects/${projectId}/packing/details`),
     export: (projectId: string) => {
       return apiClient
         .get(`/projects/${projectId}/packing/export`, {

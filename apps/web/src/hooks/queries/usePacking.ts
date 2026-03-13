@@ -52,3 +52,11 @@ export function useExportPacking(): UseMutationResult<
     mutationFn: ({ projectId }) => api.packing.export(projectId),
   });
 }
+
+export function usePackingDetails(projectId: string) {
+  return useQuery({
+    ...packing.details(projectId),
+    queryFn: () => api.packing.details(projectId),
+    enabled: !!projectId,
+  });
+}

@@ -7,6 +7,7 @@ import { OutboundUpload } from './pages/OutboundUpload';
 import { OutboundList } from './pages/OutboundList';
 import { PackingCalculator } from './pages/PackingCalculator';
 import { PackingSummary } from './pages/PackingSummary';
+import { PackingResultHistory } from './pages/PackingResultHistory';
 import { BoxManager } from './pages/BoxManager';
 import { Toaster } from './components/Toaster';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -26,6 +27,7 @@ export function App() {
             <Route path="outbound/list" element={<OutboundList />} />
             <Route path="packing" element={<PackingCalculator />} />
             <Route path="packing/summary" element={<PackingSummary />} />
+            <Route path="packing/history" element={<PackingResultHistory />} />
           </Route>
         </Routes>
       </ErrorBoundary>
