@@ -23,7 +23,7 @@ export function App() {
           <Route path="/projects/:id" element={<ProjectLayout />}>
             <Route index element={<ProjectDashboard />} />
             <Route path="products" element={<ProductManager />} />
-            <Route path="outbound" element={<OutboundUpload />} />
+            <Route path="outbound/upload" element={<OutboundUpload />} />
             <Route path="outbound/list" element={<OutboundList />} />
             <Route path="packing" element={<PackingCalculator />} />
             <Route path="packing/summary" element={<PackingSummary />} />

@@ -19,7 +19,7 @@ export const Sidebar: React.FC = () => {
       icon: Package,
     },
     {
-      to: `/projects/${id}/outbound`,
+      to: `/projects/${id}/outbound/upload`,
       label: 'Outbound Upload',
       icon: Wand2,
     },
