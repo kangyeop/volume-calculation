@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { outbounds, products } from './queryKeys';
 import type { ParseUploadResponse, ConfirmUploadResponse, ProductMappingData } from '@wms/types';
 
 export function useUploadParse() {
@@ -68,8 +69,8 @@ export function useUploadConfirm() {
       toast.success('가져오기 완료', {
         description: `${data.imported}개의 데이터가 등록되었습니다.`,
       });
-      queryClient.invalidateQueries({ queryKey: ['outbounds'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: outbounds.all._def });
+      queryClient.invalidateQueries({ queryKey: products.all._def });
     },
     onError: (error) => {
       const errorMessage =

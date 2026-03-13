@@ -37,9 +37,15 @@ export function useCalculateOrderPacking(): UseMutationResult<
   Error,
   { projectId: string; orderId: string; groupLabel?: string }
 > {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({ projectId, orderId, groupLabel }) =>
       api.packing.calculateOrder(projectId, orderId, groupLabel),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: packing.history._def });
+      queryClient.invalidateQueries({ queryKey: packing.details._def });
+    },
   });
 }
 
