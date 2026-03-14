@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ProjectLayout } from './components/layout/ProjectLayout';
 import { ProjectList } from './pages/ProjectList';
+import { Dashboard } from './pages/Dashboard';
 import { ProjectDashboard } from './pages/ProjectDashboard';
 import { ProductManager } from './pages/ProductManager';
 import { OutboundUpload } from './pages/OutboundUpload';
@@ -19,6 +20,7 @@ export function App() {
       <ErrorBoundary>
         <Routes>
           <Route path="/" element={<ProjectList />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/boxes" element={<BoxManager />} />
           <Route path="/projects/:id" element={<ProjectLayout />}>
             <Route index element={<ProjectDashboard />} />

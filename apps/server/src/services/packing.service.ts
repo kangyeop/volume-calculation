@@ -203,16 +203,41 @@ export class PackingService {
     await this.packingResultRepository.removeAll(projectId);
     await this.packingResultDetailRepository.removeAll(projectId);
 
-    const grandTotalPackedCount = groups
-      .flatMap((g) => g.boxes)
-      .reduce((acc, b) => acc + b.packedSKUs.reduce((a, s) => a + s.quantity, 0), 0);
+    const packingResultRows: Array<{
+      projectId: string;
+      orderId?: string;
+      boxName: string;
+      packedCount: number;
+      efficiency: number;
+      totalCBM: number;
+      groupLabel?: string;
+    }> = [];
 
-    await this.packingResultRepository.create({
-      projectId,
-      packedCount: grandTotalPackedCount,
-      efficiency: grandTotalAvailableVolume > 0 ? grandTotalUsedVolume / grandTotalAvailableVolume : 0,
-      totalCBM: grandTotalCBM,
-    });
+    for (const group of groups) {
+      for (const box of group.boxes) {
+        const boxVol = box.box.width * box.box.length * box.box.height;
+        const usedVol = box.packedSKUs.reduce((acc, s) => {
+          const product = products.find((p) => p.id === s.skuId);
+          return acc + (product ? product.width * product.length * product.height * s.quantity : 0);
+        }, 0);
+
+        for (let i = 0; i < box.count; i++) {
+          packingResultRows.push({
+            projectId,
+            orderId: group.groupLabel,
+            boxName: box.box.name,
+            packedCount: box.packedSKUs.reduce((a, s) => a + s.quantity, 0),
+            efficiency: boxVol > 0 ? usedVol / boxVol : 0,
+            totalCBM: (boxVol / 1000000),
+            groupLabel: group.groupLabel,
+          });
+        }
+      }
+    }
+
+    if (packingResultRows.length > 0) {
+      await this.packingResultRepository.createBulk(packingResultRows);
+    }
 
     if (detailResults.length > 0) {
       await this.packingResultDetailRepository.createBulk(detailResults);

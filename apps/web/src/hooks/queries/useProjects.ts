@@ -6,7 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { projects } from './queryKeys';
-import type { Project } from '@wms/types';
+import type { Project, ProjectStats } from '@wms/types';
 
 export function useProjects() {
   return useQuery({
@@ -46,5 +46,12 @@ export function useDeleteProject(): UseMutationResult<void, Error, string> {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projects.all.queryKey });
     },
+  });
+}
+
+export function useProjectStats() {
+  return useQuery<ProjectStats[]>({
+    ...projects.stats,
+    queryFn: () => api.projects.stats(),
   });
 }

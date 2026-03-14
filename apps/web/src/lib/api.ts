@@ -14,6 +14,7 @@ import {
   ApiResponse,
   ProductMappingData,
   PackingResultDetail,
+  ProjectStats,
 } from '@wms/types';
 
 const API_BASE = '/api';
@@ -47,6 +48,7 @@ export const api = {
       }),
     get: (id: string) => fetchApi<Project>(`/projects/${id}`),
     delete: (id: string) => fetchApi<void>(`/projects/${id}`, { method: 'DELETE' }),
+    stats: () => fetchApi<ProjectStats[]>('/projects/stats'),
   },
   products: {
     list: (projectId: string) => fetchApi<Product[]>(`/projects/${projectId}/products`),

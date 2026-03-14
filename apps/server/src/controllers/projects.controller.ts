@@ -17,6 +17,11 @@ export class ProjectsController {
     return this.projectsService.findAll();
   }
 
+  @Get('stats')
+  getStats() {
+    return this.projectsService.getStats();
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.projectsService.findOne(id);

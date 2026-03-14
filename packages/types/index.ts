@@ -316,3 +316,15 @@ export interface ApiErrorResponse {
   error: string;
   message?: string;
 }
+
+export interface ProjectBoxStat {
+  boxName: string;
+  boxCount: number;
+}
+
+export interface ProjectStats {
+  projectId: string;
+  projectName: string;
+  createdAt: string;
+  boxes: ProjectBoxStat[];
+}

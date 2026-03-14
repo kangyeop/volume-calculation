@@ -3,6 +3,7 @@ import { createQueryKeys } from '@lukemorales/query-key-factory';
 export const projects = createQueryKeys('projects', {
   all: null,
   detail: (id: string) => [id],
+  stats: null,
 });
 
 export const products = createQueryKeys('products', {
