@@ -10,28 +10,100 @@ export interface SKU extends Dimensions {
   quantity: number;
 }
 
-export enum PackingGroupingOption {
-  ORDER = 'ORDER',
-  RECIPIENT = 'RECIPIENT',
-  ORDER_RECIPIENT = 'ORDER_RECIPIENT',
-}
-
 export interface Box extends Dimensions {
   id: string;
   name: string;
   price?: number;
 }
 
-export interface PackingResult {
-  id: string;
-  projectId: string;
-  boxId?: string;
-  boxName?: string;
-  packedCount: number;
-  efficiency: number;
+export interface PackingCalculationResult {
+  boxes: {
+    box: Box;
+    count: number;
+    packedSKUs: { skuId: string; quantity: number }[];
+  }[];
+  unpackedItems: { skuId: string; quantity: number; reason?: string }[];
   totalCBM: number;
-  groupLabel?: string;
+  totalEfficiency: number;
+}
+
+export interface ProductGroup {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  products?: Product[];
+}
+
+export interface Product {
+  id: string;
+  sku: string;
+  name: string;
+  width: number;
+  length: number;
+  height: number;
+  productGroupId: string;
+  productGroup?: ProductGroup;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Order {
+  id: string;
+  orderId: string;
+  recipient?: string;
+  quantity: number;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED';
+  outboundBatchId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OutboundItem {
+  id: string;
+  orderId: string;
+  sku: string;
+  quantity: number;
+  outboundBatchId: string;
+  productId?: string;
+  product?: Product;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OutboundBatch {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  orders?: Order[];
+  outboundItems?: OutboundItem[];
+  packingResults?: PackingResult[];
+}
+
+export interface Outbound {
+  id: string;
+  orderId: string;
+  orderIdentifier?: string;
+  sku: string;
+  quantity: number;
+  projectId: string;
+  productId?: string;
+  product?: Product;
+  createdAt: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
   createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export enum PackingGroupingOption {
+  ORDER = 'ORDER',
+  RECIPIENT = 'RECIPIENT',
+  ORDER_RECIPIENT = 'ORDER_RECIPIENT',
 }
 
 export interface PackingGroup {
@@ -53,62 +125,91 @@ export interface PackingRecommendation {
   unpackedItems?: { skuId: string; name?: string; quantity: number; reason?: string }[];
 }
 
-export interface PackingCalculationResult {
-  boxes: {
-    box: Box;
-    count: number;
-    packedSKUs: { skuId: string; quantity: number }[];
-  }[];
-  unpackedItems: { skuId: string; quantity: number; reason?: string }[];
+export interface PackingResult3D {
+  orderId: string;
+  groupLabel?: string;
+  boxes: PackedBox3D[];
+  unpackedItems: { skuId: string; name?: string; quantity: number; reason: string }[];
   totalCBM: number;
   totalEfficiency: number;
 }
 
-export interface Project {
+export interface PackingResultDetail {
   id: string;
-  name: string;
-  createdAt: Date | string;
-  updatedAt: Date | string;
-}
-
-export interface Product {
-  id: string;
-  projectId: string;
-  sku: string;
-  name: string;
-  width: number;
-  length: number;
-  height: number;
-  createdAt: Date | string;
-  updatedAt: Date | string;
-}
-
-export enum OrderStatus {
-  PENDING = 'PENDING',
-  PROCESSING = 'PROCESSING',
-  COMPLETED = 'COMPLETED',
-}
-
-export interface Order {
-  id: string;
-  projectId: string;
+  outboundBatchId: string;
   orderId: string;
-  quantity: number;
   recipientName?: string;
-  address?: string;
-  status: OrderStatus;
-  createdAt: Date | string;
-  updatedAt: Date | string;
+  sku: string;
+  productName: string;
+  quantity: number;
+  boxName: string;
+  boxNumber: number;
+  boxCBM: number;
+  efficiency: number;
+  unpacked?: boolean;
+  unpackedReason?: string;
+  createdAt: string;
+  placements?: Placement3D[];
 }
 
-export interface Outbound {
+export interface Placement3D {
+  x: number;
+  y: number;
+  z: number;
+  rotation: string;
+}
+
+export interface ParseUploadData {
+  headers: string[];
+  rows: Record<string, unknown>[];
+  suggestedMapping?: Record<string, string>;
+  confidence?: number;
+}
+
+export interface UnmatchedItem {
+  sku?: string;
+  rawValue?: string;
+  quantity?: number;
+  reason?: string;
+}
+
+export interface OutboundUploadResult {
+  imported: number;
+  unmatched: UnmatchedItem[];
+  batchName: string;
+  batchId: string;
+  totalRows: number;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+  error?: string;
+}
+
+export interface DashboardStats {
+  totalBatches: number;
+  totalBoxesUsed: number;
+  batches: BatchStats[];
+}
+
+export interface BatchStats {
+  batchId: string;
+  batchName: string;
+  boxCount: number;
+  lastCalculatedAt: string;
+}
+
+export interface PackingResult {
   id: string;
-  projectId: string;
-  orderId: string;
-  orderIdentifier?: string;
-  sku: string;
-  quantity: number;
-  productId?: string | null;
+  outboundBatchId: string;
+  boxId?: string;
+  boxName?: string;
+  packedCount: number;
+  efficiency: number;
+  totalCBM: number;
+  groupLabel?: string;
   createdAt: Date | string;
 }
 
@@ -148,7 +249,7 @@ export interface ParseProductUploadResponse {
   data: ParseProductUploadData;
 }
 
-export interface ParseUploadData {
+export interface ParseUploadDataLegacy {
   sessionId: string;
   headers: string[];
   rowCount: number;
@@ -159,7 +260,7 @@ export interface ParseUploadData {
 
 export interface ParseUploadResponse {
   success: boolean;
-  data: ParseUploadData;
+  data: ParseUploadDataLegacy;
 }
 
 export interface ConfirmUploadRequest {
@@ -232,21 +333,10 @@ export interface ConfirmMappingUploadResponse {
   data: ConfirmMappingUploadData;
 }
 
-export interface OutboundWithProduct extends Outbound {
-  productId?: string | null;
+export interface OutboundWithProduct extends OutboundItem {
+  productId?: string;
   mappingConfidence?: number | null;
   product?: Product;
-}
-
-export interface OutboundUploadResult {
-  imported: number;
-  unmatched: {
-    sku: string;
-    rawValue?: string;
-    quantity: number;
-    reason?: string;
-  }[];
-  totalRows: number;
 }
 
 export type Rotation = 'none' | '90' | '180' | '270';
@@ -279,7 +369,7 @@ export interface PackedBox3D {
   availableVolume: number;
 }
 
-export interface PackingResult3D {
+export interface PackingResult3DLegacy {
   orderId: string;
   groupLabel?: string;
   boxes: PackedBox3D[];
@@ -288,9 +378,9 @@ export interface PackingResult3D {
   totalEfficiency: number;
 }
 
-export interface PackingResultDetail {
+export interface PackingResultDetailLegacy {
   id: string;
-  projectId: string;
+  outboundBatchId: string;
   orderId: string;
   recipientName?: string;
   sku: string;
@@ -302,13 +392,6 @@ export interface PackingResultDetail {
   efficiency: number;
   unpacked?: boolean;
   unpackedReason?: string;
-}
-
-export interface ApiResponse<T = unknown> {
-  success: boolean;
-  data: T;
-  message?: string;
-  error?: string;
 }
 
 export interface ApiErrorResponse {
