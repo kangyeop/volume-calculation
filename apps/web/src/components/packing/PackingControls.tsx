@@ -1,9 +1,5 @@
 import React from 'react';
-import {
-  Calculator,
-  Settings,
-  Download,
-} from 'lucide-react';
+import { Calculator, Settings, Download } from 'lucide-react';
 import { PackingGroupingOption } from '@wms/types';
 
 interface PackingControlsProps {

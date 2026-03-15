@@ -12,10 +12,10 @@ import {
   SKU,
   PackingRecommendation,
   PackingGroup,
+  PackingResult3DLegacy as PackingResult3D,
   PackingGroupingOption,
-  PackingResult3D,
 } from '@wms/types';
-import { OutboundEntity } from '../entities/outbound.entity';
+import { OutboundItemEntity } from '../entities/outbound-item.entity';
 import { PackingResultsRepository } from '../repositories/packing-results.repository';
 import { PackingResultDetailsRepository } from '../repositories/packing-result-details.repository';
 import { OrdersRepository } from '../repositories/orders.repository';
@@ -34,15 +34,15 @@ export class PackingService {
   ) {}
 
   async calculate(
-    projectId: string,
+    outboundBatchId: string,
     groupingOption: PackingGroupingOption,
   ): Promise<PackingRecommendation> {
     this.logger.log(
-      `Calculating packing for project: ${projectId} with grouping: ${groupingOption}`,
+      `Calculating packing for batch: ${outboundBatchId} with grouping: ${groupingOption}`,
     );
 
-    const outbounds = await this.outboundService.findAll(projectId);
-    const products = await this.productsService.findAll(projectId);
+    const outbounds = await this.outboundService.findAll(outboundBatchId);
+    const products = await this.productsService.findAllForMatching();
     const boxes = await this.boxesService.findAll();
 
     if (boxes.length === 0) {
@@ -127,7 +127,10 @@ export class PackingService {
       });
 
       let boxIndex = 1;
-      const skuToBoxMap = new Map<string, { boxName: string; boxNumber: number; boxIndex: number }>();
+      const skuToBoxMap = new Map<
+        string,
+        { boxName: string; boxNumber: number; boxIndex: number }
+      >();
       for (const box of boxesWithNames) {
         for (let i = 0; i < box.count; i++) {
           for (const packedSku of box.packedSKUs) {
@@ -170,7 +173,7 @@ export class PackingService {
 
         detailResults.push(
           this.packingResultDetailRepository.create({
-            projectId,
+            outboundBatchId,
             orderId: outbound.orderIdentifier || outbound.orderId,
             recipientName: '',
             sku: outbound.sku,
@@ -200,11 +203,11 @@ export class PackingService {
       grandTotalAvailableVolume += groupAvailableVolume;
     }
 
-    await this.packingResultRepository.removeAll(projectId);
-    await this.packingResultDetailRepository.removeAll(projectId);
+    await this.packingResultRepository.removeAll(outboundBatchId);
+    await this.packingResultDetailRepository.removeAll(outboundBatchId);
 
     const packingResultRows: Array<{
-      projectId: string;
+      outboundBatchId: string;
       orderId?: string;
       boxName: string;
       packedCount: number;
@@ -223,12 +226,12 @@ export class PackingService {
 
         for (let i = 0; i < box.count; i++) {
           packingResultRows.push({
-            projectId,
+            outboundBatchId,
             orderId: group.groupLabel,
             boxName: box.box.name,
             packedCount: box.packedSKUs.reduce((a, s) => a + s.quantity, 0),
             efficiency: boxVol > 0 ? usedVol / boxVol : 0,
-            totalCBM: (boxVol / 1000000),
+            totalCBM: boxVol / 1000000,
             groupLabel: group.groupLabel,
           });
         }
@@ -254,11 +257,8 @@ export class PackingService {
     };
   }
 
-  private groupOutbounds(
-    outbounds: OutboundEntity[],
-    option: PackingGroupingOption,
-  ): OutboundEntity[][] {
-    const groups = new Map<string, OutboundEntity[]>();
+  private groupOutbounds(outbounds: OutboundItemEntity[], option: string): OutboundItemEntity[][] {
+    const groups = new Map<string, OutboundItemEntity[]>();
 
     for (const outbound of outbounds) {
       let key = '';
@@ -266,13 +266,13 @@ export class PackingService {
       const recipientName = outbound.order?.recipientName || 'Unknown Recipient';
 
       switch (option) {
-        case PackingGroupingOption.ORDER:
+        case 'ORDER':
           key = `order:${orderIdentifier}`;
           break;
-        case PackingGroupingOption.RECIPIENT:
+        case 'RECIPIENT':
           key = `recipient:${recipientName}`;
           break;
-        case PackingGroupingOption.ORDER_RECIPIENT:
+        case 'ORDER_RECIPIENT':
           key = `order_recipient:${orderIdentifier}_${recipientName}`;
           break;
         default:
@@ -288,34 +288,34 @@ export class PackingService {
     return Array.from(groups.values());
   }
 
-  private generateGroupLabel(outbound: OutboundEntity, option: PackingGroupingOption): string {
+  private generateGroupLabel(outbound: OutboundItemEntity, option: string): string {
     const orderIdentifier = outbound.orderIdentifier || outbound.orderId;
     const recipientName = outbound.order?.recipientName || 'Unknown Recipient';
 
     switch (option) {
-      case PackingGroupingOption.ORDER:
+      case 'ORDER':
         return `Order: ${orderIdentifier}`;
-      case PackingGroupingOption.RECIPIENT:
+      case 'RECIPIENT':
         return `Recipient: ${recipientName}`;
-      case PackingGroupingOption.ORDER_RECIPIENT:
+      case 'ORDER_RECIPIENT':
         return `Order: ${orderIdentifier}, Recipient: ${recipientName}`;
       default:
         return 'Default Group';
     }
   }
 
-  async findAll(projectId: string): Promise<PackingResultEntity[]> {
-    return await this.packingResultRepository.findAll(projectId);
+  async findAll(outboundBatchId: string): Promise<PackingResultEntity[]> {
+    return await this.packingResultRepository.findAll(outboundBatchId);
   }
 
   async calculateOrderPacking(
-    projectId: string,
+    outboundBatchId: string,
     orderId: string,
     groupLabel?: string,
   ): Promise<PackingResult3D> {
     this.logger.log(`Calculating 3D packing for order: ${orderId}`);
 
-    const order = await this.ordersRepository.findOneWithRelations(projectId, orderId);
+    const order = await this.ordersRepository.findOneWithRelations(outboundBatchId, orderId);
 
     if (!order) {
       throw new BadRequestException(`주문 ID ${orderId}에 대한 출고 정보가 없습니다.`);
@@ -363,24 +363,24 @@ export class PackingService {
 
     const result = calculateOrderPackingUnified(orderId, skus, boxes, groupLabel || order.orderId);
 
-    await this.savePackingResults3D(projectId, result);
+    await this.savePackingResults3D(outboundBatchId, result);
 
     return result;
   }
 
-  async findByOrderId(projectId: string, orderId: string): Promise<PackingResultEntity[]> {
-    return await this.packingResultRepository.findByOrderId(projectId, orderId);
+  async findByOrderId(outboundBatchId: string, orderId: string): Promise<PackingResultEntity[]> {
+    return await this.packingResultRepository.findByOrderId(outboundBatchId, orderId);
   }
 
-  async findAllDetails(projectId: string): Promise<PackingResultDetailEntity[]> {
-    return await this.packingResultDetailRepository.findAll(projectId);
+  async findAllDetails(outboundBatchId: string): Promise<PackingResultDetailEntity[]> {
+    return await this.packingResultDetailRepository.findAll(outboundBatchId);
   }
 
-  private async savePackingResults3D(projectId: string, result: PackingResult3D) {
-    await this.packingResultRepository.removeAllByProjectAndOrder(projectId, result.orderId);
+  private async savePackingResults3D(outboundBatchId: string, result: PackingResult3D) {
+    await this.packingResultRepository.removeAllByBatchAndOrder(outboundBatchId, result.orderId);
 
     const results = result.boxes.map((box) => ({
-      projectId,
+      outboundBatchId,
       orderId: result.orderId,
       boxId: box.boxId,
       boxName: box.boxName,

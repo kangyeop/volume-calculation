@@ -11,14 +11,20 @@ export class ProductsRepository {
     private readonly repository: Repository<ProductEntity>,
   ) {}
 
-  async create(projectId: string, product: Partial<ProductEntity>): Promise<ProductEntity> {
-    const entity = this.repository.create({ ...product, projectId });
+  async create(productGroupId: string, product: Partial<ProductEntity>): Promise<ProductEntity> {
+    const entity = this.repository.create({ ...product, productGroupId });
     return await this.repository.save(entity);
   }
 
-  async findAll(projectId: string): Promise<ProductEntity[]> {
+  async findAll(productGroupId: string): Promise<ProductEntity[]> {
     return await this.repository.find({
-      where: { projectId },
+      where: { productGroupId },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async findAllGlobal(): Promise<ProductEntity[]> {
+    return await this.repository.find({
       order: { createdAt: 'DESC' },
     });
   }
@@ -27,12 +33,20 @@ export class ProductsRepository {
     return await this.repository.findOne({ where: { id } });
   }
 
-  async findBySku(projectId: string, sku: string): Promise<ProductEntity[]> {
-    return await this.repository.find({ where: { projectId, sku } });
+  async findBySku(productGroupId: string, sku: string): Promise<ProductEntity[]> {
+    return await this.repository.find({ where: { productGroupId, sku } });
   }
 
-  async findByName(projectId: string, name: string): Promise<ProductEntity[]> {
-    return await this.repository.find({ where: { projectId, name } });
+  async findBySkuGlobal(sku: string): Promise<ProductEntity[]> {
+    return await this.repository.find({ where: { sku } });
+  }
+
+  async findByName(productGroupId: string, name: string): Promise<ProductEntity[]> {
+    return await this.repository.find({ where: { productGroupId, name } });
+  }
+
+  async findByNameGlobal(name: string): Promise<ProductEntity[]> {
+    return await this.repository.find({ where: { name } });
   }
 
   async update(id: string, product: Partial<ProductEntity>): Promise<ProductEntity> {
@@ -49,9 +63,9 @@ export class ProductsRepository {
     return (result.affected ?? 0) > 0;
   }
 
-  async findWithSelect(projectId: string, select: string[]): Promise<ProductEntity[]> {
+  async findWithSelect(productGroupId: string, select: string[]): Promise<ProductEntity[]> {
     return await this.repository.find({
-      where: { projectId },
+      where: { productGroupId },
       select: select as any,
     });
   }
@@ -63,17 +77,17 @@ export class ProductsRepository {
 
   @Transactional()
   async createBulk(
-    projectId: string,
+    productGroupId: string,
     products: Partial<ProductEntity>[],
   ): Promise<ProductEntity[]> {
-    const entities = products.map((dto) => this.repository.create({ ...dto, projectId }));
+    const entities = products.map((dto) => this.repository.create({ ...dto, productGroupId }));
 
     await this.repository
       .createQueryBuilder()
       .insert()
       .into(ProductEntity)
       .values(entities)
-      .orUpdate(['name', 'width', 'length', 'height'], ['projectId', 'sku'])
+      .orUpdate(['name', 'width', 'length', 'height'], ['productGroupId', 'sku'])
       .execute();
 
     return entities;

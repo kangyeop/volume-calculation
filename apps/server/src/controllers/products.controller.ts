@@ -7,25 +7,25 @@ import { UpdateProductDto } from '../dto/updateProduct.dto';
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
-  @Post('projects/:projectId/products')
+  @Post('product-groups/:groupId/products')
   create(
-    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Param('groupId', ParseUUIDPipe) groupId: string,
     @Body() createProductDto: CreateProductDto,
   ) {
-    return this.productsService.create(projectId, createProductDto);
+    return this.productsService.create(groupId, createProductDto);
   }
 
-  @Get('projects/:projectId/products')
-  findAll(@Param('projectId', ParseUUIDPipe) projectId: string) {
-    return this.productsService.findAll(projectId);
+  @Get('product-groups/:groupId/products')
+  findAll(@Param('groupId', ParseUUIDPipe) groupId: string) {
+    return this.productsService.findAll(groupId);
   }
 
-  @Post('projects/:projectId/products/bulk')
+  @Post('product-groups/:groupId/products/bulk')
   createBulk(
-    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Param('groupId', ParseUUIDPipe) groupId: string,
     @Body() createProductDtos: CreateProductDto[],
   ) {
-    return this.productsService.createBulk(projectId, createProductDtos);
+    return this.productsService.createBulk(groupId, createProductDtos);
   }
 
   @Patch('products/:id')
@@ -38,11 +38,8 @@ export class ProductsController {
     return this.productsService.remove(id);
   }
 
-  @Delete('projects/:projectId/products')
-  removeBulk(
-    @Param('projectId', ParseUUIDPipe) _projectId: string,
-    @Body() body: { ids: string[] },
-  ) {
+  @Delete('product-groups/:groupId/products')
+  removeBulk(@Param('groupId', ParseUUIDPipe) _groupId: string, @Body() body: { ids: string[] }) {
     return this.productsService.removeBulk(body.ids);
   }
 }

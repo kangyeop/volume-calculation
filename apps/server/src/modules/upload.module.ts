@@ -5,21 +5,23 @@ import { memoryStorage } from 'multer';
 import { AIModule } from './ai.module';
 import { ProductsModule } from './products.module';
 import { PackingModule } from './packing.module';
+import { OutboundBatchModule } from './outbound-batch.module';
 import { FileStorageService } from '../services/fileStorage.service';
 import { UploadController } from '../controllers/upload.controller';
 import { UploadRepository } from '../repositories';
 import { OutboundRepository } from '../repositories/outbound.repository';
 import { UploadService } from '../services/upload.service';
 import { DataTransformerService } from '../services/dataTransformer.service';
-import { OutboundEntity } from '../entities/outbound.entity';
+import { OutboundItemEntity } from '../entities/outbound-item.entity';
 import { ProductEntity } from '../entities/product.entity';
 import { OrderEntity } from '../entities/order.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([OutboundEntity, ProductEntity, OrderEntity]),
+    TypeOrmModule.forFeature([OutboundItemEntity, ProductEntity, OrderEntity]),
     AIModule,
     ProductsModule,
+    OutboundBatchModule,
     forwardRef(() => PackingModule),
     MulterModule.register({
       storage: memoryStorage(),

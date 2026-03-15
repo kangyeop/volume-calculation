@@ -54,13 +54,13 @@ export class ExcelService {
     }
   }
 
-  async exportPackingResults(projectId: string): Promise<Buffer> {
-    return this.exportWithoutOriginalFile(projectId);
+  async exportPackingResults(outboundBatchId: string): Promise<Buffer> {
+    return this.exportWithoutOriginalFile(outboundBatchId);
   }
 
-  private async exportWithoutOriginalFile(projectId: string): Promise<Buffer> {
+  private async exportWithoutOriginalFile(outboundBatchId: string): Promise<Buffer> {
     const results = await this.packingResultDetailRepository
-      .createQueryBuilderWithWhere('detail', { projectId })
+      .createQueryBuilderWithWhere('detail', { outboundBatchId })
       .orderBy('detail.orderId', 'ASC')
       .addOrderBy('detail.boxIndex', 'ASC')
       .addOrderBy('detail.boxNumber', 'ASC')

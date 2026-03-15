@@ -1,11 +1,11 @@
 import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from '../common/entities/base.entity';
-import { ProjectEntity } from './project.entity';
+import { OutboundBatchEntity } from './outbound-batch.entity';
 
 @Entity('packing_result_details')
 export class PackingResultDetailEntity extends BaseEntity {
-  @Column()
-  projectId!: string;
+  @Column('uuid')
+  outboundBatchId!: string;
 
   @Column()
   orderId!: string;
@@ -60,7 +60,7 @@ export class PackingResultDetailEntity extends BaseEntity {
   @Column({ type: 'json', nullable: true })
   placements!: any[] | null;
 
-  @ManyToOne(() => ProjectEntity, (project) => project.packingResults)
-  @JoinColumn({ name: 'projectId' })
-  project!: ProjectEntity;
+  @ManyToOne(() => OutboundBatchEntity, (batch) => batch.packingResults)
+  @JoinColumn({ name: 'outboundBatchId' })
+  outboundBatch!: OutboundBatchEntity;
 }

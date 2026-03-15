@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsIn } from 'class-validator';
+import { IsString, IsNotEmpty, IsIn, IsOptional } from 'class-validator';
 
 export class ParseUploadDto {
   @IsString()
@@ -9,6 +9,6 @@ export class ParseUploadDto {
   type!: 'outbound' | 'product';
 
   @IsString()
-  @IsNotEmpty()
-  projectId!: string;
+  @IsOptional()
+  outboundBatchId?: string;
 }

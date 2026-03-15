@@ -22,9 +22,7 @@ test.describe('박스 계산 테스트', () => {
     const calculateButton = page.getByRole('button', { name: 'Calculate' });
 
     const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes('/packing/calculate') &&
-        response.status() !== 404
+      (response) => response.url().includes('/packing/calculate') && response.status() !== 404,
     );
 
     await calculateButton.click();

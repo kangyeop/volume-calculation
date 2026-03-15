@@ -15,13 +15,16 @@ export class OrdersRepository {
     return await this.repository.save(entity);
   }
 
-  async findOne(projectId: string, orderId: string): Promise<OrderEntity | null> {
-    return await this.repository.findOne({ where: { projectId, orderId } });
+  async findOne(outboundBatchId: string, orderId: string): Promise<OrderEntity | null> {
+    return await this.repository.findOne({ where: { outboundBatchId, orderId } });
   }
 
-  async findOneWithRelations(projectId: string, orderId: string): Promise<OrderEntity | null> {
+  async findOneWithRelations(
+    outboundBatchId: string,
+    orderId: string,
+  ): Promise<OrderEntity | null> {
     return await this.repository.findOne({
-      where: { projectId, orderId },
+      where: { outboundBatchId, orderId },
       relations: ['outbounds', 'outbounds.product'],
     });
   }

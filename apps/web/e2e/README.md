@@ -31,16 +31,19 @@ cd apps/web && npx playwright test
 ## 테스트 파일 설명
 
 ### upload.spec.ts
+
 - Excel 파일 선택 및 업로드
 - API 응답 확인 (success, headers, rowCount)
 - 파싱 결과 확인
 
 ### packing.spec.ts
+
 - 박스 계산 API 호출
 - 결과 검증 (totalEfficiency, totalCBM)
 - 풀 세트/단일 주문 박스 수량 확인
 
 ### results.spec.ts
+
 - 웹 페이지 로드 후 UI 요소 확인
 - 주문 요약 표시 (33개 주문)
 - 박스 계산 결과 표시

@@ -1,6 +1,5 @@
 import axios from 'axios';
 import {
-  Project,
   Product,
   Outbound,
   OutboundUploadResult,
@@ -38,20 +37,58 @@ async function unwrapResponse<T>(response: { data: ApiResponse<T> }): Promise<T>
   return response.data.data;
 }
 
+export interface ProductGroup {
+  id: string;
+  name: string;
+  productCount?: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface OutboundBatch {
+  id: string;
+  name: string;
+  orderCount?: number;
+  itemCount?: number;
+  createdAt: Date | string;
+  updatedAt?: Date | string;
+}
+
+export interface DashboardStats {
+  totalBatches: number;
+  totalBoxesUsed: number;
+  recentBatches: OutboundBatch[];
+}
+
 export const api = {
   projects: {
-    list: () => fetchApi<Project[]>('/projects'),
+    list: () =>
+      fetchApi<{ id: string; name: string; createdAt: string; updatedAt: string }[]>('/projects'),
     create: (name: string) =>
-      fetchApi<Project>('/projects', {
+      fetchApi<{ id: string; name: string; createdAt: string; updatedAt: string }>('/projects', {
         method: 'POST',
         data: { name },
       }),
-    get: (id: string) => fetchApi<Project>(`/projects/${id}`),
+    get: (id: string) =>
+      fetchApi<{ id: string; name: string; createdAt: string; updatedAt: string }>(
+        `/projects/${id}`,
+      ),
     delete: (id: string) => fetchApi<void>(`/projects/${id}`, { method: 'DELETE' }),
     stats: () => fetchApi<ProjectStats[]>('/projects/stats'),
   },
+  productGroups: {
+    list: () => fetchApi<ProductGroup[]>('/product-groups'),
+    get: (id: string) => fetchApi<ProductGroup>(`/product-groups/${id}`),
+    create: (name: string) =>
+      fetchApi<ProductGroup>('/product-groups', {
+        method: 'POST',
+        data: { name },
+      }),
+    delete: (id: string) => fetchApi<void>(`/product-groups/${id}`, { method: 'DELETE' }),
+  },
   products: {
     list: (projectId: string) => fetchApi<Product[]>(`/projects/${projectId}/products`),
+    listByGroup: (groupId: string) => fetchApi<Product[]>(`/product-groups/${groupId}/products`),
     createBulk: (
       projectId: string,
       products: Omit<Product, 'id' | 'projectId' | 'createdAt' | 'updatedAt'>[],
@@ -63,6 +100,11 @@ export const api = {
     delete: (id: string) => fetchApi<void>(`/products/${id}`, { method: 'DELETE' }),
     deleteBulk: (projectId: string, ids: string[]) =>
       fetchApi<void>(`/projects/${projectId}/products`, {
+        method: 'DELETE',
+        data: { ids },
+      }),
+    deleteBulkByGroup: (groupId: string, ids: string[]) =>
+      fetchApi<void>(`/product-groups/${groupId}/products`, {
         method: 'DELETE',
         data: { ids },
       }),
@@ -106,12 +148,35 @@ export const api = {
         .then(unwrapResponse);
     },
   },
+  outboundBatches: {
+    list: () => fetchApi<OutboundBatch[]>('/outbound-batches'),
+    get: (id: string) => fetchApi<OutboundBatch>(`/outbound-batches/${id}`),
+    delete: (id: string) => fetchApi<void>(`/outbound-batches/${id}`, { method: 'DELETE' }),
+    upload: (file: File): Promise<OutboundBatch> => {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      return apiClient
+        .post<ApiResponse<OutboundBatch>>('/outbound-batches/upload', formData)
+        .then(unwrapResponse);
+    },
+    listOutbounds: (batchId: string) =>
+      fetchApi<Outbound[]>(`/outbound-batches/${batchId}/outbounds`),
+  },
   packing: {
     calculate: (
       projectId: string,
       groupingOption: PackingGroupingOption = PackingGroupingOption.ORDER,
     ) =>
       fetchApi<PackingRecommendation>(`/projects/${projectId}/packing/calculate`, {
+        method: 'POST',
+        data: { groupingOption },
+      }),
+    calculateByBatch: (
+      batchId: string,
+      groupingOption: PackingGroupingOption = PackingGroupingOption.ORDER,
+    ) =>
+      fetchApi<PackingRecommendation>(`/outbound-batches/${batchId}/packing/calculate`, {
         method: 'POST',
         data: { groupingOption },
       }),
@@ -123,8 +188,12 @@ export const api = {
     },
     history: (projectId: string) =>
       fetchApi<PackingResult[]>(`/projects/${projectId}/packing/results`),
+    historyByBatch: (batchId: string) =>
+      fetchApi<PackingResult[]>(`/outbound-batches/${batchId}/packing/results`),
     details: (projectId: string) =>
       fetchApi<PackingResultDetail[]>(`/projects/${projectId}/packing/details`),
+    detailsByBatch: (batchId: string) =>
+      fetchApi<PackingResultDetail[]>(`/outbound-batches/${batchId}/packing/details`),
     export: (projectId: string) => {
       return apiClient
         .get(`/projects/${projectId}/packing/export`, {
@@ -135,6 +204,22 @@ export const api = {
           const a = document.createElement('a');
           a.href = url;
           a.download = `packing_results_${projectId}.xlsx`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        });
+    },
+    exportByBatch: (batchId: string) => {
+      return apiClient
+        .get(`/outbound-batches/${batchId}/packing/export`, {
+          responseType: 'blob',
+        })
+        .then((response) => {
+          const url = window.URL.createObjectURL(response.data);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `packing_results_${batchId}.xlsx`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -228,5 +313,8 @@ export const api = {
       );
       return unwrapResponse({ data: response.data });
     },
+  },
+  dashboard: {
+    stats: () => fetchApi<DashboardStats>('/dashboard/stats'),
   },
 };

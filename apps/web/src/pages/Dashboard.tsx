@@ -1,53 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUp, ArrowDown } from 'lucide-react';
-import { useProjectStats } from '@/hooks/queries';
-import type { ProjectStats } from '@wms/types';
-
-type SortOrder = 'asc' | 'desc';
-
-const ProjectStatCard: React.FC<{ stat: ProjectStats }> = ({ stat }) => (
-  <div className="bg-white border rounded-xl shadow-sm p-6">
-    <h2 className="text-lg font-semibold mb-4">{stat.projectName}</h2>
-    {stat.boxes.length === 0 ? (
-      <p className="text-sm text-gray-400">패킹 이력이 없습니다</p>
-    ) : (
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b">
-            <th className="text-left pb-2 font-medium text-gray-600">박스명</th>
-            <th className="text-right pb-2 font-medium text-gray-600">수량</th>
-          </tr>
-        </thead>
-        <tbody>
-          {stat.boxes.map((box) => (
-            <tr key={box.boxName} className="border-b last:border-0">
-              <td className="py-2 text-gray-700">{box.boxName}</td>
-              <td className="py-2 text-right text-gray-700 font-semibold">{box.boxCount}</td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr className="border-t font-semibold">
-            <td className="pt-2 text-gray-800">합계</td>
-            <td className="pt-2 text-right text-gray-800">
-              {stat.boxes.reduce((sum, b) => sum + b.boxCount, 0)}
-            </td>
-          </tr>
-        </tfoot>
-      </table>
-    )}
-  </div>
-);
+import { useDashboardStats } from '@/hooks/queries';
+import { Truck, Package, Plus } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
-  const { data: stats = [], isLoading } = useProjectStats();
-  const [projectSortOrder, setProjectSortOrder] = useState<SortOrder>('desc');
-
-  const sortedStats = [...stats].sort((a, b) => {
-    const dir = projectSortOrder === 'asc' ? 1 : -1;
-    return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-  });
+  const { data: stats, isLoading } = useDashboardStats();
 
   if (isLoading) {
     return (
@@ -57,49 +14,77 @@ export const Dashboard: React.FC = () => {
     );
   }
 
-  const SortIcon = ({ active, order }: { active: boolean; order: SortOrder }) =>
-    active ? (
-      order === 'asc' ? (
-        <ArrowUp className="h-3 w-3" />
-      ) : (
-        <ArrowDown className="h-3 w-3" />
-      )
-    ) : (
-      <ArrowDown className="h-3 w-3 opacity-30" />
-    );
-
   return (
-    <div className="container mx-auto p-8 max-w-4xl">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">대시보드</h1>
-        <Link to="/" className="text-sm text-gray-600 hover:text-gray-900">
-          ← 프로젝트 목록
-        </Link>
+    <div className="space-y-8 max-w-5xl">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">대시보드</h1>
+        <p className="text-muted-foreground mt-1">출고 현황을 한눈에 확인합니다.</p>
       </div>
 
-      {stats.length > 0 && (
-        <div className="flex gap-2 mb-6">
-          <button
-            onClick={() => setProjectSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'))}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm border bg-white border-gray-200 text-gray-600 hover:border-gray-400 transition-colors"
-          >
-            생성일
-            <SortIcon active order={projectSortOrder} />
-          </button>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="rounded-xl border bg-card shadow p-6 flex items-center gap-4">
+          <div className="bg-indigo-50 p-3 rounded-lg">
+            <Truck className="h-6 w-6 text-indigo-600" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">총 출고 배치</p>
+            <p className="text-3xl font-bold">{stats?.totalBatches ?? 0}</p>
+          </div>
         </div>
-      )}
+        <div className="rounded-xl border bg-card shadow p-6 flex items-center gap-4">
+          <div className="bg-green-50 p-3 rounded-lg">
+            <Package className="h-6 w-6 text-green-600" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">총 박스 사용</p>
+            <p className="text-3xl font-bold">{stats?.totalBoxesUsed ?? 0}</p>
+          </div>
+        </div>
+      </div>
 
-      {stats.length === 0 ? (
-        <div className="py-12 text-center border-2 border-dashed rounded-xl text-gray-400">
-          패킹 이력이 없습니다
+      <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h2 className="font-semibold text-gray-900">최근 출고 배치</h2>
+          <Link
+            to="/outbound/new"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            <Plus className="h-4 w-4" />새 출고
+          </Link>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {sortedStats.map((stat) => (
-            <ProjectStatCard key={stat.projectId} stat={stat} />
-          ))}
-        </div>
-      )}
+
+        {!stats?.recentBatches?.length ? (
+          <div className="px-4 py-12 text-center text-gray-400 text-sm">출고 배치가 없습니다.</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">배치명</th>
+                <th className="px-4 py-3 text-right font-medium text-gray-600">주문 수</th>
+                <th className="px-4 py-3 text-right font-medium text-gray-600">생성일</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {stats.recentBatches.map((batch) => (
+                <tr key={batch.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3">
+                    <Link
+                      to={`/outbound/${batch.id}`}
+                      className="font-medium text-indigo-600 hover:underline"
+                    >
+                      {batch.name}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-right text-gray-600">{batch.orderCount ?? '-'}</td>
+                  <td className="px-4 py-3 text-right text-gray-500">
+                    {new Date(batch.createdAt).toLocaleDateString('ko-KR')}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 };

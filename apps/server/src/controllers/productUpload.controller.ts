@@ -31,12 +31,12 @@ export class ProductUploadController {
   @UseInterceptors(FileInterceptor('file'))
   async parse(
     @UploadedFile() file: Express.Multer.File,
-    @Query('projectId') projectId: string,
+    @Query('groupId') groupId: string,
   ): Promise<ParseProductUploadResponse> {
     if (!file) throw new BadRequestException('File is required');
-    if (!projectId) throw new BadRequestException('projectId is required');
+    if (!groupId) throw new BadRequestException('groupId is required');
 
-    this.logger.log(`Parsing product file: ${file.originalname} for project ${projectId}`);
+    this.logger.log(`Parsing product file: ${file.originalname} for group ${groupId}`);
 
     const data = await this.productUploadService.parseFile(file);
     return { success: true, data };
@@ -49,21 +49,21 @@ export class ProductUploadController {
   async confirm(
     @Body()
     body: {
-      projectId: string;
+      groupId: string;
       rows: Record<string, unknown>[];
       mapping: ParseProductUploadData['mapping'];
     },
   ): Promise<{ success: boolean; data: { imported: number } }> {
-    if (!body.projectId) throw new BadRequestException('projectId is required');
+    if (!body.groupId) throw new BadRequestException('groupId is required');
     if (!body.rows || body.rows.length === 0) throw new BadRequestException('rows are required');
     if (!body.mapping) throw new BadRequestException('mapping is required');
 
     this.logger.log(
-      `Confirming product upload for project ${body.projectId}: ${body.rows.length} rows`,
+      `Confirming product upload for group ${body.groupId}: ${body.rows.length} rows`,
     );
 
     const result = await this.productUploadService.confirmProductUpload(
-      body.projectId,
+      body.groupId,
       body.rows,
       body.mapping,
     );

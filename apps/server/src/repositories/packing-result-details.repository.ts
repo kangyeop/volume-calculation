@@ -25,17 +25,17 @@ export class PackingResultDetailsRepository {
     return await this.repository.save(entities);
   }
 
-  async removeAll(projectId: string): Promise<void> {
-    await this.repository.delete({ projectId });
+  async removeAll(outboundBatchId: string): Promise<void> {
+    await this.repository.delete({ outboundBatchId });
   }
 
   createQueryBuilder(): SelectQueryBuilder<PackingResultDetailEntity> {
     return this.repository.createQueryBuilder('packingResultDetail');
   }
 
-  async findAll(projectId: string): Promise<PackingResultDetailEntity[]> {
+  async findAll(outboundBatchId: string): Promise<PackingResultDetailEntity[]> {
     return await this.repository.find({
-      where: { projectId },
+      where: { outboundBatchId },
       order: { orderId: 'ASC', boxNumber: 'ASC' },
     });
   }

@@ -14,17 +14,17 @@ export class OrdersService {
   ) {}
 
   async findOrCreate(
-    projectId: string,
+    outboundBatchId: string,
     orderId: string,
     quantity?: number,
     recipientName?: string,
     address?: string,
   ): Promise<OrderEntity> {
-    let order = await this.ordersRepository.findOne(projectId, orderId);
+    let order = await this.ordersRepository.findOne(outboundBatchId, orderId);
 
     if (!order) {
       order = await this.ordersRepository.create({
-        projectId,
+        outboundBatchId,
         orderId,
         quantity: quantity || 1,
         recipientName,
@@ -36,12 +36,12 @@ export class OrdersService {
     return order;
   }
 
-  async findByProjectAndOrderId(projectId: string, orderId: string): Promise<OrderEntity> {
-    const order = await this.ordersRepository.findOneWithRelations(projectId, orderId);
+  async findByBatchAndOrderId(outboundBatchId: string, orderId: string): Promise<OrderEntity> {
+    const order = await this.ordersRepository.findOneWithRelations(outboundBatchId, orderId);
 
     if (!order) {
       throw new NotFoundException(
-        `Order with projectId "${projectId}" and orderId "${orderId}" not found`,
+        `Order with batchId "${outboundBatchId}" and orderId "${orderId}" not found`,
       );
     }
 
@@ -49,26 +49,26 @@ export class OrdersService {
   }
 
   @Transactional()
-  async mapProducts(projectId: string, orderId: string): Promise<number> {
-    const order = await this.ordersRepository.findOne(projectId, orderId);
+  async mapProducts(outboundBatchId: string, orderId: string): Promise<number> {
+    const order = await this.ordersRepository.findOne(outboundBatchId, orderId);
 
     if (!order) {
       throw new NotFoundException(
-        `Order with projectId "${projectId}" and orderId "${orderId}" not found`,
+        `Order with batchId "${outboundBatchId}" and orderId "${orderId}" not found`,
       );
     }
 
-    const outbounds = await this.outboundRepository.findAll(projectId);
+    const outbounds = await this.outboundRepository.findAll(outboundBatchId);
 
     let mappedCount = 0;
     for (const outbound of outbounds) {
       if (outbound.orderId !== orderId) continue;
 
-      const products = await this.productsRepository.findBySku(projectId, outbound.sku);
+      const products = await this.productsRepository.findBySkuGlobal(outbound.sku);
 
       if (products.length > 0) {
         const product = products[0];
-        await this.outboundRepository.create(projectId, {
+        await this.outboundRepository.create(outboundBatchId, {
           ...outbound,
           productId: product.id,
         });
@@ -79,8 +79,8 @@ export class OrdersService {
     return mappedCount;
   }
 
-  async calculateVolume(projectId: string, orderId: string): Promise<number> {
-    const order = await this.findByProjectAndOrderId(projectId, orderId);
+  async calculateVolume(outboundBatchId: string, orderId: string): Promise<number> {
+    const order = await this.findByBatchAndOrderId(outboundBatchId, orderId);
 
     let totalCBM = 0;
 

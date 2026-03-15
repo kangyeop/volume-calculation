@@ -17,9 +17,7 @@ test.describe('결과 표시 테스트', () => {
     const totalInfoSection = page.getByTestId('total-info');
 
     const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes('/packing/calculate') &&
-        response.status() !== 404
+      (response) => response.url().includes('/packing/calculate') && response.status() !== 404,
     );
 
     await calculateButton.click();
@@ -33,9 +31,7 @@ test.describe('결과 표시 테스트', () => {
     const totalInfoSection = page.getByTestId('total-info');
 
     const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes('/packing/calculate') &&
-        response.status() !== 404
+      (response) => response.url().includes('/packing/calculate') && response.status() !== 404,
     );
 
     await calculateButton.click();
@@ -52,9 +48,7 @@ test.describe('결과 표시 테스트', () => {
     const efficiencySection = page.getByTestId('efficiency-summary');
 
     const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes('/packing/calculate') &&
-        response.status() !== 404
+      (response) => response.url().includes('/packing/calculate') && response.status() !== 404,
     );
 
     await calculateButton.click();
@@ -68,9 +62,7 @@ test.describe('결과 표시 테스트', () => {
     const boxesSection = page.getByTestId('packing-results');
 
     const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes('/packing/calculate') &&
-        response.status() !== 404
+      (response) => response.url().includes('/packing/calculate') && response.status() !== 404,
     );
 
     await calculateButton.click();

@@ -1,34 +1,34 @@
 import { Controller, Get, Post, Param, ParseUUIDPipe } from '@nestjs/common';
 import { OrdersService } from '../services/orders.service';
 
-@Controller('projects')
+@Controller('outbound-batches')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
-  @Post(':projectId/orders/:orderId/map-products')
+  @Post(':batchId/orders/:orderId/map-products')
   async mapProducts(
-    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Param('batchId', ParseUUIDPipe) batchId: string,
     @Param('orderId') orderId: string,
   ) {
-    const count = await this.ordersService.mapProducts(projectId, orderId);
+    const count = await this.ordersService.mapProducts(batchId, orderId);
     return { success: true, data: { mappedCount: count } };
   }
 
-  @Get(':projectId/orders/:orderId/volume')
+  @Get(':batchId/orders/:orderId/volume')
   async calculateVolume(
-    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Param('batchId', ParseUUIDPipe) batchId: string,
     @Param('orderId') orderId: string,
   ) {
-    const volume = await this.ordersService.calculateVolume(projectId, orderId);
+    const volume = await this.ordersService.calculateVolume(batchId, orderId);
     return { success: true, data: { volume, unit: 'CBM' } };
   }
 
-  @Get(':projectId/orders/:orderId')
-  async findByProjectAndOrderId(
-    @Param('projectId', ParseUUIDPipe) projectId: string,
+  @Get(':batchId/orders/:orderId')
+  async findByBatchAndOrderId(
+    @Param('batchId', ParseUUIDPipe) batchId: string,
     @Param('orderId') orderId: string,
   ) {
-    const order = await this.ordersService.findByProjectAndOrderId(projectId, orderId);
+    const order = await this.ordersService.findByBatchAndOrderId(batchId, orderId);
     return { success: true, data: order };
   }
 }

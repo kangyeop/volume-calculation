@@ -77,7 +77,7 @@ export class ProductUploadService {
   }
 
   async confirmProductUpload(
-    projectId: string,
+    productGroupId: string,
     rows: Record<string, unknown>[],
     mapping: ParseProductUploadData['mapping'],
   ): Promise<{ imported: number }> {
@@ -88,8 +88,10 @@ export class ProductUploadService {
       return { imported: 0 };
     }
 
-    await this.productsService.createBulk(projectId, products);
-    this.logger.log(`Successfully imported ${products.length} products for project ${projectId}`);
+    await this.productsService.createBulk(productGroupId, products);
+    this.logger.log(
+      `Successfully imported ${products.length} products for group ${productGroupId}`,
+    );
 
     return { imported: products.length };
   }

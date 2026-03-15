@@ -4,7 +4,14 @@ import { useOutbounds, useCalculatePacking, useBoxes } from '@/hooks/queries';
 import { ArrowLeft, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { PackingGroupingOption } from '@wms/types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { toast } from 'sonner';
 import type { Outbound } from '@wms/types';
 
@@ -134,7 +141,9 @@ export const OutboundList: React.FC = () => {
                       <TableBody>
                         {items.map((outbound: Outbound) => (
                           <TableRow key={outbound.id} className="hover:bg-white">
-                            <TableCell className="font-mono text-gray-700">{outbound.sku}</TableCell>
+                            <TableCell className="font-mono text-gray-700">
+                              {outbound.sku}
+                            </TableCell>
                             <TableCell className="text-gray-600">{outbound.quantity}</TableCell>
                             <TableCell className="text-gray-500 text-xs">
                               {new Date(outbound.createdAt).toLocaleString('ko-KR')}

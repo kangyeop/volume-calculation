@@ -22,28 +22,25 @@ interface CreateBulkWithFileBody {
 export class OutboundController {
   constructor(private readonly outboundService: OutboundService) {}
 
-  @Post('projects/:projectId/outbounds')
-  create(@Param('projectId') projectId: string, @Body() createOutboundDto: CreateOutboundDto) {
-    return this.outboundService.create(projectId, createOutboundDto);
+  @Post('outbound-batches/:batchId/outbounds')
+  create(@Param('batchId') batchId: string, @Body() createOutboundDto: CreateOutboundDto) {
+    return this.outboundService.create(batchId, createOutboundDto);
   }
 
-  @Get('projects/:projectId/outbounds')
-  findAll(@Param('projectId') projectId: string) {
-    return this.outboundService.findAll(projectId);
+  @Get('outbound-batches/:batchId/outbounds')
+  findAll(@Param('batchId') batchId: string) {
+    return this.outboundService.findAll(batchId);
   }
 
-  @Post('projects/:projectId/outbounds/bulk')
-  createBulk(
-    @Param('projectId') projectId: string,
-    @Body() createOutboundDtos: CreateOutboundDto[],
-  ) {
-    return this.outboundService.createBulk(projectId, createOutboundDtos);
+  @Post('outbound-batches/:batchId/outbounds/bulk')
+  createBulk(@Param('batchId') batchId: string, @Body() createOutboundDtos: CreateOutboundDto[]) {
+    return this.outboundService.createBulk(batchId, createOutboundDtos);
   }
 
-  @Post('projects/:projectId/outbounds/bulk-with-file')
+  @Post('outbound-batches/:batchId/outbounds/bulk-with-file')
   @UseInterceptors(FileInterceptor('file'))
   async createBulkWithFile(
-    @Param('projectId') projectId: string,
+    @Param('batchId') batchId: string,
     @Body() body: CreateBulkWithFileBody,
   ) {
     const createOutboundDtos =
@@ -51,7 +48,7 @@ export class OutboundController {
         ? JSON.parse(body.createOutboundDtos)
         : body.createOutboundDtos || [];
 
-    return this.outboundService.createBulk(projectId, createOutboundDtos);
+    return this.outboundService.createBulk(batchId, createOutboundDtos);
   }
 
   @Delete('outbounds/:id')
@@ -60,9 +57,9 @@ export class OutboundController {
     return this.outboundService.remove(id);
   }
 
-  @Delete('projects/:projectId/outbounds')
+  @Delete('outbound-batches/:batchId/outbounds')
   @HttpCode(HttpStatus.NO_CONTENT)
-  removeAll(@Param('projectId') projectId: string) {
-    return this.outboundService.removeAll(projectId);
+  removeAll(@Param('batchId') batchId: string) {
+    return this.outboundService.removeAll(batchId);
   }
 }

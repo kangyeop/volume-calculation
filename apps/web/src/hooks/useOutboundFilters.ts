@@ -6,9 +6,7 @@ interface FilterOptions {
   sku?: string;
 }
 
-export const useOutboundFilters = (
-  outbounds: Outbound[],
-) => {
+export const useOutboundFilters = (outbounds: Outbound[]) => {
   const [filters, setFilters] = useState<FilterOptions>({});
 
   const filteredOutbounds = useMemo(() => {

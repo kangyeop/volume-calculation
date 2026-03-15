@@ -6,12 +6,24 @@ export const projects = createQueryKeys('projects', {
   stats: null,
 });
 
+export const productGroups = createQueryKeys('productGroups', {
+  all: null,
+  detail: (id: string) => [id],
+});
+
 export const products = createQueryKeys('products', {
   all: (projectId: string) => [projectId],
+  byGroup: (groupId: string) => [groupId, 'group'],
 });
 
 export const outbounds = createQueryKeys('outbounds', {
   all: (projectId: string) => [projectId],
+});
+
+export const outboundBatches = createQueryKeys('outboundBatches', {
+  all: null,
+  detail: (id: string) => [id],
+  outbounds: (batchId: string) => [batchId, 'outbounds'],
 });
 
 export const boxes = createQueryKeys('boxes', {
@@ -21,10 +33,16 @@ export const boxes = createQueryKeys('boxes', {
 export const packing = createQueryKeys('packing', {
   history: (projectId: string) => [projectId, 'history'],
   details: (projectId: string) => [projectId, 'details'],
+  historyByBatch: (batchId: string) => [batchId, 'batch', 'history'],
+  detailsByBatch: (batchId: string) => [batchId, 'batch', 'details'],
 });
 
 export const upload = createQueryKeys('upload', {
   parse: null,
   confirm: null,
   session: (sessionId: string) => [sessionId],
+});
+
+export const dashboard = createQueryKeys('dashboard', {
+  stats: null,
 });

@@ -77,6 +77,7 @@ export const useProductUpload = (projectId: string) => {
           width,
           length,
           height,
+          productGroupId: '',
         });
       }
     });

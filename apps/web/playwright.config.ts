@@ -14,12 +14,12 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-      viewport: { width: 1280, height: 720 },
-      launchOptions: {
-        slowMo: 2500,
-      args: ['--disable-blink-features=AutomationControlled']
-      }
-      }
-    }
-  ]
+        viewport: { width: 1280, height: 720 },
+        launchOptions: {
+          slowMo: 2500,
+          args: ['--disable-blink-features=AutomationControlled'],
+        },
+      },
+    },
+  ],
 });

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Transactional } from 'typeorm-transactional';
-import { OutboundEntity } from '../entities/outbound.entity';
+import { OutboundItemEntity } from '../entities/outbound-item.entity';
 import { CreateOutboundDto } from '../dto/createOutbound.dto';
 import { OrderEntity, OrderStatus } from '../entities/order.entity';
 import { OutboundRepository } from '../repositories/outbound.repository';
@@ -14,26 +14,29 @@ export class OutboundService {
   ) {}
 
   @Transactional()
-  async create(projectId: string, createOutboundDto: CreateOutboundDto): Promise<OutboundEntity> {
-    let order = await this.ordersRepository.findOne(projectId, createOutboundDto.orderId);
+  async create(
+    outboundBatchId: string,
+    createOutboundDto: CreateOutboundDto,
+  ): Promise<OutboundItemEntity> {
+    let order = await this.ordersRepository.findOne(outboundBatchId, createOutboundDto.orderId);
 
     if (!order) {
       order = await this.ordersRepository.create({
-        projectId,
+        outboundBatchId,
         orderId: createOutboundDto.orderId,
         status: OrderStatus.PENDING,
       });
     }
 
-    return await this.outboundRepository.create(projectId, {
+    return await this.outboundRepository.create(outboundBatchId, {
       ...createOutboundDto,
       orderId: order.id,
       orderIdentifier: createOutboundDto.orderId,
     });
   }
 
-  async findAll(projectId: string): Promise<OutboundEntity[]> {
-    return await this.outboundRepository.findAll(projectId);
+  async findAll(outboundBatchId: string): Promise<OutboundItemEntity[]> {
+    return await this.outboundRepository.findAll(outboundBatchId);
   }
 
   async remove(id: string): Promise<void> {
@@ -45,18 +48,18 @@ export class OutboundService {
 
   @Transactional()
   async createBulk(
-    projectId: string,
+    outboundBatchId: string,
     createOutboundDtos: CreateOutboundDto[],
-  ): Promise<{ outbounds: OutboundEntity[] }> {
+  ): Promise<{ outbounds: OutboundItemEntity[] }> {
     const uniqueOrderIds = [...new Set(createOutboundDtos.map((dto) => dto.orderId))];
     const orderMap = new Map<string, OrderEntity>();
 
     for (const orderId of uniqueOrderIds) {
-      let order = await this.ordersRepository.findOne(projectId, orderId);
+      let order = await this.ordersRepository.findOne(outboundBatchId, orderId);
 
       if (!order) {
         order = await this.ordersRepository.create({
-          projectId,
+          outboundBatchId,
           orderId,
           status: OrderStatus.PENDING,
         });
@@ -75,11 +78,11 @@ export class OutboundService {
       };
     });
 
-    const savedOutbounds = await this.outboundRepository.createBulk(projectId, outbounds);
+    const savedOutbounds = await this.outboundRepository.createBulk(outboundBatchId, outbounds);
     return { outbounds: savedOutbounds };
   }
 
-  async removeAll(projectId: string): Promise<void> {
-    await this.outboundRepository.removeAll(projectId);
+  async removeAll(outboundBatchId: string): Promise<void> {
+    await this.outboundRepository.removeAll(outboundBatchId);
   }
 }

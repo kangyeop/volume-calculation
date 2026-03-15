@@ -56,7 +56,13 @@ export class ProjectsService {
       .addGroupBy('p.name')
       .addGroupBy('p.createdAt')
       .addGroupBy('pr.boxName')
-      .getRawMany<{ projectId: string; projectName: string; createdAt: string; boxName: string; boxCount: string }>();
+      .getRawMany<{
+        projectId: string;
+        projectName: string;
+        createdAt: string;
+        boxName: string;
+        boxCount: string;
+      }>();
 
     const statsMap = new Map<string, ProjectStats>();
 

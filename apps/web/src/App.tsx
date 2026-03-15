@@ -1,14 +1,13 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { ProjectLayout } from './components/layout/ProjectLayout';
-import { ProjectList } from './pages/ProjectList';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { GlobalLayout } from './components/layout/GlobalLayout';
 import { Dashboard } from './pages/Dashboard';
-import { ProjectDashboard } from './pages/ProjectDashboard';
-import { ProductManager } from './pages/ProductManager';
-import { OutboundUpload } from './pages/OutboundUpload';
-import { OutboundList } from './pages/OutboundList';
-import { PackingCalculator } from './pages/PackingCalculator';
-import { PackingSummary } from './pages/PackingSummary';
-import { PackingResultHistory } from './pages/PackingResultHistory';
+import { ProductGroupList } from './pages/products/ProductGroupList';
+import { ProductGroupCreate } from './pages/products/ProductGroupCreate';
+import { ProductGroupDetail } from './pages/products/ProductGroupDetail';
+import { OutboundList } from './pages/outbound/OutboundList';
+import { OutboundCreate } from './pages/outbound/OutboundCreate';
+import { OutboundDetail } from './pages/outbound/OutboundDetail';
+import { PackingCalculator } from './pages/outbound/PackingCalculator';
 import { BoxManager } from './pages/BoxManager';
 import { Toaster } from './components/Toaster';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -19,17 +18,17 @@ export function App() {
     <BrowserRouter>
       <ErrorBoundary>
         <Routes>
-          <Route path="/" element={<ProjectList />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/boxes" element={<BoxManager />} />
-          <Route path="/projects/:id" element={<ProjectLayout />}>
-            <Route index element={<ProjectDashboard />} />
-            <Route path="products" element={<ProductManager />} />
-            <Route path="outbound/upload" element={<OutboundUpload />} />
-            <Route path="outbound/list" element={<OutboundList />} />
-            <Route path="packing" element={<PackingCalculator />} />
-            <Route path="packing/summary" element={<PackingSummary />} />
-            <Route path="packing/history" element={<PackingResultHistory />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route element={<GlobalLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/products" element={<ProductGroupList />} />
+            <Route path="/products/new" element={<ProductGroupCreate />} />
+            <Route path="/products/:id" element={<ProductGroupDetail />} />
+            <Route path="/outbound" element={<OutboundList />} />
+            <Route path="/outbound/new" element={<OutboundCreate />} />
+            <Route path="/outbound/:id" element={<OutboundDetail />} />
+            <Route path="/outbound/:id/packing" element={<PackingCalculator />} />
+            <Route path="/boxes" element={<BoxManager />} />
           </Route>
         </Routes>
       </ErrorBoundary>

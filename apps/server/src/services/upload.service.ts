@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { ExcelService } from './excel.service';
 import { AIService } from './ai.service';
 import { UploadRepository } from '../repositories/upload.repository';
-import { OutboundRepository } from '../repositories/outbound.repository';
 import { DataTransformerService } from './dataTransformer.service';
 import { ProductsService } from './products.service';
+import { OutboundBatchService } from './outbound-batch.service';
 import { ConfirmUploadDto, OutboundItemDto } from '../dto/confirmUpload.dto';
-import type { ParseUploadData, OutboundUploadResult } from '@wms/types';
+import type { ParseUploadDataLegacy, OutboundUploadResult, UnmatchedItem } from '@wms/types';
 
 @Injectable()
 export class UploadService {
@@ -14,16 +14,16 @@ export class UploadService {
     private readonly excelService: ExcelService,
     private readonly aiService: AIService,
     private readonly uploadRepository: UploadRepository,
-    private readonly outboundRepository: OutboundRepository,
     private readonly dataTransformerService: DataTransformerService,
     private readonly productsService: ProductsService,
+    private readonly outboundBatchService: OutboundBatchService,
   ) {}
 
   async parseFile(
     file: Express.Multer.File,
-    _projectId: string,
+    _outboundBatchId: string,
     _type: 'outbound' | 'product',
-  ): Promise<ParseUploadData> {
+  ): Promise<ParseUploadDataLegacy> {
     const parseResult = this.excelService.parseExcelFile(file);
 
     const mapping = await this.aiService.mapOutboundColumns(parseResult.headers, parseResult.rows);
@@ -40,17 +40,14 @@ export class UploadService {
 
   async confirmUpload(confirmUploadDto: ConfirmUploadDto): Promise<{ imported: number }> {
     const { outbounds } = await this.uploadRepository.createOutboundsWithOrder(
-      confirmUploadDto.projectId,
+      confirmUploadDto.outboundBatchId,
       confirmUploadDto.outbounds,
     );
 
     return { imported: outbounds.length };
   }
 
-  async uploadAndSaveDirect(
-    file: Express.Multer.File,
-    projectId: string,
-  ): Promise<OutboundUploadResult> {
+  async uploadAndSaveDirect(file: Express.Multer.File): Promise<OutboundUploadResult> {
     const parseResult = this.excelService.parseExcelFile(file);
 
     const mappingResult = await this.aiService.mapOutboundColumns(
@@ -70,7 +67,10 @@ export class UploadService {
       parseResult.rows,
     );
 
-    const unmatched: OutboundUploadResult['unmatched'] = [];
+    const batchName = await this.outboundBatchService.generateBatchName(file.originalname);
+    const batch = await this.outboundBatchService.create(batchName);
+
+    const unmatched: UnmatchedItem[] = [];
     const outbounds: OutboundItemDto[] = [];
     const orderQuantities = new Map<string, number>();
 
@@ -78,9 +78,9 @@ export class UploadService {
       orderQuantities.set(order.orderId, order.quantity);
 
       for (const item of order.outboundItems) {
-        let matchingProducts = await this.productsService.findByName(projectId, item.sku);
+        let matchingProducts = await this.productsService.findByNameGlobal(item.sku);
         if (matchingProducts.length === 0) {
-          matchingProducts = await this.productsService.findBySku(projectId, item.sku);
+          matchingProducts = await this.productsService.findBySkuGlobal(item.sku);
         }
 
         if (matchingProducts.length > 0) {
@@ -91,25 +91,20 @@ export class UploadService {
             productId: matchingProducts[0].id,
           });
         } else {
-          unmatched.push({
-            sku: item.sku,
-            rawValue: item.rawValue,
-            quantity: item.quantity,
-            reason: 'Product not found',
-          });
+          unmatched.push({ sku: item.sku, quantity: item.quantity, reason: 'Product not found' });
         }
       }
     }
 
-    await this.outboundRepository.removeAll(projectId);
-
     if (outbounds.length > 0) {
-      await this.uploadRepository.createOutboundsWithOrder(projectId, outbounds, orderQuantities);
+      await this.uploadRepository.createOutboundsWithOrder(batch.id, outbounds, orderQuantities);
     }
 
     return {
       imported: outbounds.length,
       unmatched,
+      batchName: batch.name,
+      batchId: batch.id,
       totalRows: parseResult.rowCount,
     };
   }

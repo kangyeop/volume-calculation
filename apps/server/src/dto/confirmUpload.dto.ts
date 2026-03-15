@@ -20,7 +20,7 @@ export class OutboundItemDto {
 export class ConfirmUploadDto {
   @IsString()
   @IsNotEmpty()
-  projectId!: string;
+  outboundBatchId!: string;
 
   @IsArray()
   @IsObject({ each: true })

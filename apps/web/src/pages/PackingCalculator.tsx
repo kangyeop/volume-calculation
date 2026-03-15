@@ -104,9 +104,7 @@ export const PackingCalculator: React.FC = () => {
         </div>
       )}
 
-      {history.length > 0 && !result && (
-        <PackingHistory history={history} />
-      )}
+      {history.length > 0 && !result && <PackingHistory history={history} />}
     </div>
   );
 };

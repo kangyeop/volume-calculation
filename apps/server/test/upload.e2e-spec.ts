@@ -13,7 +13,30 @@ describe('Upload E2E 통합 테스트 - 나나시.xlsx 업로드', () => {
           provide: UploadService,
           useValue: {
             parseFile: jest.fn().mockResolvedValue({
-              headers: ['출고주문상태', '매핑여부', '수집일', '주문구분', '쇼핑몰 별칭', '쇼핑몰 주문번호', '총 주문수량', '총 금액', '수취인', '수취인연락처', '수취인연락처2', '우편번호', '주소', '상세주소', '비고', '수집처리 ID', '주문서 상품명', '옵션명', '주문수량', '상품명 / 매핑수량', '연동코드', '수집차단여부'],
+              headers: [
+                '출고주문상태',
+                '매핑여부',
+                '수집일',
+                '주문구분',
+                '쇼핑몰 별칭',
+                '쇼핑몰 주문번호',
+                '총 주문수량',
+                '총 금액',
+                '수취인',
+                '수취인연락처',
+                '수취인연락처2',
+                '우편번호',
+                '주소',
+                '상세주소',
+                '비고',
+                '수집처리 ID',
+                '주문서 상품명',
+                '옵션명',
+                '주문수량',
+                '상품명 / 매핑수량',
+                '연동코드',
+                '수집차단여부',
+              ],
               rowCount: 44,
               sessionId: 'test-session-id',
               mapping: {
@@ -39,21 +62,34 @@ describe('Upload E2E 통합 테스트 - 나나시.xlsx 업로드', () => {
         buffer: Buffer.from('test excel content'),
       } as Express.Multer.File;
 
-      const result = await uploadService.parseFile(
-        mockFile,
-        TEST_PROJECT_ID,
-        'outbound' as any,
-      );
+      const result = await uploadService.parseFile(mockFile, TEST_PROJECT_ID, 'outbound' as any);
 
       expect(result.headers.length).toBeGreaterThan(0);
       expect(result.rowCount).toBe(44);
 
       const expectedHeaders = [
-        '출고주문상태', '매핑여부', '수집일', '주문구분', '쇼핑몰 별칭',
-        '쇼핑몰 주문번호', '총 주문수량', '총 금액', '수취인',
-        '수취인연락처', '수취인연락처2', '우편번호', '주소', '상세주소', '비고',
-        '수집처리 ID', '주문서 상품명', '옵션명', '주문수량',
-        '상품명 / 매핑수량', '연동코드', '수집차단여부',
+        '출고주문상태',
+        '매핑여부',
+        '수집일',
+        '주문구분',
+        '쇼핑몰 별칭',
+        '쇼핑몰 주문번호',
+        '총 주문수량',
+        '총 금액',
+        '수취인',
+        '수취인연락처',
+        '수취인연락처2',
+        '우편번호',
+        '주소',
+        '상세주소',
+        '비고',
+        '수집처리 ID',
+        '주문서 상품명',
+        '옵션명',
+        '주문수량',
+        '상품명 / 매핑수량',
+        '연동코드',
+        '수집차단여부',
       ];
 
       expect(result.headers).toEqual(expect.arrayContaining(expectedHeaders));
@@ -65,11 +101,7 @@ describe('Upload E2E 통합 테스트 - 나나시.xlsx 업로드', () => {
         buffer: Buffer.from('test excel content'),
       } as Express.Multer.File;
 
-      const result = await uploadService.parseFile(
-        mockFile,
-        TEST_PROJECT_ID,
-        'outbound' as any,
-      );
+      const result = await uploadService.parseFile(mockFile, TEST_PROJECT_ID, 'outbound' as any);
 
       expect(result.mapping).toBeDefined();
       expect(result.mapping.mapping).toHaveProperty('orderId');

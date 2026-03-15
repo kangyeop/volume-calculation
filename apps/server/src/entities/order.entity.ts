@@ -1,7 +1,7 @@
 import { Entity, Column, OneToMany, ManyToOne, JoinColumn, Unique } from 'typeorm';
 import { BaseEntity } from '../common/entities/base.entity';
-import { ProjectEntity } from './project.entity';
-import { OutboundEntity } from './outbound.entity';
+import { OutboundBatchEntity } from './outbound-batch.entity';
+import { OutboundItemEntity } from './outbound-item.entity';
 
 export enum OrderStatus {
   PENDING = 'PENDING',
@@ -10,7 +10,7 @@ export enum OrderStatus {
 }
 
 @Entity('orders')
-@Unique(['projectId', 'orderId'])
+@Unique(['outboundBatchId', 'orderId'])
 export class OrderEntity extends BaseEntity {
   @Column()
   orderId!: string;
@@ -31,15 +31,15 @@ export class OrderEntity extends BaseEntity {
   })
   status!: OrderStatus;
 
-  @Column()
-  projectId!: string;
+  @Column('uuid')
+  outboundBatchId!: string;
 
-  @OneToMany(() => OutboundEntity, (outbound) => outbound.order, {
+  @OneToMany(() => OutboundItemEntity, (outbound) => outbound.order, {
     onDelete: 'CASCADE',
   })
-  outbounds!: OutboundEntity[];
+  outbounds!: OutboundItemEntity[];
 
-  @ManyToOne(() => ProjectEntity, (project) => project.orders)
-  @JoinColumn({ name: 'projectId' })
-  project!: ProjectEntity;
+  @ManyToOne(() => OutboundBatchEntity, (batch) => batch.orders)
+  @JoinColumn({ name: 'outboundBatchId' })
+  outboundBatch!: OutboundBatchEntity;
 }

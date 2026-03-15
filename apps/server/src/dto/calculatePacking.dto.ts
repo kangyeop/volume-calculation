@@ -1,7 +1,7 @@
-import { IsEnum } from 'class-validator';
+import { IsIn } from 'class-validator';
 import { PackingGroupingOption } from '@wms/types';
 
 export class CalculatePackingDto {
-  @IsEnum(PackingGroupingOption)
+  @IsIn(['ORDER', 'RECIPIENT', 'ORDER_RECIPIENT'])
   groupingOption!: PackingGroupingOption;
 }

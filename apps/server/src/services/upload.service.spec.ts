@@ -85,7 +85,9 @@ describe('UploadService - 나나시.xlsx 업로드 테스트', () => {
         testProjectId,
       );
 
-      const order = await ordersRepository.findOne({ where: { projectId: testProjectId, orderId: 'ORDER-001' } });
+      const order = await ordersRepository.findOne({
+        where: { projectId: testProjectId, orderId: 'ORDER-001' },
+      });
 
       expect(order?.quantity).toBe(6);
     });
@@ -103,7 +105,7 @@ describe('UploadService - 나나시.xlsx 업로드 테스트', () => {
       );
 
       const outboundCount = await outboundRepository.count({
-        where: { projectId: testProjectId, orderId: 'ORDER-001' }
+        where: { projectId: testProjectId, orderId: 'ORDER-001' },
       });
 
       expect(outboundCount).toBe(2);
@@ -111,7 +113,7 @@ describe('UploadService - 나나시.xlsx 업로드 테스트', () => {
 
     it('productId가 올바르게 연결', async () => {
       const product = await productsRepository.findOne({
-        where: { projectId: testProjectId, sku: '나나시_25생일_쿠션' }
+        where: { projectId: testProjectId, sku: '나나시_25생일_쿠션' },
       });
 
       await service.uploadAndSaveDirect(
@@ -120,7 +122,7 @@ describe('UploadService - 나나시.xlsx 업로드 테스트', () => {
       );
 
       const outbound = await outboundRepository.findOne({
-        where: { projectId: testProjectId, orderId: 'ORDER-001', sku: '나나시_25생일_쿠션' }
+        where: { projectId: testProjectId, orderId: 'ORDER-001', sku: '나나시_25생일_쿠션' },
       });
 
       expect(outbound?.productId).toBe(product?.id);
@@ -139,7 +141,7 @@ describe('UploadService - 나나시.xlsx 업로드 테스트', () => {
       );
 
       const order = await ordersRepository.findOne({
-        where: { projectId: testProjectId, orderId: 'ORDER-FULLSET' }
+        where: { projectId: testProjectId, orderId: 'ORDER-FULLSET' },
       });
 
       expect(order?.quantity).toBe(7);
@@ -207,7 +209,9 @@ describe('UploadService - 나나시.xlsx 업로드 테스트', () => {
     ];
 
     for (const product of testProducts) {
-      const existing = await productsRepository.findOne({ where: { projectId: testProjectId, sku: product.sku } });
+      const existing = await productsRepository.findOne({
+        where: { projectId: testProjectId, sku: product.sku },
+      });
       if (!existing) {
         await productsRepository.save({ ...product, projectId: testProjectId });
       }

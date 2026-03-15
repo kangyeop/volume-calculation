@@ -65,9 +65,7 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes }) =
                   <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
                     Total Boxes
                   </p>
-                  <p className="font-mono font-bold text-indigo-700 text-xl">
-                    {boxGroup.count}
-                  </p>
+                  <p className="font-mono font-bold text-indigo-700 text-xl">{boxGroup.count}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
@@ -118,10 +116,7 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes }) =
                             className="flex justify-between items-center text-sm py-1 border-b border-gray-100 last:border-0"
                           >
                             <div className="flex items-center gap-2 overflow-hidden">
-                              <span
-                                className="font-medium text-gray-900 truncate"
-                                title={sku.name}
-                              >
+                              <span className="font-medium text-gray-900 truncate" title={sku.name}>
                                 {sku.name || 'Unknown Product'}
                               </span>
                               <span className="font-mono text-xs text-gray-500 flex-shrink-0">

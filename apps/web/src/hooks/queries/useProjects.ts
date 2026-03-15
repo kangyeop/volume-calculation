@@ -23,11 +23,7 @@ export function useProject(id: string) {
   });
 }
 
-export function useCreateProject(): UseMutationResult<
-  Project,
-  Error,
-  { name: string }
-> {
+export function useCreateProject(): UseMutationResult<Project, Error, { name: string }> {
   const queryClient = useQueryClient();
 
   return useMutation({

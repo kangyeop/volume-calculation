@@ -42,8 +42,12 @@ export const ProjectList: React.FC = () => {
       <header className="bg-white border-b px-8 py-4 flex justify-between items-center">
         <span className="font-bold text-lg">WMS</span>
         <nav className="flex gap-4">
-          <Link to="/dashboard" className="text-sm text-gray-600 hover:text-gray-900">대시보드</Link>
-          <Link to="/boxes" className="text-sm text-gray-600 hover:text-gray-900">박스 관리</Link>
+          <Link to="/dashboard" className="text-sm text-gray-600 hover:text-gray-900">
+            대시보드
+          </Link>
+          <Link to="/boxes" className="text-sm text-gray-600 hover:text-gray-900">
+            박스 관리
+          </Link>
         </nav>
       </header>
       <div className="container mx-auto p-8 max-w-4xl">

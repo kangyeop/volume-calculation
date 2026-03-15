@@ -3,7 +3,14 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useBoxes } from '@/hooks/queries';
 import { ArrowLeft, ChevronDown, ChevronRight } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import type { PackingRecommendation, PackingGroup } from '@wms/types';
 
 interface BoxSummaryEntry {
@@ -50,8 +57,9 @@ export const PackingSummary: React.FC = () => {
   const location = useLocation();
   const { data: boxes = [] } = useBoxes();
 
-  const recommendation: PackingRecommendation | undefined =
-    (location.state as { recommendation?: PackingRecommendation })?.recommendation;
+  const recommendation: PackingRecommendation | undefined = (
+    location.state as { recommendation?: PackingRecommendation }
+  )?.recommendation;
 
   const boxSummaries = useMemo(() => {
     if (!recommendation) return [];
@@ -120,9 +128,7 @@ export const PackingSummary: React.FC = () => {
                       <div className="flex items-center gap-3">
                         <span className="font-medium text-gray-900">
                           {summary.boxName}
-                          {dims && (
-                            <span className="text-gray-400 font-normal ml-1">({dims})</span>
-                          )}
+                          {dims && <span className="text-gray-400 font-normal ml-1">({dims})</span>}
                         </span>
                         <span className="text-sm text-gray-500">
                           총 {summary.totalCount}개 사용 · {summary.orders.length}건 주문

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
-import { OutboundEntity } from '../entities/outbound.entity';
+import { OutboundItemEntity } from '../entities/outbound-item.entity';
 import { ProductEntity } from '../entities/product.entity';
 import { OrderEntity, OrderStatus } from '../entities/order.entity';
 import { OutboundItemDto } from '../dto/confirmUpload.dto';
@@ -11,8 +11,8 @@ import { CreateProductDto } from '../dto/createProduct.dto';
 @Injectable()
 export class UploadRepository {
   constructor(
-    @InjectRepository(OutboundEntity)
-    private readonly outboundRepository: Repository<OutboundEntity>,
+    @InjectRepository(OutboundItemEntity)
+    private readonly outboundRepository: Repository<OutboundItemEntity>,
     @InjectRepository(ProductEntity)
     private readonly productRepository: Repository<ProductEntity>,
     @InjectRepository(OrderEntity)
@@ -21,22 +21,22 @@ export class UploadRepository {
 
   @Transactional()
   async createOutboundsWithOrder(
-    projectId: string,
+    outboundBatchId: string,
     outbounds: OutboundItemDto[],
     orderQuantities?: Map<string, number>,
-  ): Promise<{ outbounds: OutboundEntity[] }> {
+  ): Promise<{ outbounds: OutboundItemEntity[] }> {
     const uniqueOrderIds = [...new Set(outbounds.map((dto) => dto.orderId))];
     const orderMap = new Map<string, OrderEntity>();
 
     for (const orderId of uniqueOrderIds) {
       let order = await this.orderRepository.findOne({
-        where: { projectId, orderId },
+        where: { outboundBatchId, orderId },
       });
 
       if (!order) {
         const orderQuantity = orderQuantities?.get(orderId) ?? 1;
         order = this.orderRepository.create({
-          projectId,
+          outboundBatchId,
           orderId,
           quantity: orderQuantity,
           status: OrderStatus.PENDING,
@@ -57,7 +57,7 @@ export class UploadRepository {
         return this.outboundRepository.create({
           sku: product ? product.sku : dto.sku,
           quantity: dto.quantity,
-          projectId,
+          outboundBatchId,
           orderId: order.id,
           orderIdentifier: dto.orderId,
           productId: dto.productId ?? null,
@@ -71,13 +71,13 @@ export class UploadRepository {
 
   @Transactional()
   async createProductsWithUpsert(
-    projectId: string,
+    productGroupId: string,
     products: CreateProductDto[],
   ): Promise<ProductEntity[]> {
     const productEntities = products.map((dto) =>
       this.productRepository.create({
         ...dto,
-        projectId,
+        productGroupId,
       }),
     );
 
@@ -86,13 +86,13 @@ export class UploadRepository {
       .insert()
       .into(ProductEntity)
       .values(productEntities)
-      .orUpdate(['name', 'width', 'length', 'height'], ['projectId', 'sku'])
+      .orUpdate(['name', 'width', 'length', 'height'], ['productGroupId', 'sku'])
       .execute();
 
     const skus = products.map((dto) => dto.sku);
     return this.productRepository
       .createQueryBuilder('product')
-      .where('product.projectId = :projectId', { projectId })
+      .where('product.productGroupId = :productGroupId', { productGroupId })
       .andWhere('product.sku IN (:...skus)', { skus })
       .getMany();
   }

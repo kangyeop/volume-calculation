@@ -15,26 +15,26 @@ export class PackingResultsRepository {
     return await this.repository.save(entity);
   }
 
-  async findAll(projectId: string): Promise<PackingResultEntity[]> {
+  async findAll(outboundBatchId: string): Promise<PackingResultEntity[]> {
     return await this.repository.find({
-      where: { projectId },
+      where: { outboundBatchId },
       order: { createdAt: 'DESC' },
     });
   }
 
-  async findByOrderId(projectId: string, orderId: string): Promise<PackingResultEntity[]> {
+  async findByOrderId(outboundBatchId: string, orderId: string): Promise<PackingResultEntity[]> {
     return await this.repository.find({
-      where: { projectId, orderId },
+      where: { outboundBatchId, orderId },
       order: { createdAt: 'DESC' },
     });
   }
 
-  async removeAll(projectId: string): Promise<void> {
-    await this.repository.delete({ projectId });
+  async removeAll(outboundBatchId: string): Promise<void> {
+    await this.repository.delete({ outboundBatchId });
   }
 
-  async removeAllByProjectAndOrder(projectId: string, orderId: string): Promise<void> {
-    await this.repository.delete({ projectId, orderId });
+  async removeAllByBatchAndOrder(outboundBatchId: string, orderId: string): Promise<void> {
+    await this.repository.delete({ outboundBatchId, orderId });
   }
 
   async createBulk(results: Partial<PackingResultEntity>[]): Promise<PackingResultEntity[]> {

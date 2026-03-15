@@ -51,9 +51,7 @@ export const PackingHistory: React.FC<PackingHistoryProps> = ({ history }) => {
               <td className="px-6 py-3 text-right font-mono text-gray-600">
                 {Number(item.totalCBM).toFixed(4)}
               </td>
-              <td className="px-6 py-3 text-right font-mono text-gray-600">
-                {item.packedCount}
-              </td>
+              <td className="px-6 py-3 text-right font-mono text-gray-600">{item.packedCount}</td>
             </tr>
           </tbody>
         </table>

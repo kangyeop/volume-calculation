@@ -17,9 +17,7 @@ test.describe('출고 데이터 업로드', () => {
     const fileInput = page.locator('input[type="file"]');
 
     const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes('/upload/outbound-direct') &&
-        response.status() !== 404
+      (response) => response.url().includes('/upload/outbound-direct') && response.status() !== 404,
     );
 
     await fileInput.setInputFiles({
@@ -40,9 +38,7 @@ test.describe('출고 데이터 업로드', () => {
     const fileInput = page.locator('input[type="file"]');
 
     const responsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes('/upload/outbound-direct') &&
-        response.status() !== 404
+      (response) => response.url().includes('/upload/outbound-direct') && response.status() !== 404,
     );
 
     await fileInput.setInputFiles({

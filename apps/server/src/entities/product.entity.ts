@@ -1,11 +1,10 @@
 import { Entity, Column, ManyToOne, JoinColumn, Unique } from 'typeorm';
 import { BaseEntity } from '../common/entities/base.entity';
-import { ProjectEntity } from './project.entity';
-import { Product } from '@wms/types';
+import { ProductGroupEntity } from './product-group.entity';
 
 @Entity('products')
-@Unique(['project', 'sku'])
-export class ProductEntity extends BaseEntity implements Product {
+@Unique(['productGroup', 'sku'])
+export class ProductEntity extends BaseEntity {
   @Column()
   sku!: string;
 
@@ -45,12 +44,12 @@ export class ProductEntity extends BaseEntity implements Product {
   })
   height!: number;
 
-  @Column()
-  projectId!: string;
+  @Column('uuid')
+  productGroupId!: string;
 
-  @ManyToOne(() => ProjectEntity, (project) => project.products, {
+  @ManyToOne(() => ProductGroupEntity, (group) => group.products, {
     onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: 'projectId' })
-  project!: ProjectEntity;
+  @JoinColumn({ name: 'productGroupId' })
+  productGroup!: ProductGroupEntity;
 }

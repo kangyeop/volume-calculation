@@ -1,9 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Package, Download, ChevronDown, ChevronRight } from 'lucide-react';
 import { usePackingHistory, usePackingDetails, useExportPacking } from '@/hooks/queries/usePacking';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import type { PackingResultDetail } from '@wms/types';
 
 export const PackingResultHistory: React.FC = () => {
@@ -20,16 +27,11 @@ export const PackingResultHistory: React.FC = () => {
   const packed = details.filter((d) => !d.unpacked);
   const unpacked = details.filter((d) => d.unpacked);
 
-  const boxNames = useMemo(() => {
-    return Array.from(new Set(packed.map((d) => d.boxName))).sort();
-  }, [packed]);
+  const boxNames = Array.from(new Set(packed.map((d) => d.boxName))).sort();
 
-  const filteredPacked = useMemo(() => {
-    if (!selectedBox) return packed;
-    return packed.filter((d) => d.boxName === selectedBox);
-  }, [packed, selectedBox]);
+  const filteredPacked = selectedBox ? packed.filter((d) => d.boxName === selectedBox) : packed;
 
-  const groupedOrders = useMemo(() => {
+  const groupedOrders = (() => {
     const orderMap = new Map<string, Map<string, PackingResultDetail[]>>();
 
     for (const item of filteredPacked) {
@@ -45,7 +47,7 @@ export const PackingResultHistory: React.FC = () => {
     }
 
     return Array.from(orderMap.entries()).sort(([a], [b]) => a.localeCompare(b));
-  }, [filteredPacked]);
+  })();
 
   const boxUsage = packed.reduce<Record<string, Set<string>>>((acc, item) => {
     if (!acc[item.boxName]) acc[item.boxName] = new Set();
@@ -62,9 +64,7 @@ export const PackingResultHistory: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
-        Loading...
-      </div>
+      <div className="flex items-center justify-center h-64 text-muted-foreground">Loading...</div>
     );
   }
 

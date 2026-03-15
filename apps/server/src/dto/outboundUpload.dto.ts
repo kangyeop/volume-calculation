@@ -47,6 +47,18 @@ export class OutboundUploadResultDto implements OutboundUploadResult {
     example: 110,
   })
   totalRows!: number;
+
+  @ApiProperty({
+    description: 'Name of the batch',
+    example: 'Batch 2024-01-01',
+  })
+  batchName!: string;
+
+  @ApiProperty({
+    description: 'ID of the batch',
+    example: 'uuid-here',
+  })
+  batchId!: string;
 }
 
 export class OutboundUploadResultResponseDto {

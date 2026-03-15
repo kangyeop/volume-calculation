@@ -9,12 +9,16 @@ import { ProductsRepository } from '../repositories/products.repository';
 export class ProductsService {
   constructor(private readonly productsRepository: ProductsRepository) {}
 
-  async create(projectId: string, createProductDto: CreateProductDto): Promise<ProductEntity> {
-    return await this.productsRepository.create(projectId, createProductDto);
+  async create(productGroupId: string, createProductDto: CreateProductDto): Promise<ProductEntity> {
+    return await this.productsRepository.create(productGroupId, createProductDto);
   }
 
-  async findAll(projectId: string): Promise<ProductEntity[]> {
-    return await this.productsRepository.findAll(projectId);
+  async findAll(productGroupId: string): Promise<ProductEntity[]> {
+    return await this.productsRepository.findAll(productGroupId);
+  }
+
+  async findAllForMatching(): Promise<ProductEntity[]> {
+    return await this.productsRepository.findAllGlobal();
   }
 
   async findOne(id: string): Promise<ProductEntity> {
@@ -36,20 +40,28 @@ export class ProductsService {
     }
   }
 
-  async findBySku(projectId: string, sku: string): Promise<ProductEntity[]> {
-    return await this.productsRepository.findBySku(projectId, sku);
+  async findBySku(productGroupId: string, sku: string): Promise<ProductEntity[]> {
+    return await this.productsRepository.findBySku(productGroupId, sku);
   }
 
-  async findByName(projectId: string, name: string): Promise<ProductEntity[]> {
-    return await this.productsRepository.findByName(projectId, name);
+  async findBySkuGlobal(sku: string): Promise<ProductEntity[]> {
+    return await this.productsRepository.findBySkuGlobal(sku);
+  }
+
+  async findByName(productGroupId: string, name: string): Promise<ProductEntity[]> {
+    return await this.productsRepository.findByName(productGroupId, name);
+  }
+
+  async findByNameGlobal(name: string): Promise<ProductEntity[]> {
+    return await this.productsRepository.findByNameGlobal(name);
   }
 
   @Transactional()
   async createBulk(
-    projectId: string,
+    productGroupId: string,
     createProductDtos: CreateProductDto[],
   ): Promise<ProductEntity[]> {
-    return await this.productsRepository.createBulk(projectId, createProductDtos);
+    return await this.productsRepository.createBulk(productGroupId, createProductDtos);
   }
 
   async removeBulk(ids: string[]): Promise<void> {

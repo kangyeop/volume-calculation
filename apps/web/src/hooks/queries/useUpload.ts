@@ -2,11 +2,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { outbounds, products } from './queryKeys';
-import type { ParseUploadResponse, ConfirmUploadResponse, ProductMappingData } from '@wms/types';
+import type { ParseUploadData, ConfirmUploadResponse, ProductMappingData } from '@wms/types';
 
 export function useUploadParse() {
   return useMutation<
-    ParseUploadResponse['data'],
+    ParseUploadData,
     Error,
     { file: File; type: 'outbound' | 'product'; projectId: string }
   >({
@@ -27,7 +27,7 @@ export function useUploadParse() {
     },
     onSuccess: (data) => {
       toast.success('분석 완료', {
-        description: `AI가 ${data.rowCount}개의 데이터를 분석했습니다.`,
+        description: `AI가 ${data.rows.length}개의 데이터를 분석했습니다.`,
       });
     },
     onError: (error) => {

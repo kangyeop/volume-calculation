@@ -7,7 +7,7 @@ import { PackingController } from '../controllers/packing.controller';
 import { ExcelService } from '../services/excel.service';
 import { ProductsModule } from './products.module';
 import { OutboundModule } from './outbound.module';
-import { ProjectsModule } from './projects.module';
+import { OutboundBatchModule } from './outbound-batch.module';
 import { BoxesModule } from './boxes.module';
 import { UploadModule } from './upload.module';
 import { PackingResultsRepository } from '../repositories/packing-results.repository';
@@ -18,7 +18,7 @@ import { PackingResultDetailsRepository } from '../repositories/packing-result-d
     TypeOrmModule.forFeature([PackingResultEntity, PackingResultDetailEntity]),
     ProductsModule,
     OutboundModule,
-    ProjectsModule,
+    OutboundBatchModule,
     BoxesModule,
     forwardRef(() => UploadModule),
   ],

@@ -1,5 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ColumnMapping, MappingResult, ParseUploadResponse, ParseUploadData } from '@wms/types';
+import {
+  ColumnMapping,
+  MappingResult,
+  ParseUploadResponse,
+  ParseUploadDataLegacy,
+} from '@wms/types';
 
 export class ColumnMappingDto implements ColumnMapping {
   @ApiProperty({
@@ -34,7 +39,7 @@ export class MappingResultDto implements MappingResult {
   notes?: string;
 }
 
-export class ParseUploadDataDto implements ParseUploadData {
+export class ParseUploadDataDto implements ParseUploadDataLegacy {
   @ApiProperty({
     description: 'Session ID for subsequent requests',
     example: '550e8400-e29b-41d4-a716-446655440000',
