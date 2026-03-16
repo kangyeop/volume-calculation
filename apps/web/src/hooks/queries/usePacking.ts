@@ -8,39 +8,15 @@ import { api } from '@/lib/api';
 import { packing } from './queryKeys';
 import type { PackingGroupingOption, PackingRecommendation, PackingResult3D } from '@wms/types';
 
-export function usePackingHistory(projectId: string) {
+export function usePackingHistory(batchId: string) {
   return useQuery({
-    ...packing.history(projectId),
-    queryFn: () => api.packing.history(projectId),
-    enabled: !!projectId,
-  });
-}
-
-export function usePackingHistoryByBatch(batchId: string) {
-  return useQuery({
-    ...packing.historyByBatch(batchId),
-    queryFn: () => api.packing.historyByBatch(batchId),
+    ...packing.history(batchId),
+    queryFn: () => api.packing.history(batchId),
     enabled: !!batchId,
   });
 }
 
 export function useCalculatePacking(): UseMutationResult<
-  PackingRecommendation,
-  Error,
-  { projectId: string; groupingOption?: string }
-> {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ projectId, groupingOption }) =>
-      api.packing.calculate(projectId, groupingOption as PackingGroupingOption),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: packing.history._def });
-    },
-  });
-}
-
-export function useCalculatePackingByBatch(): UseMutationResult<
   PackingRecommendation,
   Error,
   { batchId: string; groupingOption?: string }
@@ -49,9 +25,9 @@ export function useCalculatePackingByBatch(): UseMutationResult<
 
   return useMutation({
     mutationFn: ({ batchId, groupingOption }) =>
-      api.packing.calculateByBatch(batchId, groupingOption as PackingGroupingOption),
+      api.packing.calculate(batchId, groupingOption as PackingGroupingOption),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: packing.historyByBatch._def });
+      queryClient.invalidateQueries({ queryKey: packing.history._def });
     },
   });
 }
@@ -59,13 +35,13 @@ export function useCalculatePackingByBatch(): UseMutationResult<
 export function useCalculateOrderPacking(): UseMutationResult<
   PackingResult3D,
   Error,
-  { projectId: string; orderId: string; groupLabel?: string }
+  { batchId: string; orderId: string; groupLabel?: string }
 > {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ projectId, orderId, groupLabel }) =>
-      api.packing.calculateOrder(projectId, orderId, groupLabel),
+    mutationFn: ({ batchId, orderId, groupLabel }) =>
+      api.packing.calculateOrder(batchId, orderId, groupLabel),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: packing.history._def });
       queryClient.invalidateQueries({ queryKey: packing.details._def });
@@ -73,30 +49,16 @@ export function useCalculateOrderPacking(): UseMutationResult<
   });
 }
 
-export function useExportPacking(): UseMutationResult<void, Error, { projectId: string }> {
+export function useExportPacking(): UseMutationResult<void, Error, { batchId: string }> {
   return useMutation({
-    mutationFn: ({ projectId }) => api.packing.export(projectId),
+    mutationFn: ({ batchId }) => api.packing.export(batchId),
   });
 }
 
-export function useExportPackingByBatch(): UseMutationResult<void, Error, { batchId: string }> {
-  return useMutation({
-    mutationFn: ({ batchId }) => api.packing.exportByBatch(batchId),
-  });
-}
-
-export function usePackingDetails(projectId: string) {
+export function usePackingDetails(batchId: string) {
   return useQuery({
-    ...packing.details(projectId),
-    queryFn: () => api.packing.details(projectId),
-    enabled: !!projectId,
-  });
-}
-
-export function usePackingDetailsByBatch(batchId: string) {
-  return useQuery({
-    ...packing.detailsByBatch(batchId),
-    queryFn: () => api.packing.detailsByBatch(batchId),
+    ...packing.details(batchId),
+    queryFn: () => api.packing.details(batchId),
     enabled: !!batchId,
   });
 }

@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
+  usePackingHistory,
+  useCalculatePacking,
+  useExportPacking,
   useBoxes,
-  usePackingHistoryByBatch,
-  useCalculatePackingByBatch,
-  useExportPackingByBatch,
 } from '@/hooks/queries';
 import { usePackingNormalizer } from '@/hooks/usePackingNormalizer';
 import type { PackingCalculationResult } from '@/hooks/usePackingNormalizer';
@@ -19,9 +19,9 @@ import { PackingGroupingOption, PackingRecommendation } from '@wms/types';
 export const PackingCalculator: React.FC = () => {
   const { id: batchId } = useParams<{ id: string }>();
   const { data: boxes = [] } = useBoxes();
-  const { data: history = [] } = usePackingHistoryByBatch(batchId || '');
-  const calculatePacking = useCalculatePackingByBatch();
-  const exportPacking = useExportPackingByBatch();
+  const { data: history = [] } = usePackingHistory(batchId || '');
+  const calculatePacking = useCalculatePacking();
+  const exportPacking = useExportPacking();
 
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PackingRecommendation | PackingCalculationResult | null>(

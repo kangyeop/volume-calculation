@@ -113,8 +113,7 @@ describe('Upload E2E 통합 테스트 - 나나시.xlsx 업로드', () => {
   describe('데이터 변환 테스트: Excel 파싱 후 SKU 그룹화', () => {
     it('묶음 상품이 한 SKU에 병합되는지 확인', async () => {
       const result = await uploadService.uploadAndSaveDirect(
-        { buffer: Buffer.from('test excel content'), originalname: '나나시.xlsx' } as any,
-        TEST_PROJECT_ID,
+        { buffer: Buffer.from('test excel content'), originalname: '나나시.xlsx' } as any
       );
 
       expect(result.imported).toBeGreaterThan(0);
@@ -137,8 +136,7 @@ describe('Upload E2E 통합 테스트 - 나나시.xlsx 업로드', () => {
       expect(parseResult.sessionId).toBeDefined();
 
       const uploadResult = await uploadService.uploadAndSaveDirect(
-        { buffer: Buffer.from('test excel content'), originalname: '나나시.xlsx' } as any,
-        TEST_PROJECT_ID,
+        { buffer: Buffer.from('test excel content'), originalname: '나나시.xlsx' } as any
       );
 
       expect(uploadResult.imported).toBe(140);

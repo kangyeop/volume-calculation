@@ -8,7 +8,6 @@ import {
   PackingGroupingOption,
   Box,
   PackingResult3D,
-  ParseUploadData,
   ParseProductUploadData,
   ApiResponse,
   ProductMappingData,
@@ -110,22 +109,22 @@ export const api = {
       }),
   },
   outbound: {
-    list: (projectId: string) => fetchApi<Outbound[]>(`/projects/${projectId}/outbounds`),
-    create: (projectId: string, outbound: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>) =>
-      fetchApi<Outbound>(`/projects/${projectId}/outbounds`, {
+    list: (batchId: string) => fetchApi<Outbound[]>(`/outbound-batches/${batchId}/outbounds`),
+    create: (batchId: string, outbound: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>) =>
+      fetchApi<Outbound>(`/outbound-batches/${batchId}/outbounds`, {
         method: 'POST',
         data: outbound,
       }),
     createBulk: (
-      projectId: string,
+      batchId: string,
       outbounds: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[],
     ) =>
-      fetchApi<void>(`/projects/${projectId}/outbounds/bulk`, {
+      fetchApi<void>(`/outbound-batches/${batchId}/outbounds/bulk`, {
         method: 'POST',
         data: outbounds,
       }),
     createBulkWithFile: (
-      projectId: string,
+      batchId: string,
       file: File,
       createOutboundDtos: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[],
     ): Promise<void> => {
@@ -133,20 +132,10 @@ export const api = {
       formData.append('file', file);
       formData.append('createOutboundDtos', JSON.stringify(createOutboundDtos));
 
-      return apiClient.post(`/projects/${projectId}/outbounds/bulk-with-file`, formData);
+      return apiClient.post(`/outbound-batches/${batchId}/outbounds/bulk-with-file`, formData);
     },
-    deleteAll: (projectId: string) =>
-      fetchApi<void>(`/projects/${projectId}/outbounds`, { method: 'DELETE' }),
-    uploadDirect: (projectId: string, file: File): Promise<OutboundUploadResult> => {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      return apiClient
-        .post<
-          ApiResponse<OutboundUploadResult>
-        >(`/upload/outbound-direct?projectId=${encodeURIComponent(projectId)}`, formData)
-        .then(unwrapResponse);
-    },
+    deleteAll: (batchId: string) =>
+      fetchApi<void>(`/outbound-batches/${batchId}/outbounds`, { method: 'DELETE' }),
   },
   outboundBatches: {
     list: () => fetchApi<OutboundBatch[]>('/outbound-batches'),
@@ -157,22 +146,21 @@ export const api = {
       formData.append('file', file);
 
       return apiClient
-        .post<ApiResponse<OutboundBatch>>('/outbound-batches/upload', formData)
-        .then(unwrapResponse);
+        .post<ApiResponse<OutboundUploadResult>>('/upload/outbound-direct', formData)
+        .then(unwrapResponse)
+        .then((res: OutboundUploadResult) => ({
+          id: res.batchId,
+          name: res.batchName,
+          orderCount: res.imported,
+          itemCount: 0,
+          createdAt: new Date().toISOString()
+        }));
     },
     listOutbounds: (batchId: string) =>
       fetchApi<Outbound[]>(`/outbound-batches/${batchId}/outbounds`),
   },
   packing: {
     calculate: (
-      projectId: string,
-      groupingOption: PackingGroupingOption = PackingGroupingOption.ORDER,
-    ) =>
-      fetchApi<PackingRecommendation>(`/projects/${projectId}/packing/calculate`, {
-        method: 'POST',
-        data: { groupingOption },
-      }),
-    calculateByBatch: (
       batchId: string,
       groupingOption: PackingGroupingOption = PackingGroupingOption.ORDER,
     ) =>
@@ -180,37 +168,17 @@ export const api = {
         method: 'POST',
         data: { groupingOption },
       }),
-    calculateOrder: async (projectId: string, orderId: string, groupLabel?: string) => {
-      return fetchApi<PackingResult3D>(`/projects/${projectId}/packing/calculate-order`, {
+    calculateOrder: async (batchId: string, orderId: string, groupLabel?: string) => {
+      return fetchApi<PackingResult3D>(`/outbound-batches/${batchId}/packing/calculate-order`, {
         method: 'POST',
         data: { orderId, groupLabel },
       });
     },
-    history: (projectId: string) =>
-      fetchApi<PackingResult[]>(`/projects/${projectId}/packing/results`),
-    historyByBatch: (batchId: string) =>
+    history: (batchId: string) =>
       fetchApi<PackingResult[]>(`/outbound-batches/${batchId}/packing/results`),
-    details: (projectId: string) =>
-      fetchApi<PackingResultDetail[]>(`/projects/${projectId}/packing/details`),
-    detailsByBatch: (batchId: string) =>
+    details: (batchId: string) =>
       fetchApi<PackingResultDetail[]>(`/outbound-batches/${batchId}/packing/details`),
-    export: (projectId: string) => {
-      return apiClient
-        .get(`/projects/${projectId}/packing/export`, {
-          responseType: 'blob',
-        })
-        .then((response) => {
-          const url = window.URL.createObjectURL(response.data);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `packing_results_${projectId}.xlsx`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          window.URL.revokeObjectURL(url);
-        });
-    },
-    exportByBatch: (batchId: string) => {
+    export: (batchId: string) => {
       return apiClient
         .get(`/outbound-batches/${batchId}/packing/export`, {
           responseType: 'blob',
@@ -237,28 +205,8 @@ export const api = {
     delete: (id: string) => fetchApi<void>(`/boxes/${id}`, { method: 'DELETE' }),
   },
   upload: {
-    parse: (
-      file: File,
-      type: 'outbound' | 'product',
-      projectId: string,
-    ): Promise<ParseUploadData> => {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      return apiClient
-        .post<
-          ApiResponse<ParseUploadData>
-        >(`/upload/parse?type=${encodeURIComponent(type)}&projectId=${encodeURIComponent(projectId)}`, formData)
-        .then((response) => {
-          if (!response.data.success) {
-            throw new Error(response.data.message || response.data.error || 'API request failed');
-          }
-          return response.data.data;
-        });
-    },
-
     confirm: async (
-      projectId: string,
+      outboundBatchId: string,
       outbounds: Array<{
         orderId: string;
         sku: string;
@@ -267,33 +215,32 @@ export const api = {
       }>,
     ): Promise<{ imported: number }> => {
       const response = await apiClient.post<ApiResponse<{ imported: number }>>(`/upload/confirm`, {
-        projectId,
+        outboundBatchId,
         outbounds,
       });
       return unwrapResponse({ data: response.data });
     },
 
     mapProducts: async (
-      projectId: string,
       columnMapping: Record<string, string | null>,
       rows: Record<string, unknown>[],
     ): Promise<ProductMappingData> => {
       const response = await apiClient.post<ApiResponse<ProductMappingData>>(
         `/upload/map-products`,
-        { projectId, columnMapping, rows },
+        { columnMapping, rows },
       );
       return unwrapResponse({ data: response.data });
     },
   },
   productUpload: {
-    parse: (file: File, projectId: string): Promise<ParseProductUploadData> => {
+    parse: (file: File, groupId: string): Promise<ParseProductUploadData> => {
       const formData = new FormData();
       formData.append('file', file);
 
       return apiClient
         .post<
           ApiResponse<ParseProductUploadData>
-        >(`/product-upload/parse?projectId=${encodeURIComponent(projectId)}`, formData)
+        >(`/product-upload/parse?groupId=${encodeURIComponent(groupId)}`, formData)
         .then((response) => {
           if (!response.data.success) {
             throw new Error(response.data.message || response.data.error || 'API request failed');
@@ -303,13 +250,13 @@ export const api = {
     },
 
     confirm: async (
-      projectId: string,
+      groupId: string,
       rows: Record<string, unknown>[],
       mapping: ParseProductUploadData['mapping'],
     ): Promise<{ imported: number }> => {
       const response = await apiClient.post<ApiResponse<{ imported: number }>>(
         `/product-upload/confirm`,
-        { projectId, rows, mapping },
+        { groupId, rows, mapping },
       );
       return unwrapResponse({ data: response.data });
     },

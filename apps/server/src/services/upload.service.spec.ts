@@ -3,17 +3,21 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UploadService } from './upload.service';
 import { OrderEntity, OrderStatus } from '../entities/order.entity';
-import { OutboundEntity } from '../entities/outbound.entity';
+import { OutboundItemEntity } from '../entities/outbound-item.entity';
 import { ProductEntity } from '../entities/product.entity';
+import { ProductGroupEntity } from '../entities/product-group.entity';
+import { OutboundBatchEntity } from '../entities/outbound-batch.entity';
 
 // @ts-ignore
 describe('UploadService - 나나시.xlsx 업로드 테스트', () => {
   let service: UploadService;
   let ordersRepository: Repository<OrderEntity>;
-  let outboundRepository: Repository<OutboundEntity>;
+  let outboundRepository: Repository<OutboundItemEntity>;
   let productsRepository: Repository<ProductEntity>;
+  let productGroupRepository: Repository<ProductGroupEntity>;
+  let outboundBatchRepository: Repository<OutboundBatchEntity>;
 
-  const testProjectId = 'test-project-001';
+  let testGroupId = 'e1de7bca-90d2-45af-bbda-39281a1795bc';
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -24,11 +28,19 @@ describe('UploadService - 나나시.xlsx 업로드 테스트', () => {
           useClass: Repository,
         },
         {
-          provide: getRepositoryToken(OutboundEntity),
+          provide: getRepositoryToken(OutboundItemEntity),
           useClass: Repository,
         },
         {
           provide: getRepositoryToken(ProductEntity),
+          useClass: Repository,
+        },
+        {
+          provide: getRepositoryToken(ProductGroupEntity),
+          useClass: Repository,
+        },
+        {
+          provide: getRepositoryToken(OutboundBatchEntity),
           useClass: Repository,
         },
       ],
@@ -36,14 +48,18 @@ describe('UploadService - 나나시.xlsx 업로드 테스트', () => {
 
     service = module.get<UploadService>(UploadService);
     ordersRepository = module.get<Repository<OrderEntity>>(getRepositoryToken(OrderEntity));
-    outboundRepository = module.get<Repository<OutboundEntity>>(getRepositoryToken(OutboundEntity));
+    outboundRepository = module.get<Repository<OutboundItemEntity>>(getRepositoryToken(OutboundItemEntity));
     productsRepository = module.get<Repository<ProductEntity>>(getRepositoryToken(ProductEntity));
+    productGroupRepository = module.get<Repository<ProductGroupEntity>>(getRepositoryToken(ProductGroupEntity));
+    outboundBatchRepository = module.get<Repository<OutboundBatchEntity>>(getRepositoryToken(OutboundBatchEntity));
   });
 
   afterEach(async () => {
     await ordersRepository.delete({});
     await outboundRepository.delete({});
     await productsRepository.delete({});
+    await productGroupRepository.delete({});
+    await outboundBatchRepository.delete({});
   });
 
   describe('나나시.xlsx Order 등록 테스트', () => {
@@ -59,12 +75,11 @@ describe('UploadService - 나나시.xlsx 업로드 테스트', () => {
     });
 
     it('여러 주문에서 동일한 orderId는 하나의 Order로 생성', async () => {
-      await service.uploadAndSaveDirect(
+      const result = await service.uploadAndSaveDirect(
         { buffer: Buffer.from('test'), originalname: 'test.xlsx' } as any,
-        testProjectId,
       );
 
-      const orders = await ordersRepository.find({ where: { projectId: testProjectId } });
+      const orders = await ordersRepository.find({ where: { outboundBatchId: result.batchId } });
 
       expect(orders).toHaveLength(nanasiOrderIds.length);
 
@@ -80,13 +95,12 @@ describe('UploadService - 나나시.xlsx 업로드 테스트', () => {
     });
 
     it('Order 생성 시 동일 orderId의 quantity를 합산', async () => {
-      await service.uploadAndSaveDirect(
+      const result = await service.uploadAndSaveDirect(
         { buffer: Buffer.from('test'), originalname: 'test.xlsx' } as any,
-        testProjectId,
       );
 
       const order = await ordersRepository.findOne({
-        where: { projectId: testProjectId, orderId: 'ORDER-001' },
+        where: { outboundBatchId: result.batchId, orderId: 'ORDER-001' },
       });
 
       expect(order?.quantity).toBe(6);
@@ -99,13 +113,12 @@ describe('UploadService - 나나시.xlsx 업로드 테스트', () => {
     });
 
     it('모든 outbound 아이템이 데이터베이스에 저장', async () => {
-      await service.uploadAndSaveDirect(
+      const result = await service.uploadAndSaveDirect(
         { buffer: Buffer.from('test'), originalname: 'test.xlsx' } as any,
-        testProjectId,
       );
 
       const outboundCount = await outboundRepository.count({
-        where: { projectId: testProjectId, orderId: 'ORDER-001' },
+        where: { outboundBatchId: result.batchId, orderId: 'ORDER-001' },
       });
 
       expect(outboundCount).toBe(2);
@@ -113,16 +126,15 @@ describe('UploadService - 나나시.xlsx 업로드 테스트', () => {
 
     it('productId가 올바르게 연결', async () => {
       const product = await productsRepository.findOne({
-        where: { projectId: testProjectId, sku: '나나시_25생일_쿠션' },
+        where: { productGroupId: testGroupId, sku: '나나시_25생일_쿠션' },
       });
 
-      await service.uploadAndSaveDirect(
+      const result = await service.uploadAndSaveDirect(
         { buffer: Buffer.from('test'), originalname: 'test.xlsx' } as any,
-        testProjectId,
       );
 
       const outbound = await outboundRepository.findOne({
-        where: { projectId: testProjectId, orderId: 'ORDER-001', sku: '나나시_25생일_쿠션' },
+        where: { outboundBatchId: result.batchId, orderId: 'ORDER-001', sku: '나나시_25생일_쿠션' },
       });
 
       expect(outbound?.productId).toBe(product?.id);
@@ -135,13 +147,12 @@ describe('UploadService - 나나시.xlsx 업로드 테스트', () => {
     });
 
     it('풀 세트 (7개 아이템) 주문 처리', async () => {
-      await service.uploadAndSaveDirect(
+      const result = await service.uploadAndSaveDirect(
         { buffer: Buffer.from('test'), originalname: 'test.xlsx' } as any,
-        testProjectId,
       );
 
       const order = await ordersRepository.findOne({
-        where: { projectId: testProjectId, orderId: 'ORDER-FULLSET' },
+        where: { outboundBatchId: result.batchId, orderId: 'ORDER-FULLSET' },
       });
 
       expect(order?.quantity).toBe(7);
@@ -149,6 +160,11 @@ describe('UploadService - 나나시.xlsx 업로드 테스트', () => {
   });
 
   async function setupTestProducts(): Promise<void> {
+    await productGroupRepository.save({
+       id: testGroupId,
+       name: 'test-group'
+    });
+
     const testProducts = [
       {
         sku: '나나시_25생일_쿠션',
@@ -210,10 +226,10 @@ describe('UploadService - 나나시.xlsx 업로드 테스트', () => {
 
     for (const product of testProducts) {
       const existing = await productsRepository.findOne({
-        where: { projectId: testProjectId, sku: product.sku },
+        where: { productGroupId: testGroupId, sku: product.sku },
       });
       if (!existing) {
-        await productsRepository.save({ ...product, projectId: testProjectId });
+        await productsRepository.save({ ...product, productGroupId: testGroupId });
       }
     }
   }
