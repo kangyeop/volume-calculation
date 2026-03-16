@@ -1,25 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import {
-  usePackingHistory,
-  useCalculatePacking,
-  useExportPacking,
-  useBoxes,
-} from '@/hooks/queries';
+import { Download } from 'lucide-react';
+import { useCalculatePacking, useExportPacking, useBoxes } from '@/hooks/queries';
 import { usePackingNormalizer } from '@/hooks/usePackingNormalizer';
 import type { PackingCalculationResult } from '@/hooks/usePackingNormalizer';
-import { PackingControls } from '@/components/packing/PackingControls';
 import { PackingSummaryCards } from '@/components/packing/PackingSummaryCards';
 import { BoxGroupList } from '@/components/packing/BoxGroupList';
 import { UnpackedItemsAlert } from '@/components/packing/UnpackedItemsAlert';
-import { PackingHistory } from '@/components/packing/PackingHistory';
 import { PackingGroupingOption, PackingRecommendation } from '@wms/types';
 
 export const PackingCalculator: React.FC = () => {
   const { id: batchId } = useParams<{ id: string }>();
   const { data: boxes = [] } = useBoxes();
-  const { data: history = [] } = usePackingHistory(batchId || '');
   const calculatePacking = useCalculatePacking();
   const exportPacking = useExportPacking();
 
@@ -27,39 +20,33 @@ export const PackingCalculator: React.FC = () => {
   const [result, setResult] = useState<PackingRecommendation | PackingCalculationResult | null>(
     null,
   );
-  const [groupingOption, setGroupingOption] = useState<PackingGroupingOption>(
-    PackingGroupingOption.ORDER,
-  );
+  const hasCalculated = useRef(false);
 
   const { normalizedBoxes, unpackedItems } = usePackingNormalizer(result);
 
-  const handleCalculate = async () => {
-    if (!batchId) return;
-    setLoading(true);
-    try {
-      if (!boxes || boxes.length === 0) {
-        toast.error('박스가 없습니다', {
-          description: '박스 관리 메뉴에서 박스를 먼저 등록해주세요.',
-        });
-        setLoading(false);
-        return;
-      }
+  useEffect(() => {
+    if (!batchId || hasCalculated.current) return;
+    if (boxes.length === 0) return;
 
-      const data = await calculatePacking.mutateAsync({
-        batchId,
-        groupingOption,
+    hasCalculated.current = true;
+    setLoading(true);
+
+    calculatePacking
+      .mutateAsync({ batchId, groupingOption: PackingGroupingOption.ORDER })
+      .then((data) => {
+        setResult(data);
+      })
+      .catch((error: unknown) => {
+        const message =
+          error instanceof Error
+            ? error.message
+            : '계산에 실패했습니다. 상품 및 출고 목록이 등록되어 있는지 확인해주세요.';
+        toast.error('계산 실패', { description: message });
+      })
+      .finally(() => {
+        setLoading(false);
       });
-      setResult(data);
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : '계산에 실패했습니다. 상품 및 출고 목록이 등록되어 있는지 확인해주세요.';
-      toast.error('계산 실패', { description: message });
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [batchId, boxes]);
 
   const handleExport = async () => {
     if (!batchId) return;
@@ -79,15 +66,23 @@ export const PackingCalculator: React.FC = () => {
           <p className="text-muted-foreground">출고 주문에 대한 최적 박스 구성을 계산합니다.</p>
         </div>
 
-        <PackingControls
-          groupingOption={groupingOption}
-          loading={loading || calculatePacking.isPending}
-          exportPending={exportPacking.isPending}
-          onGroupingChange={setGroupingOption}
-          onCalculate={handleCalculate}
-          onExport={handleExport}
-        />
+        {result && (
+          <button
+            onClick={handleExport}
+            disabled={exportPacking.isPending}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            {exportPacking.isPending ? '다운로드 중...' : 'Excel 내보내기'}
+          </button>
+        )}
       </div>
+
+      {loading && !result && (
+        <div className="flex justify-center items-center py-16">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+        </div>
+      )}
 
       {result && (
         <div className="space-y-6">
@@ -99,8 +94,6 @@ export const PackingCalculator: React.FC = () => {
           <UnpackedItemsAlert items={unpackedItems} />
         </div>
       )}
-
-      {history.length > 0 && !result && <PackingHistory history={history} />}
     </div>
   );
 };
