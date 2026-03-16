@@ -8,7 +8,8 @@
     "type-check": "turbo run type-check",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "dev:web": "turbo run dev --filter=web",
-    "dev:server": "turbo run dev --filter=server"
+    "dev:server": "turbo run dev --filter=server",
+    "build:web": "turbo run build --filter=web"
   },
   "devDependencies": {
     "@eslint/compat": "^2.0.2",

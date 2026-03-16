@@ -8,7 +8,6 @@ interface BoxGroupListProps {
 
 export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes }) => {
   const [expandedLabels, setExpandedLabels] = useState<Set<string>>(new Set());
-  const [collapsedBoxes, setCollapsedBoxes] = useState<Set<string>>(new Set());
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   const toggleLabels = (key: string) => {
@@ -16,15 +15,6 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes }) =
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
-      return next;
-    });
-  };
-
-  const toggleBox = (boxId: string) => {
-    setCollapsedBoxes((prev) => {
-      const next = new Set(prev);
-      if (next.has(boxId)) next.delete(boxId);
-      else next.add(boxId);
       return next;
     });
   };
@@ -70,7 +60,6 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes }) =
       </div>
 
       {filteredBoxes.map((boxGroup, idx) => {
-        const isCollapsed = collapsedBoxes.has(boxGroup.box.id);
         const groupedShipments = new Map<
           string,
           {
