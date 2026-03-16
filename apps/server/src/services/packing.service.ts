@@ -63,6 +63,9 @@ export class PackingService {
 
     const detailResults: PackingResultDetailEntity[] = [];
 
+    await this.packingResultRepository.removeAll(outboundBatchId);
+    await this.packingResultDetailRepository.removeAll(outboundBatchId);
+
     for (const group of groupedOutbounds) {
       if (group.length === 0) continue;
 
@@ -100,7 +103,7 @@ export class PackingService {
         boxVolMap.set(rb.box.name, boxVol);
         groupAvailableVolume += boxVol * rb.count;
         for (const packedSku of rb.packedSKUs) {
-          const product = products.find((prod) => prod.id === packedSku.skuId);
+          const product = productMapById.get(packedSku.skuId);
           if (product) {
             groupUsedVolume += product.width * product.length * product.height * packedSku.quantity;
           }
@@ -110,7 +113,7 @@ export class PackingService {
       const boxesWithNames = recommendation.boxes.map((box) => ({
         ...box,
         packedSKUs: box.packedSKUs.map((sku) => {
-          const product = products.find((p) => p.id === sku.skuId);
+          const product = productMapById.get(sku.skuId);
           return {
             ...sku,
             name: product ? product.name : 'Unknown Product',
@@ -119,7 +122,7 @@ export class PackingService {
       }));
 
       const unpackedWithNames = recommendation.unpackedItems.map((item) => {
-        const product = products.find((p) => p.id === item.skuId);
+        const product = productMapById.get(item.skuId);
         return {
           ...item,
           name: product ? product.name : 'Unknown Product',
@@ -201,49 +204,45 @@ export class PackingService {
       grandTotalCBM += recommendation.totalCBM;
       grandTotalUsedVolume += groupUsedVolume;
       grandTotalAvailableVolume += groupAvailableVolume;
-    }
 
-    await this.packingResultRepository.removeAll(outboundBatchId);
-    await this.packingResultDetailRepository.removeAll(outboundBatchId);
+      if (detailResults.length > 0) {
+        await this.packingResultDetailRepository.createBulk(detailResults);
+        detailResults.length = 0;
+      }
 
-    const packingResultRows: Array<{
-      outboundBatchId: string;
-      orderId?: string;
-      boxName: string;
-      packedCount: number;
-      efficiency: number;
-      totalCBM: number;
-      groupLabel?: string;
-    }> = [];
+      const groupResultRows: Array<{
+        outboundBatchId: string;
+        orderId?: string;
+        boxName: string;
+        packedCount: number;
+        efficiency: number;
+        totalCBM: number;
+        groupLabel?: string;
+      }> = [];
 
-    for (const group of groups) {
-      for (const box of group.boxes) {
+      for (const box of boxesWithNames) {
         const boxVol = box.box.width * box.box.length * box.box.height;
         const usedVol = box.packedSKUs.reduce((acc, s) => {
-          const product = products.find((p) => p.id === s.skuId);
+          const product = productMapById.get(s.skuId);
           return acc + (product ? product.width * product.length * product.height * s.quantity : 0);
         }, 0);
 
         for (let i = 0; i < box.count; i++) {
-          packingResultRows.push({
+          groupResultRows.push({
             outboundBatchId,
-            orderId: group.groupLabel,
+            orderId: groupLabel,
             boxName: box.box.name,
             packedCount: box.packedSKUs.reduce((a, s) => a + s.quantity, 0),
             efficiency: boxVol > 0 ? usedVol / boxVol : 0,
             totalCBM: boxVol / 1000000,
-            groupLabel: group.groupLabel,
+            groupLabel,
           });
         }
       }
-    }
 
-    if (packingResultRows.length > 0) {
-      await this.packingResultRepository.createBulk(packingResultRows);
-    }
-
-    if (detailResults.length > 0) {
-      await this.packingResultDetailRepository.createBulk(detailResults);
+      if (groupResultRows.length > 0) {
+        await this.packingResultRepository.createBulk(groupResultRows);
+      }
     }
 
     const allUnpackedItems = groups.flatMap((g) => g.unpackedItems || []);
