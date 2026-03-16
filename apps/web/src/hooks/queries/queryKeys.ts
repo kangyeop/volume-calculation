@@ -24,6 +24,7 @@ export const outboundBatches = createQueryKeys('outboundBatches', {
   all: null,
   detail: (id: string) => [id],
   outbounds: (batchId: string) => [batchId, 'outbounds'],
+  infiniteOutbounds: (batchId: string) => [batchId, 'outbounds', 'infinite'],
 });
 
 export const boxes = createQueryKeys('boxes', {
@@ -35,6 +36,7 @@ export const packing = createQueryKeys('packing', {
   details: (projectId: string) => [projectId, 'details'],
   historyByBatch: (batchId: string) => [batchId, 'batch', 'history'],
   detailsByBatch: (batchId: string) => [batchId, 'batch', 'details'],
+  recommendation: (batchId: string) => [batchId, 'recommendation'],
 });
 
 export const upload = createQueryKeys('upload', {

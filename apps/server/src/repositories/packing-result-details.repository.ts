@@ -21,8 +21,14 @@ export class PackingResultDetailsRepository {
   async createBulk(
     details: Partial<PackingResultDetailEntity>[],
   ): Promise<PackingResultDetailEntity[]> {
-    const entities = details.map((d) => this.repository.create(d));
-    return await this.repository.save(entities);
+    const CHUNK = 500;
+    const saved: PackingResultDetailEntity[] = [];
+    for (let i = 0; i < details.length; i += CHUNK) {
+      const entities = details.slice(i, i + CHUNK).map((d) => this.repository.create(d));
+      const result = await this.repository.save(entities);
+      saved.push(...result);
+    }
+    return saved;
   }
 
   async removeAll(outboundBatchId: string): Promise<void> {

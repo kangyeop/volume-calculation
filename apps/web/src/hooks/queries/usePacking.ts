@@ -16,6 +16,14 @@ export function usePackingHistory(batchId: string) {
   });
 }
 
+export function usePackingRecommendation(batchId: string) {
+  return useQuery({
+    queryKey: packing.recommendation(batchId).queryKey,
+    queryFn: () => api.packing.recommendation(batchId),
+    enabled: !!batchId,
+  });
+}
+
 export function useCalculatePacking(): UseMutationResult<
   PackingRecommendation,
   Error,
@@ -26,8 +34,9 @@ export function useCalculatePacking(): UseMutationResult<
   return useMutation({
     mutationFn: ({ batchId, groupingOption }) =>
       api.packing.calculate(batchId, groupingOption as PackingGroupingOption),
-    onSuccess: () => {
+    onSuccess: (_, { batchId }) => {
       queryClient.invalidateQueries({ queryKey: packing.history._def });
+      queryClient.invalidateQueries({ queryKey: packing.recommendation(batchId).queryKey });
     },
   });
 }

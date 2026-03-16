@@ -8,6 +8,7 @@ import {
   HttpCode,
   HttpStatus,
   UseInterceptors,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { OutboundService } from '../services/outbound.service';
@@ -28,7 +29,18 @@ export class OutboundController {
   }
 
   @Get('outbound-batches/:batchId/outbounds')
-  findAll(@Param('batchId') batchId: string) {
+  findAll(
+    @Param('batchId') batchId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    if (page !== undefined) {
+      return this.outboundService.findPaginated(
+        batchId,
+        parseInt(page, 10) || 1,
+        parseInt(limit ?? '50', 10),
+      );
+    }
     return this.outboundService.findAll(batchId);
   }
 

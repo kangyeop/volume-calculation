@@ -39,6 +39,14 @@ export class OutboundService {
     return await this.outboundRepository.findAll(outboundBatchId);
   }
 
+  async findPaginated(
+    outboundBatchId: string,
+    page: number,
+    limit: number,
+  ): Promise<{ items: OutboundItemEntity[]; totalOrders: number; page: number; limit: number }> {
+    return this.outboundRepository.findPaginated(outboundBatchId, page, limit);
+  }
+
   async remove(id: string): Promise<void> {
     const removed = await this.outboundRepository.remove(id);
     if (!removed) {

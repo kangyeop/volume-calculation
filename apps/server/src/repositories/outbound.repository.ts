@@ -28,6 +28,45 @@ export class OutboundRepository {
       .getMany();
   }
 
+  async findPaginated(
+    outboundBatchId: string,
+    page: number,
+    limit: number,
+  ): Promise<{ items: OutboundItemEntity[]; totalOrders: number; page: number; limit: number }> {
+    const totalOrders = await this.repository
+      .createQueryBuilder('outbound')
+      .select('outbound.orderIdentifier')
+      .where('outbound.outboundBatchId = :outboundBatchId', { outboundBatchId })
+      .groupBy('outbound.orderIdentifier')
+      .getCount();
+
+    const orderKeysResult = await this.repository
+      .createQueryBuilder('outbound')
+      .select('outbound.orderIdentifier', 'orderKey')
+      .where('outbound.outboundBatchId = :outboundBatchId', { outboundBatchId })
+      .groupBy('outbound.orderIdentifier')
+      .orderBy('outbound.orderIdentifier', 'ASC')
+      .limit(limit)
+      .offset((page - 1) * limit)
+      .getRawMany<{ orderKey: string }>();
+
+    const orderKeys = orderKeysResult.map((r) => r.orderKey).filter(Boolean);
+
+    if (orderKeys.length === 0) {
+      return { items: [], totalOrders, page, limit };
+    }
+
+    const items = await this.repository
+      .createQueryBuilder('outbound')
+      .leftJoinAndSelect('outbound.order', 'order')
+      .where('outbound.outboundBatchId = :outboundBatchId', { outboundBatchId })
+      .andWhere('outbound.orderIdentifier IN (:...orderKeys)', { orderKeys })
+      .orderBy('outbound.orderIdentifier', 'ASC')
+      .getMany();
+
+    return { items, totalOrders, page, limit };
+  }
+
   async remove(id: string): Promise<boolean> {
     const result = await this.repository.delete(id);
     return (result.affected ?? 0) > 0;

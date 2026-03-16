@@ -158,6 +158,10 @@ export const api = {
     },
     listOutbounds: (batchId: string) =>
       fetchApi<Outbound[]>(`/outbound-batches/${batchId}/outbounds`),
+    listOutboundsPaginated: (batchId: string, page: number, limit = 50) =>
+      fetchApi<{ items: Outbound[]; totalOrders: number; page: number; limit: number }>(
+        `/outbound-batches/${batchId}/outbounds?page=${page}&limit=${limit}`,
+      ),
   },
   packing: {
     calculate: (
@@ -174,6 +178,8 @@ export const api = {
         data: { orderId, groupLabel },
       });
     },
+    recommendation: (batchId: string) =>
+      fetchApi<PackingRecommendation | null>(`/outbound-batches/${batchId}/packing/recommendation`),
     history: (batchId: string) =>
       fetchApi<PackingResult[]>(`/outbound-batches/${batchId}/packing/results`),
     details: (batchId: string) =>

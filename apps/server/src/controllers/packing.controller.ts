@@ -22,6 +22,13 @@ export class PackingController {
     return this.packingService.calculate(batchId, calculatePackingDto.groupingOption);
   }
 
+  @Get('recommendation')
+  async getRecommendation(
+    @Param('batchId') batchId: string,
+  ): Promise<PackingRecommendation | null> {
+    return this.packingService.getRecommendation(batchId);
+  }
+
   @Get('results')
   findAll(@Param('batchId') batchId: string): Promise<PackingResultEntity[]> {
     return this.packingService.findAll(batchId);

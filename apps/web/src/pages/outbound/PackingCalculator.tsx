@@ -1,8 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Download } from 'lucide-react';
-import { useCalculatePacking, useExportPacking, useBoxes } from '@/hooks/queries';
+import { Download, RefreshCw } from 'lucide-react';
+import {
+  useCalculatePacking,
+  useExportPacking,
+  usePackingRecommendation,
+} from '@/hooks/queries';
 import { usePackingNormalizer } from '@/hooks/usePackingNormalizer';
 import type { PackingCalculationResult } from '@/hooks/usePackingNormalizer';
 import { PackingSummaryCards } from '@/components/packing/PackingSummaryCards';
@@ -12,41 +16,34 @@ import { PackingGroupingOption, PackingRecommendation } from '@wms/types';
 
 export const PackingCalculator: React.FC = () => {
   const { id: batchId } = useParams<{ id: string }>();
-  const { data: boxes = [] } = useBoxes();
+  const { data: savedRecommendation, isLoading: isLoadingRecommendation } =
+    usePackingRecommendation(batchId ?? '');
   const calculatePacking = useCalculatePacking();
   const exportPacking = useExportPacking();
 
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<PackingRecommendation | PackingCalculationResult | null>(
-    null,
-  );
-  const hasCalculated = useRef(false);
+  const [freshResult, setFreshResult] = useState<PackingRecommendation | PackingCalculationResult | null>(null);
 
+  const result = freshResult ?? savedRecommendation ?? null;
   const { normalizedBoxes, unpackedItems } = usePackingNormalizer(result);
 
-  useEffect(() => {
-    if (!batchId || hasCalculated.current) return;
-    if (boxes.length === 0) return;
+  const isCalculating = calculatePacking.isPending;
 
-    hasCalculated.current = true;
-    setLoading(true);
-
-    calculatePacking
-      .mutateAsync({ batchId, groupingOption: PackingGroupingOption.ORDER })
-      .then((data) => {
-        setResult(data);
-      })
-      .catch((error: unknown) => {
-        const message =
-          error instanceof Error
-            ? error.message
-            : '계산에 실패했습니다. 상품 및 출고 목록이 등록되어 있는지 확인해주세요.';
-        toast.error('계산 실패', { description: message });
-      })
-      .finally(() => {
-        setLoading(false);
+  const handleCalculate = async () => {
+    if (!batchId) return;
+    try {
+      const data = await calculatePacking.mutateAsync({
+        batchId,
+        groupingOption: PackingGroupingOption.ORDER,
       });
-  }, [batchId, boxes]);
+      setFreshResult(data);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : '계산에 실패했습니다. 상품 및 출고 목록이 등록되어 있는지 확인해주세요.';
+      toast.error('계산 실패', { description: message });
+    }
+  };
 
   const handleExport = async () => {
     if (!batchId) return;
@@ -66,19 +63,43 @@ export const PackingCalculator: React.FC = () => {
           <p className="text-muted-foreground">출고 주문에 대한 최적 박스 구성을 계산합니다.</p>
         </div>
 
-        {result && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={handleExport}
-            disabled={exportPacking.isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+            onClick={handleCalculate}
+            disabled={isCalculating}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
           >
-            <Download className="h-4 w-4" />
-            {exportPacking.isPending ? '다운로드 중...' : 'Excel 내보내기'}
+            <RefreshCw className={`h-4 w-4 ${isCalculating ? 'animate-spin' : ''}`} />
+            {isCalculating ? '계산 중...' : result ? '재계산' : '계산 시작'}
           </button>
-        )}
+
+          {result && (
+            <button
+              onClick={handleExport}
+              disabled={exportPacking.isPending}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+            >
+              <Download className="h-4 w-4" />
+              {exportPacking.isPending ? '다운로드 중...' : 'Excel 내보내기'}
+            </button>
+          )}
+        </div>
       </div>
 
-      {loading && !result && (
+      {isLoadingRecommendation && !result && (
+        <div className="flex justify-center items-center py-16">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+        </div>
+      )}
+
+      {!isLoadingRecommendation && !result && !isCalculating && (
+        <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
+          <p className="text-muted-foreground">아직 계산된 결과가 없습니다.</p>
+          <p className="text-sm text-muted-foreground">계산 시작 버튼을 눌러 패킹을 계산하세요.</p>
+        </div>
+      )}
+
+      {isCalculating && !result && (
         <div className="flex justify-center items-center py-16">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
         </div>

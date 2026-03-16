@@ -38,7 +38,13 @@ export class PackingResultsRepository {
   }
 
   async createBulk(results: Partial<PackingResultEntity>[]): Promise<PackingResultEntity[]> {
-    const entities = results.map((r) => this.repository.create(r));
-    return await this.repository.save(entities);
+    const CHUNK = 500;
+    const saved: PackingResultEntity[] = [];
+    for (let i = 0; i < results.length; i += CHUNK) {
+      const entities = results.slice(i, i + CHUNK).map((r) => this.repository.create(r));
+      const result = await this.repository.save(entities);
+      saved.push(...result);
+    }
+    return saved;
   }
 }
