@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'wms-server',
-      script: 'apps/server/dist/main.js',
+      script: 'apps/server/dist/src/main.js',
       instances: 1,
       exec_mode: 'fork',
       watch: false,
