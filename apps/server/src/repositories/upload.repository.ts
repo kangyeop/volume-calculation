@@ -47,25 +47,36 @@ export class UploadRepository {
       orderMap.set(orderId, order);
     }
 
-    const outboundEntities = await Promise.all(
-      outbounds.map(async (dto) => {
-        const product = dto.productId
-          ? await this.productRepository.findOne({ where: { id: dto.productId } })
-          : null;
-        const order = orderMap.get(dto.orderId)!;
+    const productIds = [...new Set(outbounds.map((dto) => dto.productId).filter(Boolean))] as string[];
+    const productMap = new Map<string, ProductEntity>();
+    if (productIds.length > 0) {
+      const products = await this.productRepository.findByIds(productIds);
+      for (const p of products) {
+        productMap.set(p.id, p);
+      }
+    }
 
-        return this.outboundRepository.create({
-          sku: product ? product.sku : dto.sku,
-          quantity: dto.quantity,
-          outboundBatchId,
-          orderId: order.id,
-          orderIdentifier: dto.orderId,
-          productId: dto.productId ?? null,
-        });
-      }),
-    );
+    const outboundEntities = outbounds.map((dto) => {
+      const product = dto.productId ? productMap.get(dto.productId) : null;
+      const order = orderMap.get(dto.orderId)!;
 
-    const savedOutbounds = await this.outboundRepository.manager.save(outboundEntities);
+      return this.outboundRepository.create({
+        sku: product ? product.sku : dto.sku,
+        quantity: dto.quantity,
+        outboundBatchId,
+        orderId: order.id,
+        orderIdentifier: dto.orderId,
+        productId: dto.productId ?? null,
+      });
+    });
+
+    const CHUNK_SIZE = 500;
+    const savedOutbounds: OutboundItemEntity[] = [];
+    for (let i = 0; i < outboundEntities.length; i += CHUNK_SIZE) {
+      const chunk = outboundEntities.slice(i, i + CHUNK_SIZE);
+      const saved = await this.outboundRepository.manager.save(chunk);
+      savedOutbounds.push(...saved);
+    }
     return { outbounds: savedOutbounds };
   }
 

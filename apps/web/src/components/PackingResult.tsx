@@ -90,7 +90,7 @@ interface BoxResultProps {
 
 const BoxResult: React.FC<BoxResultProps> = ({ box }) => {
   const formatCBM = (width: number, length: number, height: number) => {
-    return ((width * length * height) / 1000000).toFixed(4);
+    return ((width * length * height) / 1_000_000).toFixed(4);
   };
 
   return (

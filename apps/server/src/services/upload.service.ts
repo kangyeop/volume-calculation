@@ -72,6 +72,14 @@ export class UploadService {
     );
     const batch = await this.outboundBatchService.create(batchName);
 
+    const allProducts = await this.productsService.findAllForMatching();
+    const productByName = new Map<string, typeof allProducts[0]>();
+    const productBySku = new Map<string, typeof allProducts[0]>();
+    for (const p of allProducts) {
+      if (p.name && !productByName.has(p.name)) productByName.set(p.name, p);
+      if (p.sku && !productBySku.has(p.sku)) productBySku.set(p.sku, p);
+    }
+
     const unmatched: UnmatchedItem[] = [];
     const outbounds: OutboundItemDto[] = [];
     const orderQuantities = new Map<string, number>();
@@ -80,17 +88,14 @@ export class UploadService {
       orderQuantities.set(order.orderId, order.quantity);
 
       for (const item of order.outboundItems) {
-        let matchingProducts = await this.productsService.findByNameGlobal(item.sku);
-        if (matchingProducts.length === 0) {
-          matchingProducts = await this.productsService.findBySkuGlobal(item.sku);
-        }
+        const matched = productByName.get(item.sku) || productBySku.get(item.sku);
 
-        if (matchingProducts.length > 0) {
+        if (matched) {
           outbounds.push({
             orderId: order.orderId,
             sku: item.sku,
             quantity: item.quantity,
-            productId: matchingProducts[0].id,
+            productId: matched.id,
           });
         } else {
           unmatched.push({ sku: item.sku, quantity: item.quantity, reason: 'Product not found' });

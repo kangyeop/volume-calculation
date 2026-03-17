@@ -83,7 +83,7 @@ export const BoxManager: React.FC = () => {
               <div className="space-y-3">
                 <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
                   <Ruler className="h-4 w-4" />
-                  Dimensions (mm)
+                  Dimensions (cm)
                 </label>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
@@ -206,19 +206,19 @@ export const BoxManager: React.FC = () => {
                       <div>
                         <div className="text-xs text-gray-500 uppercase font-semibold">Length</div>
                         <div className="font-medium text-gray-900">
-                          {box.length} <span className="text-gray-400 text-xs">mm</span>
+                          {box.length} <span className="text-gray-400 text-xs">cm</span>
                         </div>
                       </div>
                       <div className="border-l border-gray-200">
                         <div className="text-xs text-gray-500 uppercase font-semibold">Width</div>
                         <div className="font-medium text-gray-900">
-                          {box.width} <span className="text-gray-400 text-xs">mm</span>
+                          {box.width} <span className="text-gray-400 text-xs">cm</span>
                         </div>
                       </div>
                       <div className="border-l border-gray-200">
                         <div className="text-xs text-gray-500 uppercase font-semibold">Height</div>
                         <div className="font-medium text-gray-900">
-                          {box.height} <span className="text-gray-400 text-xs">mm</span>
+                          {box.height} <span className="text-gray-400 text-xs">cm</span>
                         </div>
                       </div>
                     </div>
@@ -227,7 +227,7 @@ export const BoxManager: React.FC = () => {
                       <div className="text-xs text-muted-foreground">
                         Volume:{' '}
                         <span className="font-mono font-medium text-gray-700">
-                          {((box.length * box.width * box.height) / 1000000).toFixed(4)} CBM
+                          {((box.length * box.width * box.height) / 1_000_000).toFixed(4)} CBM
                         </span>
                       </div>
                       {box.price && (

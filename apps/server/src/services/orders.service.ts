@@ -88,7 +88,7 @@ export class OrdersService {
       if (outbound.product) {
         const { width, length, height } = outbound.product;
         const quantity = outbound.quantity;
-        const cbm = (width * length * height * quantity) / 1000000000;
+        const cbm = (width * length * height * quantity) / 1_000_000;
         totalCBM += cbm;
       }
     }

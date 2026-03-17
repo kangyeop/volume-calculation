@@ -63,6 +63,11 @@ export class OutboundController {
     return this.outboundService.createBulk(batchId, createOutboundDtos);
   }
 
+  @Get('outbound-batches/:batchId/outbounds/configuration-summary')
+  getConfigurationSummary(@Param('batchId') batchId: string) {
+    return this.outboundService.getConfigurationSummary(batchId);
+  }
+
   @Delete('outbounds/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string) {

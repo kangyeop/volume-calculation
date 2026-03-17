@@ -39,7 +39,7 @@ export const usePackingNormalizer = (
       for (const group of rec.groups) {
         for (const boxGroup of group.boxes) {
           const boxId = boxGroup.box.id;
-          const boxCBM = (boxGroup.box.width * boxGroup.box.length * boxGroup.box.height) / 1000000;
+          const boxCBM = (boxGroup.box.width * boxGroup.box.length * boxGroup.box.height) / 1_000_000;
 
           if (!boxMap.has(boxId)) {
             boxMap.set(boxId, {
@@ -67,7 +67,7 @@ export const usePackingNormalizer = (
     } else {
       const calc = result as PackingCalculationResult;
       return calc.boxes.map((boxGroup) => {
-        const boxCBM = (boxGroup.box.width * boxGroup.box.length * boxGroup.box.height) / 1000000;
+        const boxCBM = (boxGroup.box.width * boxGroup.box.length * boxGroup.box.height) / 1_000_000;
         return {
           box: boxGroup.box,
           count: boxGroup.count,

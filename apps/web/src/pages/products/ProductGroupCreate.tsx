@@ -104,7 +104,7 @@ export const ProductGroupCreate: React.FC = () => {
               <ExcelUpload onUpload={handleUpload} title="엑셀 파일을 업로드하세요" />
             )}
             <div className="p-3 bg-blue-50 rounded-lg text-xs text-blue-700">
-              <strong>권장 형식:</strong> SKU, 상품명, 규격(W×L×H mm)
+              <strong>권장 형식:</strong> SKU, 상품명, 규격(W×L×H cm)
             </div>
           </div>
 

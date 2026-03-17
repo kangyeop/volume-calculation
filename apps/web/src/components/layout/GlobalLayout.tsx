@@ -11,7 +11,7 @@ const navItems = [
 
 export const GlobalLayout: React.FC = () => {
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen min-w-[1280px] bg-background">
       <aside className="w-64 border-r bg-gray-50/40 h-screen sticky top-0 flex flex-col">
         <div className="px-6 py-5 border-b">
           <span className="text-xl font-bold tracking-tight">WMS</span>

@@ -70,7 +70,7 @@ export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationR
 
     if (selectedSingleBox) {
       const boxVol = selectedSingleBox.width * selectedSingleBox.length * selectedSingleBox.height;
-      totalCBM += boxVol / 1000000000;
+      totalCBM += boxVol / 1_000_000;
       totalUsedVolume += currentTotalVolume;
       totalAvailableVolume += boxVol;
 
@@ -129,7 +129,7 @@ export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationR
         }
         remainingItems.shift();
       } else {
-        totalCBM += boxVolume / 1000000000;
+        totalCBM += boxVolume / 1_000_000;
         totalUsedVolume += currentBoxUsedVolume;
         totalAvailableVolume += boxVolume;
 
@@ -180,7 +180,7 @@ export function calculateOrderPackingUnified(
         }
       }
 
-      const boxCBM = boxVolume / 1000000000;
+      const boxCBM = boxVolume / 1_000_000;
 
       packedBoxes.push({
         boxId: boxResult.box.id,

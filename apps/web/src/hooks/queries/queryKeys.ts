@@ -25,6 +25,7 @@ export const outboundBatches = createQueryKeys('outboundBatches', {
   detail: (id: string) => [id],
   outbounds: (batchId: string) => [batchId, 'outbounds'],
   infiniteOutbounds: (batchId: string) => [batchId, 'outbounds', 'infinite'],
+  configurationSummary: (batchId: string) => [batchId, 'configuration-summary'],
 });
 
 export const boxes = createQueryKeys('boxes', {

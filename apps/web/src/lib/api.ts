@@ -163,6 +163,16 @@ export const api = {
       fetchApi<{ items: Outbound[]; totalOrders: number; page: number; limit: number }>(
         `/outbound-batches/${batchId}/outbounds?page=${page}&limit=${limit}`,
       ),
+    configurationSummary: (batchId: string) =>
+      fetchApi<{
+        totalOrders: number;
+        configurations: {
+          skuKey: string;
+          skuItems: { sku: string; productName?: string; quantity: number }[];
+          orderCount: number;
+          orderIds: string[];
+        }[];
+      }>(`/outbound-batches/${batchId}/outbounds/configuration-summary`),
   },
   packing: {
     calculate: (

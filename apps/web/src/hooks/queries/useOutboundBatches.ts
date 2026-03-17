@@ -66,4 +66,12 @@ export function useDeleteOutboundBatch(): UseMutationResult<void, Error, string>
   });
 }
 
+export function useConfigurationSummary(batchId: string) {
+  return useQuery({
+    ...outboundBatches.configurationSummary(batchId),
+    queryFn: () => api.outboundBatches.configurationSummary(batchId),
+    enabled: !!batchId,
+  });
+}
+
 export type { Outbound };

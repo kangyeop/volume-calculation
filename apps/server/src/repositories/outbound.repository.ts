@@ -23,6 +23,7 @@ export class OutboundRepository {
     return this.repository
       .createQueryBuilder('outbound')
       .leftJoinAndSelect('outbound.order', 'order')
+      .leftJoinAndSelect('outbound.product', 'product')
       .where('outbound.outboundBatchId = :outboundBatchId', { outboundBatchId })
       .orderBy('outbound.id', 'DESC')
       .getMany();

@@ -93,4 +93,60 @@ export class OutboundService {
   async removeAll(outboundBatchId: string): Promise<void> {
     await this.outboundRepository.removeAll(outboundBatchId);
   }
+
+  async getConfigurationSummary(outboundBatchId: string): Promise<{
+    totalOrders: number;
+    configurations: {
+      skuKey: string;
+      skuItems: { sku: string; productName?: string; quantity: number }[];
+      orderCount: number;
+      orderIds: string[];
+    }[];
+  }> {
+    const allOutbounds = await this.outboundRepository.findAll(outboundBatchId);
+
+    const orderMap = new Map<string, { sku: string; productName?: string; quantity: number }[]>();
+    for (const outbound of allOutbounds) {
+      const orderKey = outbound.orderIdentifier || outbound.orderId;
+      if (!orderMap.has(orderKey)) {
+        orderMap.set(orderKey, []);
+      }
+      orderMap.get(orderKey)!.push({
+        sku: outbound.sku,
+        productName: outbound.product?.name,
+        quantity: outbound.quantity,
+      });
+    }
+
+    const configMap = new Map<
+      string,
+      { skuItems: { sku: string; productName?: string; quantity: number }[]; orderIds: string[] }
+    >();
+
+    for (const [orderId, items] of orderMap.entries()) {
+      const sorted = [...items].sort(
+        (a, b) => a.sku.localeCompare(b.sku) || a.quantity - b.quantity,
+      );
+      const skuKey = sorted.map((i) => `${i.sku}:${i.quantity}`).join('|');
+
+      if (!configMap.has(skuKey)) {
+        configMap.set(skuKey, { skuItems: sorted, orderIds: [] });
+      }
+      configMap.get(skuKey)!.orderIds.push(orderId);
+    }
+
+    const configurations = Array.from(configMap.entries())
+      .map(([skuKey, { skuItems, orderIds }]) => ({
+        skuKey,
+        skuItems,
+        orderCount: orderIds.length,
+        orderIds,
+      }))
+      .sort((a, b) => b.skuItems.length - a.skuItems.length || b.orderCount - a.orderCount);
+
+    return {
+      totalOrders: orderMap.size,
+      configurations,
+    };
+  }
 }

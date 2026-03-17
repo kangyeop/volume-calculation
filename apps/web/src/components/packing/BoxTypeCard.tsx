@@ -20,7 +20,7 @@ export const BoxTypeCard: React.FC<BoxTypeCardProps> = ({ box, count, totalCBM, 
         <h3 className="font-semibold text-base text-gray-900">{box.name}</h3>
       </div>
       <p className="text-xs text-muted-foreground">
-        {box.width} x {box.length} x {box.height} mm
+        {box.width} x {box.length} x {box.height} cm
       </p>
       <div className="grid grid-cols-3 gap-2 text-center">
         <div>

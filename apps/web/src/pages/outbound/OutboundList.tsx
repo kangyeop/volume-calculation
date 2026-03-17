@@ -1,13 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOutboundBatches, useDeleteOutboundBatch } from '@/hooks/queries';
-import { Plus, Truck, Trash2 } from 'lucide-react';
+import { useUploadOutboundBatch } from '@/hooks/queries';
+import { Plus, Truck, Trash2, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ExcelUpload } from '@/components/ExcelUpload';
 
 export const OutboundList: React.FC = () => {
   const navigate = useNavigate();
   const { data: batches = [], isLoading } = useOutboundBatches();
   const deleteBatch = useDeleteOutboundBatch();
+  const uploadBatch = useUploadOutboundBatch();
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -20,6 +24,17 @@ export const OutboundList: React.FC = () => {
     }
   };
 
+  const handleUpload = async (file: File) => {
+    try {
+      const batch = await uploadBatch.mutateAsync(file);
+      setShowUploadModal(false);
+      toast.success('업로드 완료', { description: '출고 배치가 생성되었습니다.' });
+      navigate(`/outbound/${batch.id}`);
+    } catch {
+      toast.error('업로드 실패', { description: '파일 업로드 중 오류가 발생했습니다.' });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -29,14 +44,14 @@ export const OutboundList: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">출고</h1>
           <p className="text-muted-foreground mt-1">출고 배치를 관리합니다.</p>
         </div>
         <button
-          onClick={() => navigate('/outbound/new')}
+          onClick={() => setShowUploadModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
         >
           <Plus className="h-4 w-4" />새 출고
@@ -85,6 +100,36 @@ export const OutboundList: React.FC = () => {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {showUploadModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => !uploadBatch.isPending && setShowUploadModal(false)} />
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold">새 출고</h2>
+              <button
+                onClick={() => setShowUploadModal(false)}
+                disabled={uploadBatch.isPending}
+                className="p-1 hover:bg-gray-100 rounded-md transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground">엑셀 파일을 업로드하여 출고 데이터를 등록합니다.</p>
+            {uploadBatch.isPending ? (
+              <div className="flex flex-col items-center justify-center py-8 gap-3">
+                <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
+                <p className="text-sm text-gray-500">데이터를 처리하고 있습니다...</p>
+              </div>
+            ) : (
+              <ExcelUpload
+                onUpload={handleUpload}
+                title="클릭하거나 엑셀 파일을 여기에 드래그하세요"
+              />
+            )}
+          </div>
         </div>
       )}
     </div>
