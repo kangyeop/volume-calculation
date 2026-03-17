@@ -40,6 +40,7 @@ export interface ProductGroup {
   id: string;
   name: string;
   productCount?: number;
+  products?: Product[];
   createdAt: Date | string;
   updatedAt: Date | string;
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Download, RefreshCw } from 'lucide-react';
@@ -6,6 +6,7 @@ import {
   useCalculatePacking,
   useExportPacking,
   usePackingRecommendation,
+  useProductGroups,
 } from '@/hooks/queries';
 import { usePackingNormalizer } from '@/hooks/usePackingNormalizer';
 import type { PackingCalculationResult } from '@/hooks/usePackingNormalizer';
@@ -20,11 +21,50 @@ export const PackingCalculator: React.FC = () => {
     usePackingRecommendation(batchId ?? '');
   const calculatePacking = useCalculatePacking();
   const exportPacking = useExportPacking();
+  const { data: productGroups = [] } = useProductGroups();
 
   const [freshResult, setFreshResult] = useState<PackingRecommendation | PackingCalculationResult | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 
   const result = freshResult ?? savedRecommendation ?? null;
   const { normalizedBoxes, unpackedItems } = usePackingNormalizer(result);
+
+  const skuToGroupId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const group of productGroups) {
+      for (const product of group.products ?? []) {
+        map.set(product.sku, group.id);
+      }
+    }
+    return map;
+  }, [productGroups]);
+
+  const filteredBoxes = useMemo(() => {
+    if (!selectedGroupId) return normalizedBoxes;
+    return normalizedBoxes
+      .map((boxGroup) => ({
+        ...boxGroup,
+        shipments: boxGroup.shipments.filter((shipment) =>
+          shipment.packedSKUs.some((sku) => skuToGroupId.get(sku.skuId) === selectedGroupId),
+        ),
+      }))
+      .filter((boxGroup) => boxGroup.shipments.length > 0);
+  }, [normalizedBoxes, selectedGroupId, skuToGroupId]);
+
+  const activeGroupIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const boxGroup of normalizedBoxes) {
+      for (const shipment of boxGroup.shipments) {
+        for (const sku of shipment.packedSKUs) {
+          const gid = skuToGroupId.get(sku.skuId);
+          if (gid) ids.add(gid);
+        }
+      }
+    }
+    return ids;
+  }, [normalizedBoxes, skuToGroupId]);
+
+  const visibleGroups = productGroups.filter((g) => activeGroupIds.has(g.id));
 
   const isCalculating = calculatePacking.isPending;
 
@@ -111,7 +151,36 @@ export const PackingCalculator: React.FC = () => {
             totalCBM={result.totalCBM}
             totalEfficiency={result.totalEfficiency}
           />
-          <BoxGroupList normalizedBoxes={normalizedBoxes} />
+
+          {visibleGroups.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => setSelectedGroupId(null)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  selectedGroupId === null
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                전체
+              </button>
+              {visibleGroups.map((group) => (
+                <button
+                  key={group.id}
+                  onClick={() => setSelectedGroupId(group.id)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    selectedGroupId === group.id
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {group.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <BoxGroupList normalizedBoxes={filteredBoxes} />
           <UnpackedItemsAlert items={unpackedItems} />
         </div>
       )}

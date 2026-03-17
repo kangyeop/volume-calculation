@@ -1,10 +1,9 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Package, Truck, Box } from 'lucide-react';
+import { Package, Truck, Box } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { to: '/dashboard', label: '대시보드', icon: LayoutDashboard },
   { to: '/products', label: '상품', icon: Package },
   { to: '/outbound', label: '출고', icon: Truck },
   { to: '/boxes', label: '박스 관리', icon: Box },

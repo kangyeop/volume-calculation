@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { GlobalLayout } from './components/layout/GlobalLayout';
-import { Dashboard } from './pages/Dashboard';
 import { ProductGroupList } from './pages/products/ProductGroupList';
 import { ProductGroupCreate } from './pages/products/ProductGroupCreate';
 import { ProductGroupDetail } from './pages/products/ProductGroupDetail';
@@ -18,9 +17,8 @@ export function App() {
     <BrowserRouter>
       <ErrorBoundary>
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Navigate to="/outbound" replace />} />
           <Route element={<GlobalLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/products" element={<ProductGroupList />} />
             <Route path="/products/new" element={<ProductGroupCreate />} />
             <Route path="/products/:id" element={<ProductGroupDetail />} />

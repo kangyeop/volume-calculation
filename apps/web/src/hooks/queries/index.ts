@@ -7,4 +7,3 @@ export * from './useOutboundBatches';
 export * from './useBoxes';
 export * from './usePacking';
 export * from './useUpload';
-export * from './useDashboard';

@@ -34,7 +34,7 @@ export class UploadService {
       rowCount: parseResult.rowCount,
       rows: parseResult.rows,
       mapping,
-      fileName: file.originalname,
+      fileName: Buffer.from(file.originalname, 'latin1').toString('utf8'),
     };
   }
 
@@ -67,7 +67,9 @@ export class UploadService {
       parseResult.rows,
     );
 
-    const batchName = await this.outboundBatchService.generateBatchName(file.originalname);
+    const batchName = await this.outboundBatchService.generateBatchName(
+      Buffer.from(file.originalname, 'latin1').toString('utf8'),
+    );
     const batch = await this.outboundBatchService.create(batchName);
 
     const unmatched: UnmatchedItem[] = [];
