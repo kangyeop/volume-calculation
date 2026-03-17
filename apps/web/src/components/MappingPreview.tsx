@@ -125,7 +125,7 @@ export const MappingPreview: React.FC<MappingPreviewProps> = ({
                                         </div>
                                       </div>
                                       <div className="text-xs text-gray-400 whitespace-nowrap">
-                                        {product.width} x {product.length} x {product.height} cm
+                                        {product.width} x {product.length} x {product.height} mm
                                       </div>
                                     </button>
                                   ))

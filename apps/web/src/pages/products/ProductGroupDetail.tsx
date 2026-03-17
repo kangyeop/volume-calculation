@@ -169,7 +169,7 @@ export const ProductGroupDetail: React.FC = () => {
                     </th>
                     <th className="px-4 py-3">SKU</th>
                     <th className="px-4 py-3">상품명</th>
-                    <th className="px-4 py-3">규격 (W × L × H cm)</th>
+                    <th className="px-4 py-3">규격 (W × L × H mm)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">

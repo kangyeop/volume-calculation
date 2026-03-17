@@ -166,7 +166,7 @@ export class PackingService {
         );
         const isUnpacked = !!unpackedItem;
 
-        const boxCBM = boxInfo.boxIndex > 0 ? (boxVolMap.get(boxInfo.boxName) || 0) / 1000000 : 0;
+        const boxCBM = boxInfo.boxIndex > 0 ? (boxVolMap.get(boxInfo.boxName) || 0) / 1000000000 : 0;
 
         const efficiency =
           boxInfo.boxIndex > 0
@@ -234,7 +234,7 @@ export class PackingService {
             boxName: box.box.name,
             packedCount: box.packedSKUs.reduce((a, s) => a + s.quantity, 0),
             efficiency: boxVol > 0 ? usedVol / boxVol : 0,
-            totalCBM: boxVol / 1000000,
+            totalCBM: boxVol / 1000000000,
             groupLabel,
           });
         }
@@ -433,7 +433,7 @@ export class PackingService {
         const box = boxByName.get(boxName);
         if (!box) continue;
 
-        groupCBM += ((box.width * box.length * box.height) / 1_000_000) * count;
+        groupCBM += ((box.width * box.length * box.height) / 1_000_000_000) * count;
 
         const skuMap = boxSkuMap.get(boxName) ?? new Map();
         const packedSKUs = Array.from(skuMap.entries()).map(([skuId, { name, quantity }]) => ({

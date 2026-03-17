@@ -4,9 +4,10 @@ import type { NormalizedBoxGroup } from '@/hooks/usePackingNormalizer';
 
 interface BoxGroupListProps {
   normalizedBoxes: NormalizedBoxGroup[];
+  showFilter?: boolean;
 }
 
-export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes }) => {
+export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes, showFilter = true }) => {
   const [expandedLabels, setExpandedLabels] = useState<Set<string>>(new Set());
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
@@ -30,7 +31,7 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes }) =
           <Layers className="h-6 w-6" />
           Recommended Packing by Box Type
         </h2>
-        {normalizedBoxes.length > 1 && (
+        {showFilter && normalizedBoxes.length > 1 && (
           <div className="flex flex-wrap gap-1.5">
             <button
               onClick={() => setActiveFilter(null)}
@@ -101,7 +102,7 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes }) =
                   {boxGroup.box.name}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {boxGroup.box.width} x {boxGroup.box.length} x {boxGroup.box.height} cm
+                  {boxGroup.box.width} x {boxGroup.box.length} x {boxGroup.box.height} mm
                 </p>
               </div>
               <div className="flex gap-6">

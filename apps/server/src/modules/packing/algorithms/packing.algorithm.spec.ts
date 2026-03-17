@@ -273,7 +273,7 @@ describe('Packing Algorithm', () => {
 
       const result = calculatePacking(items, boxes);
 
-      const expectedCBM = (10 * 10 * 10) / 1000000;
+      const expectedCBM = (10 * 10 * 10) / 1000000000;
       expect(result.totalCBM).toBeCloseTo(expectedCBM);
     });
   });

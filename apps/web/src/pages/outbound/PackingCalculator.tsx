@@ -11,9 +11,14 @@ import {
 import { usePackingNormalizer } from '@/hooks/usePackingNormalizer';
 import type { PackingCalculationResult } from '@/hooks/usePackingNormalizer';
 import { PackingSummaryCards } from '@/components/packing/PackingSummaryCards';
-import { BoxGroupList } from '@/components/packing/BoxGroupList';
+import { BoxTypeCard } from '@/components/packing/BoxTypeCard';
+import { PackingDetailPanel } from '@/components/packing/PackingDetailPanel';
 import { UnpackedItemsAlert } from '@/components/packing/UnpackedItemsAlert';
 import { PackingGroupingOption, PackingRecommendation } from '@wms/types';
+
+type DetailView =
+  | { type: 'box'; boxId: string; groupId?: string | null }
+  | null;
 
 export const PackingCalculator: React.FC = () => {
   const { id: batchId } = useParams<{ id: string }>();
@@ -24,7 +29,7 @@ export const PackingCalculator: React.FC = () => {
   const { data: productGroups = [] } = useProductGroups();
 
   const [freshResult, setFreshResult] = useState<PackingRecommendation | PackingCalculationResult | null>(null);
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [detailView, setDetailView] = useState<DetailView>(null);
 
   const result = freshResult ?? savedRecommendation ?? null;
   const { normalizedBoxes, unpackedItems } = usePackingNormalizer(result);
@@ -33,23 +38,12 @@ export const PackingCalculator: React.FC = () => {
     const map = new Map<string, string>();
     for (const group of productGroups) {
       for (const product of group.products ?? []) {
+        map.set(product.id, group.id);
         map.set(product.sku, group.id);
       }
     }
     return map;
   }, [productGroups]);
-
-  const filteredBoxes = useMemo(() => {
-    if (!selectedGroupId) return normalizedBoxes;
-    return normalizedBoxes
-      .map((boxGroup) => ({
-        ...boxGroup,
-        shipments: boxGroup.shipments.filter((shipment) =>
-          shipment.packedSKUs.some((sku) => skuToGroupId.get(sku.skuId) === selectedGroupId),
-        ),
-      }))
-      .filter((boxGroup) => boxGroup.shipments.length > 0);
-  }, [normalizedBoxes, selectedGroupId, skuToGroupId]);
 
   const activeGroupIds = useMemo(() => {
     const ids = new Set<string>();
@@ -66,6 +60,72 @@ export const PackingCalculator: React.FC = () => {
 
   const visibleGroups = productGroups.filter((g) => activeGroupIds.has(g.id));
 
+  const getShipmentGroupId = (packedSKUs: { skuId: string }[]): string | null => {
+    const groupIds = new Set<string>();
+    for (const sku of packedSKUs) {
+      const gid = skuToGroupId.get(sku.skuId);
+      if (gid) groupIds.add(gid);
+    }
+    if (groupIds.size === 1) return [...groupIds][0];
+    return null;
+  };
+
+  const buildBoxGroups = (
+    boxes: typeof normalizedBoxes,
+    shipmentFilter: (groupId: string | null) => boolean,
+  ) => {
+    return boxes
+      .map((bg) => {
+        const shipments = bg.shipments.filter((s) =>
+          shipmentFilter(getShipmentGroupId(s.packedSKUs)),
+        );
+        const count = shipments.reduce((sum, s) => sum + s.count, 0);
+        const boxCBM = (bg.box.width * bg.box.length * bg.box.height) / 1_000_000_000;
+        return { ...bg, shipments, count, totalCBM: boxCBM * count };
+      })
+      .filter((bg) => bg.shipments.length > 0);
+  };
+
+  const groupSections = useMemo(() => {
+    return visibleGroups.map((group) => {
+      const filtered = buildBoxGroups(normalizedBoxes, (gid) => gid === group.id);
+      const totalBoxes = filtered.reduce((sum, bg) => sum + bg.count, 0);
+      const totalCBM = filtered.reduce((sum, bg) => sum + bg.totalCBM, 0);
+      const avgEfficiency = filtered.length
+        ? filtered.reduce((sum, bg) => sum + bg.efficiency, 0) / filtered.length
+        : 0;
+      return { group, filteredBoxes: filtered, stats: { totalBoxes, totalCBM, avgEfficiency } };
+    });
+  }, [visibleGroups, normalizedBoxes, skuToGroupId]);
+
+  const unclassifiedBoxes = useMemo(() => {
+    return buildBoxGroups(normalizedBoxes, (gid) => gid === null);
+  }, [normalizedBoxes, skuToGroupId]);
+
+
+  const detailBoxes = useMemo(() => {
+    if (!detailView) return [];
+    const { boxId, groupId } = detailView;
+    if (groupId === undefined) {
+      return normalizedBoxes.filter((bg) => bg.box.id === boxId);
+    }
+    if (groupId === null) {
+      return unclassifiedBoxes.filter((bg) => bg.box.id === boxId);
+    }
+    const section = groupSections.find((s) => s.group.id === groupId);
+    return section?.filteredBoxes.filter((bg) => bg.box.id === boxId) ?? [];
+  }, [detailView, normalizedBoxes, unclassifiedBoxes, groupSections]);
+
+  const detailTitle = useMemo(() => {
+    if (!detailView) return '';
+    const bg = normalizedBoxes.find((b) => b.box.id === detailView.boxId);
+    const boxName = bg?.box.name ?? detailView.boxId;
+    if (detailView.groupId === undefined) return boxName;
+    if (detailView.groupId === null) return `미분류 - ${boxName}`;
+    const section = groupSections.find((s) => s.group.id === detailView.groupId);
+    return `${section?.group.name ?? ''} - ${boxName}`;
+  }, [detailView, normalizedBoxes, groupSections]);
+
   const isCalculating = calculatePacking.isPending;
 
   const handleCalculate = async () => {
@@ -76,6 +136,7 @@ export const PackingCalculator: React.FC = () => {
         groupingOption: PackingGroupingOption.ORDER,
       });
       setFreshResult(data);
+      setDetailView(null);
     } catch (error: unknown) {
       const message =
         error instanceof Error
@@ -146,42 +207,75 @@ export const PackingCalculator: React.FC = () => {
       )}
 
       {result && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           <PackingSummaryCards
             totalCBM={result.totalCBM}
             totalEfficiency={result.totalEfficiency}
           />
 
-          {visibleGroups.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                onClick={() => setSelectedGroupId(null)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  selectedGroupId === null
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                전체
-              </button>
-              {visibleGroups.map((group) => (
-                <button
-                  key={group.id}
-                  onClick={() => setSelectedGroupId(group.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                    selectedGroupId === group.id
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {group.name}
-                </button>
-              ))}
-            </div>
-          )}
+          {detailView ? (
+            <PackingDetailPanel
+              title={detailTitle}
+              filteredBoxes={detailBoxes}
+              onBack={() => setDetailView(null)}
+            />
+          ) : (
+            <>
+              <div className="space-y-3">
+                <h2 className="text-lg font-semibold">박스별 사용 현황</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {normalizedBoxes.map((bg) => (
+                    <BoxTypeCard
+                      key={bg.box.id}
+                      box={bg.box}
+                      count={bg.count}
+                      totalCBM={bg.totalCBM}
+                      efficiency={bg.efficiency}
+                      onClick={() => setDetailView({ type: 'box', boxId: bg.box.id })}
+                    />
+                  ))}
+                </div>
+              </div>
 
-          <BoxGroupList normalizedBoxes={filteredBoxes} />
-          <UnpackedItemsAlert items={unpackedItems} />
+              {groupSections.map(({ group, filteredBoxes }) => (
+                <div key={group.id} className="space-y-3">
+                  <h2 className="text-lg font-semibold">{group.name}</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredBoxes.map((bg) => (
+                      <BoxTypeCard
+                        key={bg.box.id}
+                        box={bg.box}
+                        count={bg.count}
+                        totalCBM={bg.totalCBM}
+                        efficiency={bg.efficiency}
+                        onClick={() => setDetailView({ type: 'box', boxId: bg.box.id, groupId: group.id })}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {unclassifiedBoxes.length > 0 && (
+                <div className="space-y-3">
+                  <h2 className="text-lg font-semibold">미분류</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {unclassifiedBoxes.map((bg) => (
+                      <BoxTypeCard
+                        key={bg.box.id}
+                        box={bg.box}
+                        count={bg.count}
+                        totalCBM={bg.totalCBM}
+                        efficiency={bg.efficiency}
+                        onClick={() => setDetailView({ type: 'box', boxId: bg.box.id, groupId: null })}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <UnpackedItemsAlert items={unpackedItems} />
+            </>
+          )}
         </div>
       )}
     </div>

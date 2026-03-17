@@ -51,9 +51,9 @@ const outboundFields: OutboundFieldMapping = {
 const productFields: ProductFieldMapping = {
   sku: { fieldName: 'sku', displayName: '상품 코드', required: true },
   name: { fieldName: 'name', displayName: '상품명', required: true },
-  width: { fieldName: 'width', displayName: '너비(cm)', required: false },
-  length: { fieldName: 'length', displayName: '길이(cm)', required: false },
-  height: { fieldName: 'height', displayName: '높이(cm)', required: false },
+  width: { fieldName: 'width', displayName: '너비(mm)', required: false },
+  length: { fieldName: 'length', displayName: '길이(mm)', required: false },
+  height: { fieldName: 'height', displayName: '높이(mm)', required: false },
 };
 
 export const MappingConfirmation: React.FC<MappingConfirmationProps> = ({
