@@ -5,5 +5,6 @@ export * from './useProducts';
 export * from './useOutbounds';
 export * from './useOutboundBatches';
 export * from './useBoxes';
+export * from './useBoxGroups';
 export * from './usePacking';
 export * from './useUpload';

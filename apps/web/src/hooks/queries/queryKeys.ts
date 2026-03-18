@@ -32,6 +32,11 @@ export const boxes = createQueryKeys('boxes', {
   all: null,
 });
 
+export const boxGroups = createQueryKeys('boxGroups', {
+  all: null,
+  detail: (id: string) => [id],
+});
+
 export const packing = createQueryKeys('packing', {
   history: (projectId: string) => [projectId, 'history'],
   details: (projectId: string) => [projectId, 'details'],

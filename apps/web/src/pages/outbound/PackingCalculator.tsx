@@ -7,6 +7,7 @@ import {
   useExportPacking,
   usePackingRecommendation,
   useProductGroups,
+  useBoxGroups,
 } from '@/hooks/queries';
 import { usePackingNormalizer } from '@/hooks/usePackingNormalizer';
 import type { PackingCalculationResult } from '@/hooks/usePackingNormalizer';
@@ -27,9 +28,11 @@ export const PackingCalculator: React.FC = () => {
   const calculatePacking = useCalculatePacking();
   const exportPacking = useExportPacking();
   const { data: productGroups = [] } = useProductGroups();
+  const { data: boxGroupList = [] } = useBoxGroups();
 
   const [freshResult, setFreshResult] = useState<PackingRecommendation | PackingCalculationResult | null>(null);
   const [detailView, setDetailView] = useState<DetailView>(null);
+  const [selectedBoxGroupId, setSelectedBoxGroupId] = useState<string>('');
 
   const result = freshResult ?? savedRecommendation ?? null;
   const { normalizedBoxes, unpackedItems } = usePackingNormalizer(result);
@@ -129,11 +132,12 @@ export const PackingCalculator: React.FC = () => {
   const isCalculating = calculatePacking.isPending;
 
   const handleCalculate = async () => {
-    if (!batchId) return;
+    if (!batchId || !selectedBoxGroupId) return;
     try {
       const data = await calculatePacking.mutateAsync({
         batchId,
         groupingOption: PackingGroupingOption.ORDER,
+        boxGroupId: selectedBoxGroupId,
       });
       setFreshResult(data);
       setDetailView(null);
@@ -165,9 +169,22 @@ export const PackingCalculator: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <select
+            value={selectedBoxGroupId}
+            onChange={(e) => setSelectedBoxGroupId(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+          >
+            <option value="">박스 그룹 선택</option>
+            {boxGroupList.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name} ({g.boxes?.length ?? 0}개)
+              </option>
+            ))}
+          </select>
+
           <button
             onClick={handleCalculate}
-            disabled={isCalculating}
+            disabled={isCalculating || !selectedBoxGroupId}
             className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
           >
             <RefreshCw className={`h-4 w-4 ${isCalculating ? 'animate-spin' : ''}`} />

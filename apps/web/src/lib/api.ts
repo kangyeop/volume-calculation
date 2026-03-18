@@ -7,6 +7,7 @@ import {
   PackingResult,
   PackingGroupingOption,
   Box,
+  BoxGroup,
   PackingResult3D,
   ParseProductUploadData,
   ApiResponse,
@@ -174,14 +175,25 @@ export const api = {
         }[];
       }>(`/outbound-batches/${batchId}/outbounds/configuration-summary`),
   },
+  boxGroups: {
+    list: () => fetchApi<BoxGroup[]>('/box-groups'),
+    get: (id: string) => fetchApi<BoxGroup>(`/box-groups/${id}`),
+    create: (name: string) =>
+      fetchApi<BoxGroup>('/box-groups', {
+        method: 'POST',
+        data: { name },
+      }),
+    delete: (id: string) => fetchApi<void>(`/box-groups/${id}`, { method: 'DELETE' }),
+  },
   packing: {
     calculate: (
       batchId: string,
       groupingOption: PackingGroupingOption = PackingGroupingOption.ORDER,
+      boxGroupId?: string,
     ) =>
       fetchApi<PackingRecommendation>(`/outbound-batches/${batchId}/packing/calculate`, {
         method: 'POST',
-        data: { groupingOption },
+        data: { groupingOption, boxGroupId },
       }),
     calculateOrder: async (batchId: string, orderId: string, groupLabel?: string) => {
       return fetchApi<PackingResult3D>(`/outbound-batches/${batchId}/packing/calculate-order`, {
@@ -214,7 +226,7 @@ export const api = {
   },
   boxes: {
     list: () => fetchApi<Box[]>('/boxes'),
-    create: (data: Omit<Box, 'id'>) =>
+    create: (data: Omit<Box, 'id' | 'boxGroup'>) =>
       fetchApi<Box>('/boxes', {
         method: 'POST',
         data,

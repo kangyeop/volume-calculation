@@ -15,7 +15,7 @@ export function useBoxes() {
   });
 }
 
-export function useCreateBox(): UseMutationResult<Box, Error, Omit<Box, 'id'>> {
+export function useCreateBox(): UseMutationResult<Box, Error, Omit<Box, 'id' | 'boxGroup'>> {
   const queryClient = useQueryClient();
 
   return useMutation({
