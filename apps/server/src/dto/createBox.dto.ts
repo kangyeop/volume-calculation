@@ -22,7 +22,7 @@ export class CreateBoxDto {
   @Min(0)
   price?: number;
 
+  @IsOptional()
   @IsUUID()
-  @IsNotEmpty()
-  boxGroupId!: string;
+  boxGroupId?: string;
 }

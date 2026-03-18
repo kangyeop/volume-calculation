@@ -8,10 +8,10 @@ export class BoxEntity extends BaseEntity implements Box {
   @Column()
   name!: string;
 
-  @Column()
+  @Column({ nullable: true })
   boxGroupId!: string;
 
-  @ManyToOne(() => BoxGroupEntity, (group) => group.boxes, { onDelete: 'CASCADE' })
+  @ManyToOne(() => BoxGroupEntity, (group) => group.boxes, { onDelete: 'CASCADE', nullable: true })
   @JoinColumn({ name: 'boxGroupId' })
   boxGroup!: BoxGroupEntity;
 
