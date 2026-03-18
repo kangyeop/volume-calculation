@@ -19,7 +19,7 @@ export class PackingController {
     @Param('batchId') batchId: string,
     @Body() calculatePackingDto: CalculatePackingDto,
   ): Promise<PackingRecommendation> {
-    return this.packingService.calculate(batchId, calculatePackingDto.groupingOption);
+    return this.packingService.calculate(batchId, calculatePackingDto.groupingOption, calculatePackingDto.boxGroupId);
   }
 
   @Get('recommendation')

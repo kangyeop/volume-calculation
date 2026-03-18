@@ -41,6 +41,7 @@ export class PackingService {
   async calculate(
     outboundBatchId: string,
     groupingOption: PackingGroupingOption,
+    boxGroupId: string,
   ): Promise<PackingRecommendation> {
     this.logger.log(
       `Calculating packing for batch: ${outboundBatchId} with grouping: ${groupingOption}`,
@@ -48,11 +49,11 @@ export class PackingService {
 
     const outbounds = await this.outboundService.findAll(outboundBatchId);
     const products = await this.productsService.findAllForMatching();
-    const boxes = await this.boxesService.findAll();
+    const boxes = await this.boxesService.findByGroupId(boxGroupId);
 
     if (boxes.length === 0) {
       throw new BadRequestException(
-        '등록된 박스가 없습니다. 박스 관리 메뉴에서 박스를 먼저 등록해주세요.',
+        '선택한 박스 그룹에 등록된 박스가 없습니다. 박스 관리 메뉴에서 박스를 먼저 등록해주세요.',
       );
     }
 
@@ -328,6 +329,7 @@ export class PackingService {
     outboundBatchId: string,
     orderId: string,
     groupLabel?: string,
+    boxGroupId?: string,
   ): Promise<PackingResult3D> {
     this.logger.log(`Calculating 3D packing for order: ${orderId}`);
 
@@ -337,7 +339,9 @@ export class PackingService {
       throw new BadRequestException(`주문 ID ${orderId}에 대한 출고 정보가 없습니다.`);
     }
 
-    const boxes = await this.boxesService.findAll();
+    const boxes = boxGroupId
+      ? await this.boxesService.findByGroupId(boxGroupId)
+      : await this.boxesService.findAll();
 
     if (boxes.length === 0) {
       throw new BadRequestException(

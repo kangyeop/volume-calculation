@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsNumber, Min, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, Min, IsOptional, IsUUID } from 'class-validator';
 
 export class CreateBoxDto {
   @IsString()
@@ -21,4 +21,8 @@ export class CreateBoxDto {
   @IsNumber()
   @Min(0)
   price?: number;
+
+  @IsUUID()
+  @IsNotEmpty()
+  boxGroupId!: string;
 }

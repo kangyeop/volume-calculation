@@ -28,6 +28,10 @@ export class BoxesService {
     return await this.boxesRepository.update(id, updateBoxDto);
   }
 
+  async findByGroupId(groupId: string): Promise<BoxEntity[]> {
+    return await this.boxesRepository.findByGroupId(groupId);
+  }
+
   async remove(id: string): Promise<void> {
     const removed = await this.boxesRepository.remove(id);
     if (!removed) {
