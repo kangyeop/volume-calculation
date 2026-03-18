@@ -16,6 +16,11 @@
     "prettier": "latest",
     "turbo": "latest"
   },
+  "pnpm": {
+    "overrides": {
+      "zod": "3.25.67"
+    }
+  },
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=18"

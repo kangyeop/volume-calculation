@@ -4,8 +4,15 @@ import { ProductsRepository } from '../repositories/products.repository';
 import { OutboundMappingSchema, OutboundMappingResult } from './schemas/outbound-mapping.schema';
 import { ProductMappingSchema, ProductMappingResult } from './schemas/product-mapping.schema';
 import { SingleProductMatchSchema } from './schemas/product-match.schema';
-import { CompoundDetectionSchema, CompoundDetectionResult } from './schemas/compound-detection.schema';
-import { ChatOpenAI } from '@langchain/openai';
+import {
+  CompoundDetectionSchema,
+  CompoundDetectionResult,
+} from './schemas/compound-detection.schema';
+import { createLLM } from '../utils/langchain';
+import { buildOutboundPrompt } from '../prompts/outbound.prompt';
+import { buildProductPrompt } from '../prompts/product.prompt';
+import { buildMatchingPrompt } from '../prompts/matching.prompt';
+import { buildCompoundDetectionPrompt } from '../prompts/compound-detection.prompt';
 
 interface CachedProduct {
   id: string;
@@ -42,11 +49,10 @@ export class AIService {
     try {
       this.logger.log(`Mapping outbound columns for ${headers.length} headers`);
 
-      const llm = this.createLLM();
-      const structuredLlm = llm.withStructuredOutput(OutboundMappingSchema);
-      const prompt = this.buildOutboundPrompt(headers, sampleRows);
+      const llm = createLLM({ apiKey: this.apiKey }).withStructuredOutput(OutboundMappingSchema);
+      const prompt = buildOutboundPrompt(headers, sampleRows);
 
-      const result = await structuredLlm.invoke([
+      const result = await llm.invoke([
         [
           'system',
           'You are a helpful data mapping assistant. Analyze CSV headers and sample data to map columns to required fields.',
@@ -71,11 +77,10 @@ export class AIService {
     try {
       this.logger.log('Detecting compound products in sample data');
 
-      const llm = this.createLLM();
-      const structuredLlm = llm.withStructuredOutput(CompoundDetectionSchema);
-      const prompt = this.buildCompoundDetectionPrompt(headers, sampleRows);
+      const llm = createLLM({ apiKey: this.apiKey }).withStructuredOutput(CompoundDetectionSchema);
+      const prompt = buildCompoundDetectionPrompt(headers, sampleRows);
 
-      const result = await structuredLlm.invoke([
+      const result = await llm.invoke([
         [
           'system',
           'You are a data analysis assistant. Analyze Excel data to detect compound product patterns in cells.',
@@ -97,11 +102,10 @@ export class AIService {
     try {
       this.logger.log(`Mapping product columns for ${headers.length} headers`);
 
-      const llm = this.createLLM();
-      const structuredLlm = llm.withStructuredOutput(ProductMappingSchema);
-      const prompt = this.buildProductPrompt(headers, sampleRows);
+      const llm = createLLM({ apiKey: this.apiKey }).withStructuredOutput(ProductMappingSchema);
+      const prompt = buildProductPrompt(headers, sampleRows);
 
-      const result = await structuredLlm.invoke([
+      const result = await llm.invoke([
         [
           'system',
           'You are a helpful data mapping assistant. Analyze CSV/Excel headers and sample data to map columns to product fields.',
@@ -134,15 +138,6 @@ export class AIService {
     this.logger.log(`Mapping complete`);
 
     return results;
-  }
-
-  private createLLM(): ChatOpenAI {
-    return new ChatOpenAI({
-      modelName: 'gpt-5.4-nano',
-      temperature: 0,
-      apiKey: this.apiKey,
-      modelKwargs: { reasoning_effort: 'low' },
-    });
   }
 
   private async getProductCache(projectId: string): Promise<CachedProduct[]> {
@@ -186,11 +181,10 @@ export class AIService {
     }
 
     try {
-      const llm = this.createLLM();
-      const structuredLlm = llm.withStructuredOutput(SingleProductMatchSchema);
-      const prompt = this.buildMatchingPrompt(item, products);
+      const llm = createLLM({ apiKey: this.apiKey }).withStructuredOutput(SingleProductMatchSchema);
+      const prompt = buildMatchingPrompt(item, products);
 
-      const result = await structuredLlm.invoke([
+      const result = await llm.invoke([
         [
           'system',
           'You are a product matching assistant. Find the best matching product for an outbound order item.',
@@ -220,130 +214,6 @@ export class AIService {
         outboundItemIndex: index,
       };
     }
-  }
-
-  private buildOutboundPrompt(headers: string[], sampleRows: any[]): string {
-    const fullData = sampleRows.map((row) =>
-      Object.fromEntries(headers.map((h) => [h, row[h] ?? ''])),
-    );
-
-    return `Analyze following Excel data and map columns to outbound order fields.
-
-Headers: ${headers.join(', ')}
-
-Complete Data (JSON format, ${sampleRows.length} rows):
-${JSON.stringify(fullData, null, 2)}
-
-Required fields to map:
-- orderId: for tracking order
-  Pattern: Long numeric string
-
-- sku: single product name per row
-  IMPORTANT: Choose the column where each cell contains the SHORTEST, cleanest single product name.
-  AVOID columns that contain multiple product names joined by "+" or combined with category/set prefixes like "세트 - A + B + C".
-  If two columns both contain product names, always pick the one with shorter, simpler values.
-
-- quantity: item quantity per unit
-  Pattern: Number
-
-- recipientName
-  Pattern: Person's name
-
-- address
-  Pattern: Main address
-
-Mapping Rules:
-1. Prefer columns with exact Korean field names
-2. Look for common patterns in actual data values
-3. Ignore system/internal fields
-5. Ignore complex/formatted columns`;
-  }
-
-  private buildProductPrompt(headers: string[], sampleRows: any[]): string {
-    const fullData = sampleRows.map((row) =>
-      Object.fromEntries(headers.map((h) => [h, row[h] ?? ''])),
-    );
-
-    return `Analyze following Excel data and map columns to product fields.
-
-Headers: ${headers.join(', ')}
-
-Complete Data (JSON format, ${sampleRows.length} rows):
-${JSON.stringify(fullData, null, 2)}
-
-Required fields to map:
-- sku: identifier / code / index
-  Pattern: Alphanumeric code, product code, 상품코드, SKU, 순번
-
-- name: Product name / display name
-  Pattern: 상품명, product name, item name
-
-- dimensions: Combined dimension string (if dimensions are in a single column)
-  Pattern: "10x20x30", "10*20*30", "100x200x150cm"
-  Only map this if dimensions are combined in one column.
-
-Mapping Rules:
-1. Prefer columns with exact Korean field names (상품코드, 상품명, 가로, 세로, 높이)
-2. Look at actual data values to determine the best mapping
-3. Set dimensionFormat to 'combined' if dimensions are in a single column like "10x20x30"
-4. Set dimensionFormat to 'separate' if width/length/height are in separate columns
-5. If dimensions are combined, set width/height/length to null
-6. If dimensions are separate, set dimensions to null
-7. Ignore system/internal fields`;
-  }
-
-  private buildMatchingPrompt(item: OutboundItem, products: CachedProduct[]): string {
-    const fieldsList = Object.entries(item.availableFields)
-      .filter(([_, value]) => value)
-      .map(([field, value]) => `- ${field}: "${value}"`)
-      .join('\n');
-
-    const productCount = Math.min(products.length, 50);
-    const topProducts = products.slice(0, productCount);
-    const productList = topProducts
-      .map((p, i) => `${i + 1}. SKU: "${p.sku}", Name: "${p.name}"`)
-      .join('\n');
-
-    return `
-Outbound Item Fields:
-${fieldsList || 'No fields available'}
-
-Available Products (${productCount} of ${products.length}):
-${productList}
-
-AI Instructions:
-1. Analyze all available fields from outbound item
-2. Identify which field(s) contain product name or product code
-3. Look for semantic similarity with product names in database
-4. Consider common patterns: product names in quotes, variant info, codes
-5. Return matchedIndexes of all matching products, or an empty array if no match found`;
-  }
-
-  private buildCompoundDetectionPrompt(headers: string[], sampleRows: any[]): string {
-    const fullData = sampleRows.map((row) =>
-      Object.fromEntries(headers.map((h) => [h, row[h] ?? ''])),
-    );
-
-    return `아래 엑셀 데이터의 상품/SKU 관련 컬럼 값들을 분석하라.
-
-Headers: ${headers.join(', ')}
-
-Sample Data (JSON format, ${sampleRows.length} rows):
-${JSON.stringify(fullData, null, 2)}
-
-판단 기준:
-- 셀 하나에 여러 상품이 구분자(쉼표, 슬래시, 줄바꿈 등)로 나열되어 있는가?
-- "세트상품 A+B", "A+B 세트" 등의 "+"는 상품명의 일부이지 구분자가 아니다.
-- 모든 셀이 단일 상품이면 detected=false, 나머지 필드는 null.
-
-detected=true인 경우:
-- delimiter: 상품 간 구분자 (e.g., ",", "/", "\\n")
-- itemPattern: 개별 상품+수량을 추출하는 정규식.
-  캡처 그룹 규칙: group(1)=상품명, group(2)=수량(있을 경우).
-  예시: "상품A[2]" → "(.+?)\\\\[([0-9]+)\\\\]"
-        "상품A(2개)" → "(.+?)\\\\(([0-9]+)개\\\\)"
-        "상품A x2" → "(.+?)\\\\s*[xX]\\\\s*([0-9]+)"
-        수량 표기 없이 상품명만 → "(.+)"`;
   }
 
   invalidateCache(projectId: string): void {
