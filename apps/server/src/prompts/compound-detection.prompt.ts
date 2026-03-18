@@ -17,10 +17,34 @@ ${JSON.stringify(fullData, null, 2)}
 
 detected=true인 경우:
 - delimiter: 상품 간 구분자 (e.g., ",", "/", "\\n")
-- itemPattern: 개별 상품+수량을 추출하는 정규식.
+- itemPattern: 개별 항목에서 상품명과 수량을 추출하는 JavaScript 정규식.
   캡처 그룹 규칙: group(1)=상품명, group(2)=수량(있을 경우).
-  예시: "상품A[2]" → "(.+?)\\\\[([0-9]+)\\\\]"
-        "상품A(2개)" → "(.+?)\\\\(([0-9]+)개\\\\)"
-        "상품A x2" → "(.+?)\\\\s*[xX]\\\\s*([0-9]+)"
-        수량 표기 없이 상품명만 → "(.+)"`;
+  데이터에 실제로 나타나는 패턴을 정확히 분석해서 정규식을 만들어라.
+  어떤 형태든 상관없다. 괄호, 슬래시, 대괄호, 수량 단위(ea, 개, pcs 등) 등 모든 패턴을 자유롭게 처리하라.
+- parsedSamples: 실제 데이터에서 복합 상품 셀을 delimiter로 분리한 뒤, 각 항목을 itemPattern으로 파싱한 결과.
+  최소 3개 이상의 항목을 파싱하라.
+  각 항목은 { raw: "원본 텍스트", productName: "추출된 상품명", quantity: 수량(숫자) } 형태.
+  수량 표기가 없으면 quantity는 1로 처리.`;
+}
+
+export function buildCompoundRetryPrompt(
+  headers: string[],
+  sampleRows: any[],
+  previousPattern: string,
+  failures: { raw: string; expected: { productName: string; quantity: number } }[],
+): string {
+  const basePrompt = buildCompoundDetectionPrompt(headers, sampleRows);
+
+  const failureDetails = failures
+    .map((f) => `  - "${f.raw}" → 기대: {productName: "${f.expected.productName}", quantity: ${f.expected.quantity}}`)
+    .join('\n');
+
+  return `${basePrompt}
+
+이전에 생성한 정규식이 실패했다:
+이전 정규식: ${previousPattern}
+실패한 항목:
+${failureDetails}
+
+위 항목들이 정확히 파싱되도록 정규식을 수정하라.`;
 }

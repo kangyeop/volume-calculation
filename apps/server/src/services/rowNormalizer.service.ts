@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CompoundDetectionResult } from './schemas/compound-detection.schema';
+import { CompoundDetectionResult, ParsedItem } from './schemas/compound-detection.schema';
 
 @Injectable()
 export class RowNormalizerService {
@@ -26,11 +26,11 @@ export class RowNormalizerService {
       try {
         regex = new RegExp(detection.itemPattern);
       } catch {
-        this.logger.warn(`Invalid regex from AI: "${detection.itemPattern}", skipping normalization`);
-        return rows;
+        this.logger.warn(`Invalid regex from AI: "${detection.itemPattern}", falling back to AI-parsed samples`);
       }
     }
 
+    const parsedLookup = this.buildParsedLookup(detection.parsedSamples);
     const delimiter = detection.delimiter || ',';
     const result: Record<string, unknown>[] = [];
 
@@ -51,19 +51,7 @@ export class RowNormalizerService {
 
       for (const part of parts) {
         const expandedRow = { ...row };
-        let productName = part;
-        let quantity: number | null = null;
-
-        if (regex) {
-          const match = part.match(regex);
-          if (match) {
-            productName = (match[1] ?? part).trim();
-            if (match[2] !== undefined) {
-              const parsed = parseInt(match[2], 10);
-              quantity = parsed > 0 ? parsed : 1;
-            }
-          }
-        }
+        const { productName, quantity } = this.parseItem(part, regex, parsedLookup);
 
         expandedRow[skuColumn] = productName;
         if (quantity !== null && quantityColumn) {
@@ -76,5 +64,36 @@ export class RowNormalizerService {
 
     this.logger.log(`Normalized ${rows.length} rows into ${result.length} rows`);
     return result;
+  }
+
+  private parseItem(
+    raw: string,
+    regex: RegExp | null,
+    parsedLookup: Map<string, ParsedItem>,
+  ): { productName: string; quantity: number | null } {
+    if (regex) {
+      const match = raw.match(regex);
+      if (match && match[1]) {
+        const productName = match[1].trim();
+        const quantity = match[2] !== undefined ? (parseInt(match[2], 10) || 1) : null;
+        return { productName, quantity };
+      }
+    }
+
+    const cached = parsedLookup.get(raw.trim());
+    if (cached) {
+      return { productName: cached.productName, quantity: cached.quantity };
+    }
+
+    return { productName: raw, quantity: null };
+  }
+
+  private buildParsedLookup(samples: ParsedItem[] | null): Map<string, ParsedItem> {
+    const map = new Map<string, ParsedItem>();
+    if (!samples) return map;
+    for (const sample of samples) {
+      map.set(sample.raw.trim(), sample);
+    }
+    return map;
   }
 }
