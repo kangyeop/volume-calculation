@@ -8,8 +8,9 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   initializeTransactionalContext();
 
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: false });
   app.useBodyParser('json', { limit: '50mb' });
+  app.useBodyParser('urlencoded', { limit: '50mb', extended: true });
 
   const dataSource = app.get(DataSource);
   addTransactionalDataSource(dataSource);
