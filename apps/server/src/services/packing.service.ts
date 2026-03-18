@@ -129,66 +129,72 @@ export class PackingService {
         };
       });
 
+      const groupOrderId = group[0].orderIdentifier || group[0].orderId;
+      const skuToOutbound = new Map<string, { sku: string }>();
+      for (const outbound of group) {
+        const product =
+          (outbound.productId ? productMapById.get(outbound.productId) : undefined) ??
+          productMapBySku.get(outbound.sku);
+        if (product && !skuToOutbound.has(product.id)) {
+          skuToOutbound.set(product.id, { sku: outbound.sku });
+        }
+      }
+
       let boxIndex = 1;
-      const skuToBoxMap = new Map<
-        string,
-        { boxName: string; boxNumber: number; boxIndex: number }
-      >();
       for (const box of boxesWithNames) {
+        const boxVol = box.box.width * box.box.length * box.box.height;
+        const boxCBM = boxVol / 1_000_000;
+
         for (let i = 0; i < box.count; i++) {
           for (const packedSku of box.packedSKUs) {
-            if (!skuToBoxMap.has(packedSku.skuId)) {
-              skuToBoxMap.set(packedSku.skuId, {
+            const product = productMapById.get(packedSku.skuId);
+            if (!product) continue;
+
+            const outboundInfo = skuToOutbound.get(packedSku.skuId);
+            const efficiency =
+              boxVol > 0
+                ? (product.width * product.length * product.height * packedSku.quantity) / boxVol
+                : 0;
+
+            detailResults.push(
+              this.packingResultDetailRepository.create({
+                outboundBatchId,
+                orderId: groupOrderId,
+                recipientName: '',
+                sku: outboundInfo?.sku || product.sku,
+                productName: product.name,
+                quantity: packedSku.quantity,
                 boxName: box.box.name,
                 boxNumber: i + 1,
                 boxIndex,
-              });
-            }
+                boxCBM,
+                efficiency,
+                unpacked: false,
+                unpackedReason: '',
+              }),
+            );
           }
         }
         boxIndex++;
       }
 
-      for (const outbound of group) {
-        const product =
-          (outbound.productId ? productMapById.get(outbound.productId) : undefined) ??
-          productMapBySku.get(outbound.sku);
-        if (!product) continue;
-
-        const boxInfo = skuToBoxMap.get(product.id) || {
-          boxName: unpackedWithNames.length > 0 ? 'Unpacked' : 'Unknown',
-          boxNumber: 0,
-          boxIndex: 0,
-        };
-
-        const unpackedItem = unpackedWithNames.find(
-          (u) => u.skuId === product.id && u.quantity > 0,
-        );
-        const isUnpacked = !!unpackedItem;
-
-        const boxCBM = boxInfo.boxIndex > 0 ? (boxVolMap.get(boxInfo.boxName) || 0) / 1_000_000 : 0;
-
-        const efficiency =
-          boxInfo.boxIndex > 0
-            ? (product.width * product.length * product.height * outbound.quantity) /
-              (boxVolMap.get(boxInfo.boxName) || 1)
-            : 0;
-
+      for (const item of unpackedWithNames) {
+        const outboundInfo = skuToOutbound.get(item.skuId);
         detailResults.push(
           this.packingResultDetailRepository.create({
             outboundBatchId,
-            orderId: outbound.orderIdentifier || outbound.orderId,
+            orderId: groupOrderId,
             recipientName: '',
-            sku: outbound.sku,
-            productName: product.name,
-            quantity: outbound.quantity,
-            boxName: boxInfo.boxName,
-            boxNumber: boxInfo.boxNumber,
-            boxIndex: boxInfo.boxIndex,
-            boxCBM,
-            efficiency,
-            unpacked: isUnpacked,
-            unpackedReason: unpackedItem?.reason || '',
+            sku: outboundInfo?.sku || item.skuId,
+            productName: item.name,
+            quantity: item.quantity,
+            boxName: 'Unpacked',
+            boxNumber: 0,
+            boxIndex: 0,
+            boxCBM: 0,
+            efficiency: 0,
+            unpacked: true,
+            unpackedReason: item.reason || '',
           }),
         );
       }
