@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
+import { Transactional } from 'typeorm-transactional';
 import { PackingResultDetailEntity } from '../entities/packingResultDetail.entity';
 
 @Injectable()
@@ -18,6 +19,7 @@ export class PackingResultDetailsRepository {
     return await this.repository.save(entity);
   }
 
+  @Transactional()
   async createBulk(
     details: Partial<PackingResultDetailEntity>[],
   ): Promise<PackingResultDetailEntity[]> {
@@ -31,6 +33,7 @@ export class PackingResultDetailsRepository {
     return saved;
   }
 
+  @Transactional()
   async removeAll(outboundBatchId: string): Promise<void> {
     await this.repository.delete({ outboundBatchId });
   }

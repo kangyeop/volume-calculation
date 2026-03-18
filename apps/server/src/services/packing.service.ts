@@ -1,6 +1,7 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Transactional } from 'typeorm-transactional';
 import { PackingResultEntity } from '../entities/packingResult.entity';
 import { PackingResultDetailEntity } from '../entities/packingResultDetail.entity';
 import { OutboundBatchEntity } from '../entities/outbound-batch.entity';
@@ -38,6 +39,7 @@ export class PackingService {
     private readonly ordersRepository: OrdersRepository,
   ) {}
 
+  @Transactional()
   async calculate(
     outboundBatchId: string,
     groupingOption: PackingGroupingOption,
@@ -404,6 +406,7 @@ export class PackingService {
     return batch.packingRecommendation;
   }
 
+  @Transactional()
   private async savePackingResults3D(outboundBatchId: string, result: PackingResult3D) {
     await this.packingResultRepository.removeAllByBatchAndOrder(outboundBatchId, result.orderId);
 
