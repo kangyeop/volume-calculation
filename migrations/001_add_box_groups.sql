@@ -16,20 +16,6 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
-SET @col_exists = (
-  SELECT COUNT(*) FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = 'wms'
-    AND TABLE_NAME = 'boxes'
-    AND COLUMN_NAME = 'boxGroupId'
-);
-
-SET @sql = IF(@col_exists > 0,
-  'ALTER TABLE boxes DROP COLUMN boxGroupId',
-  'SELECT 1');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
 -- 2. Create box_groups table
 CREATE TABLE IF NOT EXISTS box_groups (
   id VARCHAR(36) NOT NULL,
@@ -39,18 +25,52 @@ CREATE TABLE IF NOT EXISTS box_groups (
   PRIMARY KEY (id)
 ) ENGINE=InnoDB;
 
--- 3. Create default group and assign all existing boxes
+-- 3. Create default group if none exists
+SET @has_groups = (SELECT COUNT(*) FROM box_groups);
 SET @default_group_id = UUID();
 
-INSERT INTO box_groups (id, name) VALUES (@default_group_id, '기본 박스 그룹');
+SET @sql = IF(@has_groups = 0,
+  CONCAT('INSERT INTO box_groups (id, name) VALUES (''', @default_group_id, ''', ''기본 박스 그룹'')'),
+  'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
--- 4. Add NOT NULL boxGroupId column with default group
-ALTER TABLE boxes ADD COLUMN boxGroupId VARCHAR(36) NOT NULL DEFAULT 'temp';
+-- Use existing group if one was already created
+SET @default_group_id = (SELECT id FROM box_groups LIMIT 1);
 
-UPDATE boxes SET boxGroupId = @default_group_id;
+-- 4. Add boxGroupId column if not exists
+SET @col_exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = 'wms'
+    AND TABLE_NAME = 'boxes'
+    AND COLUMN_NAME = 'boxGroupId'
+);
 
-ALTER TABLE boxes ALTER COLUMN boxGroupId DROP DEFAULT;
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE boxes ADD COLUMN boxGroupId VARCHAR(36) NULL',
+  'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
--- 5. Add foreign key constraint
-ALTER TABLE boxes ADD CONSTRAINT FK_b7fcbee085af928481aa4172e21
-  FOREIGN KEY (boxGroupId) REFERENCES box_groups(id) ON DELETE CASCADE;
+-- 5. Assign all unassigned boxes to default group
+UPDATE boxes SET boxGroupId = @default_group_id WHERE boxGroupId IS NULL;
+
+-- 6. Make column NOT NULL
+ALTER TABLE boxes MODIFY COLUMN boxGroupId VARCHAR(36) NOT NULL;
+
+-- 7. Add foreign key constraint
+SET @fk_exists = (
+  SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+  WHERE CONSTRAINT_SCHEMA = 'wms'
+    AND TABLE_NAME = 'boxes'
+    AND CONSTRAINT_NAME = 'FK_b7fcbee085af928481aa4172e21'
+);
+
+SET @sql = IF(@fk_exists = 0,
+  'ALTER TABLE boxes ADD CONSTRAINT FK_b7fcbee085af928481aa4172e21 FOREIGN KEY (boxGroupId) REFERENCES box_groups(id) ON DELETE CASCADE',
+  'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
