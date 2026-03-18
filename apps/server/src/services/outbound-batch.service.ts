@@ -1,7 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Transactional } from 'typeorm-transactional';
 import { OutboundBatchEntity } from '../entities/outbound-batch.entity';
+import { OutboundItemEntity } from '../entities/outbound-item.entity';
+import { OrderEntity } from '../entities/order.entity';
+import { PackingResultEntity } from '../entities/packingResult.entity';
+import { PackingResultDetailEntity } from '../entities/packingResultDetail.entity';
 import { format } from 'date-fns';
 
 @Injectable()
@@ -9,6 +14,14 @@ export class OutboundBatchService {
   constructor(
     @InjectRepository(OutboundBatchEntity)
     private outboundBatchRepository: Repository<OutboundBatchEntity>,
+    @InjectRepository(OutboundItemEntity)
+    private outboundItemRepository: Repository<OutboundItemEntity>,
+    @InjectRepository(OrderEntity)
+    private orderRepository: Repository<OrderEntity>,
+    @InjectRepository(PackingResultEntity)
+    private packingResultRepository: Repository<PackingResultEntity>,
+    @InjectRepository(PackingResultDetailEntity)
+    private packingResultDetailRepository: Repository<PackingResultDetailEntity>,
   ) {}
 
   async findAll(): Promise<OutboundBatchEntity[]> {
@@ -50,8 +63,15 @@ export class OutboundBatchService {
     return this.outboundBatchRepository.save(batch);
   }
 
+  @Transactional()
   async delete(id: string): Promise<void> {
-    const batch = await this.findOne(id);
-    await this.outboundBatchRepository.remove(batch);
+    const batch = await this.outboundBatchRepository.findOne({ where: { id } });
+    if (!batch) throw new NotFoundException(`OutboundBatch ${id} not found`);
+
+    await this.packingResultDetailRepository.delete({ outboundBatchId: id });
+    await this.packingResultRepository.delete({ outboundBatchId: id });
+    await this.outboundItemRepository.delete({ outboundBatchId: id });
+    await this.orderRepository.delete({ outboundBatchId: id });
+    await this.outboundBatchRepository.delete(id);
   }
 }
