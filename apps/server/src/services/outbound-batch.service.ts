@@ -25,9 +25,11 @@ export class OutboundBatchService {
   ) {}
 
   async findAll(): Promise<OutboundBatchEntity[]> {
-    return this.outboundBatchRepository.find({
-      order: { createdAt: 'DESC' },
-    });
+    return this.outboundBatchRepository
+      .createQueryBuilder('batch')
+      .select(['batch.id', 'batch.name', 'batch.createdAt', 'batch.updatedAt'])
+      .orderBy('batch.createdAt', 'DESC')
+      .getMany();
   }
 
   async findOne(id: string): Promise<OutboundBatchEntity> {
