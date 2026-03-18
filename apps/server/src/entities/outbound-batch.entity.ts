@@ -9,6 +9,9 @@ export class OutboundBatchEntity extends BaseEntity {
   @Column()
   name!: string;
 
+  @Column({ type: 'json', nullable: true })
+  packingRecommendation!: any | null;
+
   @OneToMany(() => OrderEntity, (order) => order.outboundBatch)
   orders!: OrderEntity[];
 

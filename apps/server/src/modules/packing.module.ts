@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PackingResultEntity } from '../entities/packingResult.entity';
 import { PackingResultDetailEntity } from '../entities/packingResultDetail.entity';
+import { OutboundBatchEntity } from '../entities/outbound-batch.entity';
 import { PackingService } from '../services/packing.service';
 import { PackingController } from '../controllers/packing.controller';
 import { ExcelService } from '../services/excel.service';
@@ -15,7 +16,7 @@ import { PackingResultDetailsRepository } from '../repositories/packing-result-d
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([PackingResultEntity, PackingResultDetailEntity]),
+    TypeOrmModule.forFeature([PackingResultEntity, PackingResultDetailEntity, OutboundBatchEntity]),
     ProductsModule,
     OutboundModule,
     OutboundBatchModule,

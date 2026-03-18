@@ -1,6 +1,9 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { PackingResultEntity } from '../entities/packingResult.entity';
 import { PackingResultDetailEntity } from '../entities/packingResultDetail.entity';
+import { OutboundBatchEntity } from '../entities/outbound-batch.entity';
 import { OutboundService } from './outbound.service';
 import { ProductsService } from './products.service';
 import { BoxesService } from './boxes.service';
@@ -27,6 +30,8 @@ export class PackingService {
   constructor(
     private readonly packingResultRepository: PackingResultsRepository,
     private readonly packingResultDetailRepository: PackingResultDetailsRepository,
+    @InjectRepository(OutboundBatchEntity)
+    private readonly outboundBatchRepository: Repository<OutboundBatchEntity>,
     private readonly outboundService: OutboundService,
     private readonly productsService: ProductsService,
     private readonly boxesService: BoxesService,
@@ -253,13 +258,19 @@ export class PackingService {
 
     const allUnpackedItems = groups.flatMap((g) => g.unpackedItems || []);
 
-    return {
+    const result: PackingRecommendation = {
       groups,
       totalCBM: grandTotalCBM,
       totalEfficiency:
         grandTotalAvailableVolume > 0 ? grandTotalUsedVolume / grandTotalAvailableVolume : 0,
       unpackedItems: allUnpackedItems,
     };
+
+    await this.outboundBatchRepository.update(outboundBatchId, {
+      packingRecommendation: result as any,
+    });
+
+    return result;
   }
 
   private groupOutbounds(outbounds: OutboundItemEntity[], option: string): OutboundItemEntity[][] {
@@ -382,94 +393,11 @@ export class PackingService {
   }
 
   async getRecommendation(outboundBatchId: string): Promise<PackingRecommendation | null> {
-    const details = await this.packingResultDetailRepository.findAll(outboundBatchId);
-    if (details.length === 0) return null;
-
-    const allBoxes = await this.boxesService.findAll();
-    const boxByName = new Map(allBoxes.map((b) => [b.name, b]));
-
-    const groupMap = new Map<string, PackingResultDetailEntity[]>();
-    for (const d of details) {
-      if (!groupMap.has(d.orderId)) groupMap.set(d.orderId, []);
-      groupMap.get(d.orderId)!.push(d);
-    }
-
-    const groups: PackingGroup[] = [];
-    let grandTotalCBM = 0;
-    let grandTotalEff = 0;
-    let grandBoxCount = 0;
-
-    for (const [orderId, items] of groupMap) {
-      const unpackedItems = items
-        .filter((d) => d.unpacked)
-        .map((d) => ({ skuId: d.sku, name: d.productName, quantity: d.quantity, reason: d.unpackedReason }));
-
-      const packedItems = items.filter((d) => !d.unpacked);
-
-      const boxCountMap = new Map<string, number>();
-      for (const d of packedItems) {
-        boxCountMap.set(d.boxName, Math.max(boxCountMap.get(d.boxName) ?? 0, d.boxNumber));
-      }
-
-      const boxSkuMap = new Map<string, Map<string, { name: string; quantity: number }>>();
-      for (const d of packedItems) {
-        if (!boxSkuMap.has(d.boxName)) boxSkuMap.set(d.boxName, new Map());
-        const skuMap = boxSkuMap.get(d.boxName)!;
-        const existing = skuMap.get(d.sku);
-        if (existing) {
-          existing.quantity += d.quantity;
-        } else {
-          skuMap.set(d.sku, { name: d.productName, quantity: d.quantity });
-        }
-      }
-
-      const physBoxEff = new Map<string, number>();
-      for (const d of packedItems) {
-        const key = `${d.boxName}:${d.boxNumber}`;
-        physBoxEff.set(key, (physBoxEff.get(key) ?? 0) + d.efficiency);
-      }
-      const effValues = Array.from(physBoxEff.values());
-      const groupEfficiency =
-        effValues.length > 0 ? effValues.reduce((a, b) => a + b, 0) / effValues.length : 0;
-
-      let groupCBM = 0;
-      const groupBoxes: PackingGroup['boxes'] = [];
-
-      for (const [boxName, count] of boxCountMap) {
-        const box = boxByName.get(boxName);
-        if (!box) continue;
-
-        groupCBM += ((box.width * box.length * box.height) / 1_000_000) * count;
-
-        const skuMap = boxSkuMap.get(boxName) ?? new Map();
-        const packedSKUs = Array.from(skuMap.entries()).map(([skuId, { name, quantity }]) => ({
-          skuId,
-          name,
-          quantity,
-        }));
-
-        groupBoxes.push({ box, count, packedSKUs });
-      }
-
-      groups.push({
-        groupLabel: `Order: ${orderId}`,
-        boxes: groupBoxes,
-        unpackedItems,
-        totalCBM: groupCBM,
-        totalEfficiency: groupEfficiency,
-      });
-
-      grandTotalCBM += groupCBM;
-      grandTotalEff += groupEfficiency * effValues.length;
-      grandBoxCount += effValues.length;
-    }
-
-    return {
-      groups,
-      totalCBM: grandTotalCBM,
-      totalEfficiency: grandBoxCount > 0 ? grandTotalEff / grandBoxCount : 0,
-      unpackedItems: groups.flatMap((g) => g.unpackedItems),
-    };
+    const batch = await this.outboundBatchRepository.findOne({
+      where: { id: outboundBatchId },
+    });
+    if (!batch?.packingRecommendation) return null;
+    return batch.packingRecommendation;
   }
 
   private async savePackingResults3D(outboundBatchId: string, result: PackingResult3D) {
