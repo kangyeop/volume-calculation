@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ExcelService } from './excel.service';
 import { AIService } from './ai.service';
 import { UploadRepository } from '../repositories/upload.repository';
@@ -10,8 +10,6 @@ import type { ParseUploadDataLegacy, OutboundUploadResult, UnmatchedItem } from 
 
 @Injectable()
 export class UploadService {
-  private readonly logger = new Logger(UploadService.name);
-
   constructor(
     private readonly excelService: ExcelService,
     private readonly aiService: AIService,
@@ -64,15 +62,10 @@ export class UploadService {
       }
     }
 
-    this.logger.log(`AI column mapping result: ${JSON.stringify(columnMapping)}`);
-    this.logger.log(`Unmapped columns: ${JSON.stringify(mappingResult.unmappedColumns)}`);
-
     const { parsedOrders } = await this.dataTransformerService.transformAndMapOutbound(
       columnMapping,
       parseResult.rows,
     );
-
-    this.logger.log(`Parsed ${parsedOrders.length} orders with ${parsedOrders.reduce((sum, o) => sum + o.outboundItems.length, 0)} items`);
 
     const batchName = await this.outboundBatchService.generateBatchName(
       Buffer.from(file.originalname, 'latin1').toString('utf8'),
@@ -105,11 +98,6 @@ export class UploadService {
           unmatched.push({ sku: item.sku, quantity: item.quantity, reason: 'Product not found' });
         }
       }
-    }
-
-    this.logger.log(`Matched: ${outbounds.length}, Unmatched: ${unmatched.length}`);
-    if (unmatched.length > 0) {
-      this.logger.warn(`Unmatched items: ${JSON.stringify(unmatched)}`);
     }
 
     if (outbounds.length > 0) {
