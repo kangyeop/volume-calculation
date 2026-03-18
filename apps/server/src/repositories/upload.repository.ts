@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
 import { OutboundItemEntity } from '../entities/outbound-item.entity';
 import { ProductEntity } from '../entities/product.entity';
@@ -27,21 +27,33 @@ export class UploadRepository {
     const uniqueOrderIds = [...new Set(outbounds.map((dto) => dto.orderId))];
     const orderMap = new Map<string, OrderEntity>();
 
-    for (const orderId of uniqueOrderIds) {
-      let order = await this.orderRepository.findOne({
-        where: { outboundBatchId, orderId },
-      });
+    const existingOrders = uniqueOrderIds.length > 0
+      ? await this.orderRepository.find({
+          where: { outboundBatchId, orderId: In(uniqueOrderIds) },
+        })
+      : [];
 
-      if (!order) {
-        order = this.orderRepository.create({
+    for (const order of existingOrders) {
+      orderMap.set(order.orderId, order);
+    }
+
+    const newOrderIds = uniqueOrderIds.filter((id) => !orderMap.has(id));
+    if (newOrderIds.length > 0) {
+      const newEntities = newOrderIds.map((orderId) =>
+        this.orderRepository.create({
           outboundBatchId,
           orderId,
           status: OrderStatus.PENDING,
-        });
-        order = await this.orderRepository.save(order);
+        }),
+      );
+      const CHUNK_SIZE = 500;
+      for (let i = 0; i < newEntities.length; i += CHUNK_SIZE) {
+        const chunk = newEntities.slice(i, i + CHUNK_SIZE);
+        const saved = await this.orderRepository.save(chunk);
+        for (const order of saved) {
+          orderMap.set(order.orderId, order);
+        }
       }
-
-      orderMap.set(orderId, order);
     }
 
     const productIds = [...new Set(outbounds.map((dto) => dto.productId).filter(Boolean))] as string[];

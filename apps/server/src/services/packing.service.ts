@@ -69,7 +69,16 @@ export class PackingService {
     let grandTotalUsedVolume = 0;
     let grandTotalAvailableVolume = 0;
 
-    const detailResults: PackingResultDetailEntity[] = [];
+    const allDetailResults: PackingResultDetailEntity[] = [];
+    const allResultRows: Array<{
+      outboundBatchId: string;
+      orderId?: string;
+      boxName: string;
+      packedCount: number;
+      efficiency: number;
+      totalCBM: number;
+      groupLabel?: string;
+    }> = [];
 
     await this.packingResultRepository.removeAll(outboundBatchId);
     await this.packingResultDetailRepository.removeAll(outboundBatchId);
@@ -164,7 +173,7 @@ export class PackingService {
                 ? (product.width * product.length * product.height * packedSku.quantity) / boxVol
                 : 0;
 
-            detailResults.push(
+            allDetailResults.push(
               this.packingResultDetailRepository.create({
                 outboundBatchId,
                 orderId: groupOrderId,
@@ -188,7 +197,7 @@ export class PackingService {
 
       for (const item of unpackedWithNames) {
         const outboundInfo = skuToOutbound.get(item.skuId);
-        detailResults.push(
+        allDetailResults.push(
           this.packingResultDetailRepository.create({
             outboundBatchId,
             orderId: groupOrderId,
@@ -219,21 +228,6 @@ export class PackingService {
       grandTotalUsedVolume += groupUsedVolume;
       grandTotalAvailableVolume += groupAvailableVolume;
 
-      if (detailResults.length > 0) {
-        await this.packingResultDetailRepository.createBulk(detailResults);
-        detailResults.length = 0;
-      }
-
-      const groupResultRows: Array<{
-        outboundBatchId: string;
-        orderId?: string;
-        boxName: string;
-        packedCount: number;
-        efficiency: number;
-        totalCBM: number;
-        groupLabel?: string;
-      }> = [];
-
       for (const box of boxesWithNames) {
         const boxVol = box.box.width * box.box.length * box.box.height;
         const usedVol = box.packedSKUs.reduce((acc, s) => {
@@ -242,7 +236,7 @@ export class PackingService {
         }, 0);
 
         for (let i = 0; i < box.count; i++) {
-          groupResultRows.push({
+          allResultRows.push({
             outboundBatchId,
             orderId: groupLabel,
             boxName: box.box.name,
@@ -253,10 +247,14 @@ export class PackingService {
           });
         }
       }
+    }
 
-      if (groupResultRows.length > 0) {
-        await this.packingResultRepository.createBulk(groupResultRows);
-      }
+    if (allDetailResults.length > 0) {
+      await this.packingResultDetailRepository.createBulk(allDetailResults);
+    }
+
+    if (allResultRows.length > 0) {
+      await this.packingResultRepository.createBulk(allResultRows);
     }
 
     const allUnpackedItems = groups.flatMap((g) => g.unpackedItems || []);

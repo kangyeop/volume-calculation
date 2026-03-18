@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Transactional } from 'typeorm-transactional';
 import { OutboundItemEntity } from '../entities/outbound-item.entity';
 import { CreateOutboundDto } from '../dto/createOutbound.dto';
-import { OrderEntity, OrderStatus } from '../entities/order.entity';
+import { OrderStatus } from '../entities/order.entity';
 import { OutboundRepository } from '../repositories/outbound.repository';
 import { OrdersRepository } from '../repositories/orders.repository';
 
@@ -60,20 +60,22 @@ export class OutboundService {
     createOutboundDtos: CreateOutboundDto[],
   ): Promise<{ outbounds: OutboundItemEntity[] }> {
     const uniqueOrderIds = [...new Set(createOutboundDtos.map((dto) => dto.orderId))];
-    const orderMap = new Map<string, OrderEntity>();
 
-    for (const orderId of uniqueOrderIds) {
-      let order = await this.ordersRepository.findOne(outboundBatchId, orderId);
+    const existingOrders = await this.ordersRepository.findByOrderIds(outboundBatchId, uniqueOrderIds);
+    const orderMap = new Map(existingOrders.map((o) => [o.orderId, o]));
 
-      if (!order) {
-        order = await this.ordersRepository.create({
+    const newOrderIds = uniqueOrderIds.filter((id) => !orderMap.has(id));
+    if (newOrderIds.length > 0) {
+      const created = await this.ordersRepository.createBulk(
+        newOrderIds.map((orderId) => ({
           outboundBatchId,
           orderId,
           status: OrderStatus.PENDING,
-        });
+        })),
+      );
+      for (const order of created) {
+        orderMap.set(order.orderId, order);
       }
-
-      orderMap.set(orderId, order);
     }
 
     const outbounds = createOutboundDtos.map((dto) => {
