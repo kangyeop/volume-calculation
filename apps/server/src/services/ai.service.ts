@@ -208,7 +208,9 @@ Required fields to map:
   Pattern: Long numeric string
 
 - sku: single product name per row
-  Pattern: A column where each cell contains exactly one product name (not combined with other info like category prefix, quantity suffix, or multiple products)
+  IMPORTANT: Choose the column where each cell contains the SHORTEST, cleanest single product name.
+  AVOID columns that contain multiple product names joined by "+" or combined with category/set prefixes like "세트 - A + B + C".
+  If two columns both contain product names, always pick the one with shorter, simpler values.
 
 - quantity: item quantity per unit
   Pattern: Number
