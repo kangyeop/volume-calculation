@@ -12,6 +12,7 @@ import { UploadRepository } from '../repositories';
 import { OutboundRepository } from '../repositories/outbound.repository';
 import { UploadService } from '../services/upload.service';
 import { DataTransformerService } from '../services/dataTransformer.service';
+import { RowNormalizerService } from '../services/rowNormalizer.service';
 import { OutboundItemEntity } from '../entities/outbound-item.entity';
 import { ProductEntity } from '../entities/product.entity';
 import { OrderEntity } from '../entities/order.entity';
@@ -43,6 +44,7 @@ import { OrderEntity } from '../entities/order.entity';
     OutboundRepository,
     UploadService,
     DataTransformerService,
+    RowNormalizerService,
   ],
   exports: [FileStorageService, UploadService],
 })

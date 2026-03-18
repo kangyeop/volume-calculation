@@ -4,6 +4,7 @@ import { ProductsRepository } from '../repositories/products.repository';
 import { OutboundMappingSchema, OutboundMappingResult } from './schemas/outbound-mapping.schema';
 import { ProductMappingSchema, ProductMappingResult } from './schemas/product-mapping.schema';
 import { SingleProductMatchSchema } from './schemas/product-match.schema';
+import { CompoundDetectionSchema, CompoundDetectionResult } from './schemas/compound-detection.schema';
 import { ChatOpenAI } from '@langchain/openai';
 
 interface CachedProduct {
@@ -63,6 +64,35 @@ export class AIService {
     }
   }
 
+  async detectCompoundProducts(
+    headers: string[],
+    sampleRows: any[],
+  ): Promise<CompoundDetectionResult> {
+    try {
+      this.logger.log('Detecting compound products in sample data');
+
+      const llm = this.createLLM();
+      const structuredLlm = llm.withStructuredOutput(CompoundDetectionSchema);
+      const prompt = this.buildCompoundDetectionPrompt(headers, sampleRows);
+
+      const result = await structuredLlm.invoke([
+        [
+          'system',
+          'You are a data analysis assistant. Analyze Excel data to detect compound product patterns in cells.',
+        ],
+        ['human', prompt],
+      ]);
+
+      this.logger.log(`Compound detection result: detected=${result.detected}`);
+
+      return result;
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(`Failed to detect compound products: ${err.message}`, err.stack);
+      return { detected: false, delimiter: null, itemPattern: null };
+    }
+  }
+
   async mapProductColumns(headers: string[], sampleRows: any[]): Promise<ProductMappingResult> {
     try {
       this.logger.log(`Mapping product columns for ${headers.length} headers`);
@@ -108,9 +138,10 @@ export class AIService {
 
   private createLLM(): ChatOpenAI {
     return new ChatOpenAI({
-      modelName: 'gpt-4.1-nano',
+      modelName: 'gpt-5.4-nano',
       temperature: 0,
       apiKey: this.apiKey,
+      modelKwargs: { reasoning_effort: 'low' },
     });
   }
 
@@ -286,6 +317,33 @@ AI Instructions:
 3. Look for semantic similarity with product names in database
 4. Consider common patterns: product names in quotes, variant info, codes
 5. Return matchedIndexes of all matching products, or an empty array if no match found`;
+  }
+
+  private buildCompoundDetectionPrompt(headers: string[], sampleRows: any[]): string {
+    const fullData = sampleRows.map((row) =>
+      Object.fromEntries(headers.map((h) => [h, row[h] ?? ''])),
+    );
+
+    return `아래 엑셀 데이터의 상품/SKU 관련 컬럼 값들을 분석하라.
+
+Headers: ${headers.join(', ')}
+
+Sample Data (JSON format, ${sampleRows.length} rows):
+${JSON.stringify(fullData, null, 2)}
+
+판단 기준:
+- 셀 하나에 여러 상품이 구분자(쉼표, 슬래시, 줄바꿈 등)로 나열되어 있는가?
+- "세트상품 A+B", "A+B 세트" 등의 "+"는 상품명의 일부이지 구분자가 아니다.
+- 모든 셀이 단일 상품이면 detected=false, 나머지 필드는 null.
+
+detected=true인 경우:
+- delimiter: 상품 간 구분자 (e.g., ",", "/", "\\n")
+- itemPattern: 개별 상품+수량을 추출하는 정규식.
+  캡처 그룹 규칙: group(1)=상품명, group(2)=수량(있을 경우).
+  예시: "상품A[2]" → "(.+?)\\\\[([0-9]+)\\\\]"
+        "상품A(2개)" → "(.+?)\\\\(([0-9]+)개\\\\)"
+        "상품A x2" → "(.+?)\\\\s*[xX]\\\\s*([0-9]+)"
+        수량 표기 없이 상품명만 → "(.+)"`;
   }
 
   invalidateCache(projectId: string): void {

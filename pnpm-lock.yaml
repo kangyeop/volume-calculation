@@ -21,11 +21,11 @@ importers:
   apps/server:
     dependencies:
       '@langchain/core':
-        specifier: ^0.3.42
-        version: 0.3.80(openai@4.104.0(zod@3.25.76))
+        specifier: ^0.3.80
+        version: 0.3.80(openai@6.32.0(zod@3.25.76))
       '@langchain/openai':
-        specifier: ^0.4.5
-        version: 0.4.9(@langchain/core@0.3.80(openai@4.104.0(zod@3.25.76)))
+        specifier: ^0.4.9
+        version: 0.4.9(@langchain/core@0.3.80(openai@6.32.0(zod@3.25.76)))
       '@nestjs/common':
         specifier: ^11.0.1
         version: 11.1.13(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -3891,6 +3891,18 @@ packages:
       zod:
         optional: true
 
+  openai@6.32.0:
+    resolution: {integrity: sha512-j3k+BjydAf8yQlcOI7WUQMQTbbF5GEIMAE2iZYCOzwwB3S2pCheaWYp+XZRNAch4jWVc52PMDGRRjutao3lLCg==}
+    hasBin: true
+    peerDependencies:
+      ws: ^8.18.0
+      zod: ^3.25 || ^4.0
+    peerDependenciesMeta:
+      ws:
+        optional: true
+      zod:
+        optional: true
+
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
     engines: {node: '>= 0.8.0'}
@@ -6022,14 +6034,14 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@langchain/core@0.3.80(openai@4.104.0(zod@3.25.76))':
+  '@langchain/core@0.3.80(openai@6.32.0(zod@3.25.76))':
     dependencies:
       '@cfworker/json-schema': 4.1.1
       ansi-styles: 5.2.0
       camelcase: 6.3.0
       decamelize: 1.2.0
       js-tiktoken: 1.0.21
-      langsmith: 0.3.87(openai@4.104.0(zod@3.25.76))
+      langsmith: 0.3.87(openai@6.32.0(zod@3.25.76))
       mustache: 4.2.0
       p-queue: 6.6.2
       p-retry: 4.6.2
@@ -6042,9 +6054,9 @@ snapshots:
       - '@opentelemetry/sdk-trace-base'
       - openai
 
-  '@langchain/openai@0.4.9(@langchain/core@0.3.80(openai@4.104.0(zod@3.25.76)))':
+  '@langchain/openai@0.4.9(@langchain/core@0.3.80(openai@6.32.0(zod@3.25.76)))':
     dependencies:
-      '@langchain/core': 0.3.80(openai@4.104.0(zod@3.25.76))
+      '@langchain/core': 0.3.80(openai@6.32.0(zod@3.25.76))
       js-tiktoken: 1.0.21
       openai: 4.104.0(zod@3.25.76)
       zod: 3.25.76
@@ -8951,7 +8963,7 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  langsmith@0.3.87(openai@4.104.0(zod@3.25.76)):
+  langsmith@0.3.87(openai@6.32.0(zod@3.25.76)):
     dependencies:
       '@types/uuid': 10.0.0
       chalk: 4.1.2
@@ -8960,7 +8972,7 @@ snapshots:
       semver: 7.7.4
       uuid: 10.0.0
     optionalDependencies:
-      openai: 4.104.0(zod@3.25.76)
+      openai: 6.32.0(zod@3.25.76)
 
   lazystream@1.0.1:
     dependencies:
@@ -9277,6 +9289,11 @@ snapshots:
       zod: 3.25.76
     transitivePeerDependencies:
       - encoding
+
+  openai@6.32.0(zod@3.25.76):
+    optionalDependencies:
+      zod: 3.25.76
+    optional: true
 
   optionator@0.9.4:
     dependencies:

@@ -5,6 +5,7 @@ import { UploadRepository } from '../repositories/upload.repository';
 import { DataTransformerService } from './dataTransformer.service';
 import { ProductsService } from './products.service';
 import { OutboundBatchService } from './outbound-batch.service';
+import { RowNormalizerService } from './rowNormalizer.service';
 import { ConfirmUploadDto, OutboundItemDto } from '../dto/confirmUpload.dto';
 import type { ParseUploadDataLegacy, OutboundUploadResult, UnmatchedItem } from '@wms/types';
 
@@ -17,6 +18,7 @@ export class UploadService {
     private readonly dataTransformerService: DataTransformerService,
     private readonly productsService: ProductsService,
     private readonly outboundBatchService: OutboundBatchService,
+    private readonly rowNormalizerService: RowNormalizerService,
   ) {}
 
   async parseFile(
@@ -50,10 +52,12 @@ export class UploadService {
   async uploadAndSaveDirect(file: Express.Multer.File): Promise<OutboundUploadResult> {
     const parseResult = this.excelService.parseExcelFile(file);
 
-    const mappingResult = await this.aiService.mapOutboundColumns(
-      parseResult.headers,
-      parseResult.rows.slice(0, 30),
-    );
+    const sampleRows = parseResult.rows.slice(0, 30);
+
+    const [mappingResult, compoundDetection] = await Promise.all([
+      this.aiService.mapOutboundColumns(parseResult.headers, sampleRows),
+      this.aiService.detectCompoundProducts(parseResult.headers, sampleRows),
+    ]);
 
     const columnMapping: Record<string, string> = {};
     for (const [field, value] of Object.entries(mappingResult.mapping)) {
@@ -62,9 +66,15 @@ export class UploadService {
       }
     }
 
+    const normalizedRows = this.rowNormalizerService.normalizeRows(
+      parseResult.rows,
+      columnMapping,
+      compoundDetection,
+    );
+
     const { parsedOrders } = await this.dataTransformerService.transformAndMapOutbound(
       columnMapping,
-      parseResult.rows,
+      normalizedRows,
     );
 
     const batchName = await this.outboundBatchService.generateBatchName(
