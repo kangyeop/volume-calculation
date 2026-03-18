@@ -11,6 +11,7 @@ import { OutboundModule } from './modules/outbound.module';
 import { OrdersModule } from './modules/orders.module';
 import { PackingModule } from './modules/packing.module';
 import { BoxesModule } from './modules/boxes.module';
+import { BoxGroupsModule } from './modules/box-groups.module';
 import { UploadModule } from './modules/upload.module';
 import { ProductUploadModule } from './modules/productUpload.module';
 import { DashboardModule } from './modules/dashboard.module';
@@ -36,6 +37,7 @@ import { DashboardModule } from './modules/dashboard.module';
     OutboundModule,
     PackingModule,
     BoxesModule,
+    BoxGroupsModule,
     UploadModule,
     ProductUploadModule,
     DashboardModule,

@@ -14,6 +14,16 @@ export interface Box extends Dimensions {
   id: string;
   name: string;
   price?: number;
+  boxGroupId: string;
+  boxGroup?: BoxGroup;
+}
+
+export interface BoxGroup {
+  id: string;
+  name: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  boxes?: Box[];
 }
 
 export interface PackingCalculationResult {

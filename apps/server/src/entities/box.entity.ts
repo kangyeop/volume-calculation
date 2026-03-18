@@ -1,11 +1,19 @@
-import { Entity, Column } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from '../common/entities/base.entity';
 import { Box } from '@wms/types';
+import { BoxGroupEntity } from './box-group.entity';
 
 @Entity('boxes')
 export class BoxEntity extends BaseEntity implements Box {
   @Column()
   name!: string;
+
+  @Column()
+  boxGroupId!: string;
+
+  @ManyToOne(() => BoxGroupEntity, (group) => group.boxes, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'boxGroupId' })
+  boxGroup!: BoxGroupEntity;
 
   @Column({
     type: 'decimal',
