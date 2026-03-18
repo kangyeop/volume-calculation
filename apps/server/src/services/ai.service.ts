@@ -207,8 +207,8 @@ Required fields to map:
 - orderId: for tracking order
   Pattern: Long numeric string
 
-- sku: sku name
-  Pattern: (상품명 / 개수ea)
+- sku: single product name per row
+  Pattern: A column where each cell contains exactly one product name (not combined with other info like category prefix, quantity suffix, or multiple products)
 
 - quantity: item quantity per unit
   Pattern: Number
