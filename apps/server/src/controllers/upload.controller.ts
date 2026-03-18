@@ -36,7 +36,7 @@ export class UploadController {
     description: 'File uploaded and saved successfully',
   })
   @ApiResponse({ status: 400, description: 'Bad Request' })
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024 } }))
   async uploadOutboundDirect(
     @UploadedFile() file: Express.Multer.File,
   ): Promise<{ success: boolean; data: OutboundUploadResult }> {
