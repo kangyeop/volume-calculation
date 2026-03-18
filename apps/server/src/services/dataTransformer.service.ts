@@ -34,15 +34,12 @@ export class DataTransformerService {
   ): Promise<{
     parsedOrders: Array<{
       orderId: string;
-      quantity: number;
       recipientName: string;
       address: string;
       outboundItems: Array<{
         sku: string;
         quantity: number;
         productId?: string | null;
-        productName?: string;
-        rawValue?: string;
       }>;
     }>;
   }> {
@@ -52,15 +49,12 @@ export class DataTransformerService {
       string,
       {
         orderId: string;
-        quantity: number;
         recipientName: string;
         address: string;
         outboundItems: Array<{
           sku: string;
           quantity: number;
           productId?: string | null;
-          productName?: string;
-          rawValue?: string;
         }>;
       }
     >();
@@ -71,7 +65,6 @@ export class DataTransformerService {
       if (!orderMap.has(orderId)) {
         orderMap.set(orderId, {
           orderId,
-          quantity: item.quantity || 1,
           recipientName: '',
           address: '',
           outboundItems: [],
@@ -79,30 +72,11 @@ export class DataTransformerService {
       }
 
       const order = orderMap.get(orderId)!;
-      const sku = item.sku.trim();
-      const skuItems = sku.split('\n');
-
-      for (const skuItem of skuItems) {
-        const trimmedSku = skuItem.trim();
-        if (!trimmedSku) continue;
-
-        const parsed = this.parseSkuItem(trimmedSku);
-        if (parsed) {
-          order.outboundItems.push({
-            sku: parsed.productName,
-            quantity: parsed.quantity,
-            productId: item.productId || null,
-            rawValue: trimmedSku,
-          });
-        } else {
-          order.outboundItems.push({
-            sku: trimmedSku,
-            quantity: item.quantity || 1,
-            productId: item.productId || null,
-            rawValue: trimmedSku,
-          });
-        }
-      }
+      order.outboundItems.push({
+        sku: item.sku.trim(),
+        quantity: item.quantity || 1,
+        productId: item.productId || null,
+      });
     }
 
     return {
@@ -141,32 +115,6 @@ export class DataTransformerService {
           height,
         };
       });
-  }
-
-  parseSkuItem(skuItem: string): { productName: string; quantity: number } | null {
-    if (!skuItem) return null;
-
-    const patterns = [
-      /\((.+?)\s*[/:]\s*(\d+)(?:ea)?\)?/i,
-      /\((.+?)\s[x×*]\s*(\d+)(?:ea)?\)?/i,
-      /(.+?)\s*[/:]\s*(\d+)(?:ea)?$/i,
-      /(.+?)\s[x×*]\s*(\d+)(?:ea)?$/i,
-      /(.+?)\s+(\d+)(?:ea)\s*$/i,
-    ];
-
-    for (const pattern of patterns) {
-      const match = skuItem.match(pattern);
-      if (match) {
-        let productName = match[1].trim();
-        const quantity = parseInt(match[2], 10);
-        if (!isNaN(quantity) && quantity > 0) {
-          productName = productName.replace(/^\(|\)$/g, '');
-          return { productName, quantity };
-        }
-      }
-    }
-
-    return null;
   }
 
   private safeString(val: unknown): string {

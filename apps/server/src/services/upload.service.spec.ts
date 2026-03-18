@@ -90,11 +90,10 @@ describe('UploadService - 나나시.xlsx 업로드 테스트', () => {
         expect(order).toBeDefined();
         expect(order?.orderId).toBe(orderId);
         expect(order?.status).toBe(OrderStatus.PENDING);
-        expect(order?.quantity).toBeGreaterThan(0);
       }
     });
 
-    it('Order 생성 시 동일 orderId의 quantity를 합산', async () => {
+    it('Order 생성 시 동일 orderId로 그루핑', async () => {
       const result = await service.uploadAndSaveDirect(
         { buffer: Buffer.from('test'), originalname: 'test.xlsx' } as any,
       );
@@ -103,7 +102,8 @@ describe('UploadService - 나나시.xlsx 업로드 테스트', () => {
         where: { outboundBatchId: result.batchId, orderId: 'ORDER-001' },
       });
 
-      expect(order?.quantity).toBe(6);
+      expect(order).toBeDefined();
+      expect(order?.orderId).toBe('ORDER-001');
     });
   });
 
@@ -155,7 +155,8 @@ describe('UploadService - 나나시.xlsx 업로드 테스트', () => {
         where: { outboundBatchId: result.batchId, orderId: 'ORDER-FULLSET' },
       });
 
-      expect(order?.quantity).toBe(7);
+      expect(order).toBeDefined();
+      expect(order?.orderId).toBe('ORDER-FULLSET');
     });
   });
 

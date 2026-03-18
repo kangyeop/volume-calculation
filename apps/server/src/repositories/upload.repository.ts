@@ -23,7 +23,6 @@ export class UploadRepository {
   async createOutboundsWithOrder(
     outboundBatchId: string,
     outbounds: OutboundItemDto[],
-    orderQuantities?: Map<string, number>,
   ): Promise<{ outbounds: OutboundItemEntity[] }> {
     const uniqueOrderIds = [...new Set(outbounds.map((dto) => dto.orderId))];
     const orderMap = new Map<string, OrderEntity>();
@@ -34,11 +33,9 @@ export class UploadRepository {
       });
 
       if (!order) {
-        const orderQuantity = orderQuantities?.get(orderId) ?? 1;
         order = this.orderRepository.create({
           outboundBatchId,
           orderId,
-          quantity: orderQuantity,
           status: OrderStatus.PENDING,
         });
         order = await this.orderRepository.save(order);

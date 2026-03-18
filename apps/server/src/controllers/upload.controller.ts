@@ -74,7 +74,7 @@ export class UploadController {
           orderId: order.orderId,
           productIds,
           sku: item.sku,
-          rawValue: item.rawValue || item.sku,
+          rawValue: item.sku,
           quantity: item.quantity,
         });
 

@@ -52,7 +52,6 @@ export interface Order {
   id: string;
   orderId: string;
   recipient?: string;
-  quantity: number;
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED';
   outboundBatchId: string;
   createdAt: string;

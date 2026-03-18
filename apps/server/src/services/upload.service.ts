@@ -82,11 +82,8 @@ export class UploadService {
 
     const unmatched: UnmatchedItem[] = [];
     const outbounds: OutboundItemDto[] = [];
-    const orderQuantities = new Map<string, number>();
 
     for (const order of parsedOrders) {
-      orderQuantities.set(order.orderId, order.quantity);
-
       for (const item of order.outboundItems) {
         const matched = productByName.get(item.sku) || productBySku.get(item.sku);
 
@@ -104,7 +101,7 @@ export class UploadService {
     }
 
     if (outbounds.length > 0) {
-      await this.uploadRepository.createOutboundsWithOrder(batch.id, outbounds, orderQuantities);
+      await this.uploadRepository.createOutboundsWithOrder(batch.id, outbounds);
     }
 
     return {
