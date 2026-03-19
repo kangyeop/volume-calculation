@@ -150,8 +150,11 @@ export class AIService {
         continue;
       }
 
-      const extractedName = (match[1] ?? '').trim();
-      const extractedQty = match[2] !== undefined ? parseInt(match[2], 10) : 1;
+      const groups = match.slice(1).filter((g) => g !== undefined);
+      const nameCandidate = (groups[0] ?? '').trim();
+      const qtyCandidate = groups.length > 1 ? parseInt(groups[1], 10) : 1;
+      const extractedName = nameCandidate;
+      const extractedQty = isNaN(qtyCandidate) ? 1 : qtyCandidate;
 
       if (extractedName !== sample.productName.trim() || extractedQty !== sample.quantity) {
         failures.push({ raw: sample.raw, expected: { productName: sample.productName, quantity: sample.quantity } });
