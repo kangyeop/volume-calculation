@@ -38,7 +38,7 @@ export class RowNormalizerService {
     }
 
     const parsedLookup = this.buildParsedLookup(detection.parsedSamples);
-    const delimiter = this.unescapeDelimiter(detection.delimiter || ',');
+    const delimiter = this.resolveDelimiter(detection.delimiter || ',');
     const result: Record<string, unknown>[] = [];
 
     for (const row of rows) {
@@ -49,7 +49,10 @@ export class RowNormalizerService {
         continue;
       }
 
-      const parts = skuValue.split(delimiter).map((p) => p.trim()).filter(Boolean);
+      const parts = (delimiter instanceof RegExp
+        ? skuValue.split(delimiter)
+        : skuValue.split(delimiter)
+      ).map((p) => p.trim()).filter(Boolean);
 
       if (parts.length <= 1) {
         result.push(row);
@@ -107,12 +110,18 @@ export class RowNormalizerService {
     return { productName: raw.replace(/^\(|\)$/g, '').trim(), quantity: null };
   }
 
-  private unescapeDelimiter(delimiter: string): string {
-    return delimiter
+  private resolveDelimiter(delimiter: string): string | RegExp {
+    const unescaped = delimiter
       .replace(/\\r\\n/g, '\r\n')
       .replace(/\\n/g, '\n')
       .replace(/\\r/g, '\r')
       .replace(/\\t/g, '\t');
+
+    if (unescaped.includes('\n') || unescaped.includes('\r')) {
+      return /\r?\n/;
+    }
+
+    return unescaped;
   }
 
   private buildParsedLookup(samples: ParsedItem[] | null): Map<string, ParsedItem> {
