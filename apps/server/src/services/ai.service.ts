@@ -104,7 +104,7 @@ export class AIService {
         }
 
         this.logger.warn(
-          `Pattern validation failed (attempt ${attempt + 1}/${MAX_RETRIES}): ${failures.length} mismatches`,
+          `Pattern validation failed (attempt ${attempt + 1}/${MAX_RETRIES}): ${failures.length} mismatches, pattern: ${result.itemPattern}`,
         );
 
         prompt = buildCompoundRetryPrompt(headers, sampleRows, result.itemPattern, failures);
@@ -117,7 +117,9 @@ export class AIService {
 
       const finalFailures = this.validatePattern(result.itemPattern, result.parsedSamples);
       if (finalFailures.length > 0) {
-        this.logger.warn('Pattern validation still failing after retries, using AI-parsed samples as fallback');
+        this.logger.warn(
+          `Pattern validation still failing after retries, pattern: ${result.itemPattern}, failures: ${JSON.stringify(finalFailures.map((f) => f.raw))}`,
+        );
       }
 
       return result;
