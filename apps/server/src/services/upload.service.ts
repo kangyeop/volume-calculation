@@ -54,10 +54,7 @@ export class UploadService {
 
     const sampleRows = parseResult.rows.slice(0, 30);
 
-    const [mappingResult, compoundDetection] = await Promise.all([
-      this.aiService.mapOutboundColumns(parseResult.headers, sampleRows),
-      this.aiService.detectCompoundProducts(parseResult.headers, sampleRows),
-    ]);
+    const mappingResult = await this.aiService.mapOutboundColumns(parseResult.headers, sampleRows);
 
     const columnMapping: Record<string, string> = {};
     for (const [field, value] of Object.entries(mappingResult.mapping)) {
@@ -69,7 +66,6 @@ export class UploadService {
     const normalizedRows = this.rowNormalizerService.normalizeRows(
       parseResult.rows,
       columnMapping,
-      compoundDetection,
     );
 
     const { parsedOrders } = await this.dataTransformerService.transformAndMapOutbound(
