@@ -1,6 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CompoundDetectionResult, ParsedItem } from './schemas/compound-detection.schema';
 
+const KNOWN_PATTERNS: RegExp[] = [
+  /^\(?\s*(.+?)\s*\/\s*(\d+)\s*ea\s*\)?$/i,
+  /^(.+?)\[(\d+)\]$/,
+  /^(.+?)\s*[xX]\s*(\d+)$/,
+  /^(.+?)\((\d+)개\)$/,
+];
+
 @Injectable()
 export class RowNormalizerService {
   private readonly logger = new Logger(RowNormalizerService.name);
@@ -21,12 +28,12 @@ export class RowNormalizerService {
       return rows;
     }
 
-    let regex: RegExp | null = null;
+    let aiRegex: RegExp | null = null;
     if (detection.itemPattern) {
       try {
-        regex = new RegExp(detection.itemPattern);
+        aiRegex = new RegExp(detection.itemPattern);
       } catch {
-        this.logger.warn(`Invalid regex from AI: "${detection.itemPattern}", falling back to AI-parsed samples`);
+        this.logger.warn(`Invalid regex from AI: "${detection.itemPattern}"`);
       }
     }
 
@@ -51,7 +58,7 @@ export class RowNormalizerService {
 
       for (const part of parts) {
         const expandedRow = { ...row };
-        const { productName, quantity } = this.parseItem(part, regex, parsedLookup);
+        const { productName, quantity } = this.parseItem(part, aiRegex, parsedLookup);
 
         expandedRow[skuColumn] = productName;
         if (quantity !== null && quantityColumn) {
@@ -68,15 +75,27 @@ export class RowNormalizerService {
 
   private parseItem(
     raw: string,
-    regex: RegExp | null,
+    aiRegex: RegExp | null,
     parsedLookup: Map<string, ParsedItem>,
   ): { productName: string; quantity: number | null } {
-    if (regex) {
-      const match = raw.match(regex);
+    for (const pattern of KNOWN_PATTERNS) {
+      const match = raw.match(pattern);
       if (match && match[1]) {
         const productName = match[1].trim();
-        const quantity = match[2] !== undefined ? (parseInt(match[2], 10) || 1) : null;
-        return { productName, quantity };
+        const qtyParsed = match[2] !== undefined ? parseInt(match[2], 10) : NaN;
+        return { productName, quantity: isNaN(qtyParsed) ? 1 : qtyParsed };
+      }
+    }
+
+    if (aiRegex) {
+      const match = raw.match(aiRegex);
+      if (match) {
+        const groups = match.slice(1).filter((g) => g !== undefined);
+        if (groups.length > 0) {
+          const productName = groups[0].trim();
+          const qtyParsed = groups.length > 1 ? parseInt(groups[1], 10) : NaN;
+          return { productName, quantity: isNaN(qtyParsed) ? null : qtyParsed };
+        }
       }
     }
 
@@ -85,7 +104,7 @@ export class RowNormalizerService {
       return { productName: cached.productName, quantity: cached.quantity };
     }
 
-    return { productName: raw, quantity: null };
+    return { productName: raw.replace(/^\(|\)$/g, '').trim(), quantity: null };
   }
 
   private buildParsedLookup(samples: ParsedItem[] | null): Map<string, ParsedItem> {
