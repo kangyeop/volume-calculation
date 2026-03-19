@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ExcelService } from './excel.service';
 import { AIService } from './ai.service';
 import { UploadRepository } from '../repositories/upload.repository';
@@ -11,6 +11,8 @@ import type { ParseUploadDataLegacy, OutboundUploadResult, UnmatchedItem } from 
 
 @Injectable()
 export class UploadService {
+  private readonly logger = new Logger(UploadService.name);
+
   constructor(
     private readonly excelService: ExcelService,
     private readonly aiService: AIService,
@@ -63,10 +65,18 @@ export class UploadService {
       }
     }
 
+    this.logger.log(`Column mapping: ${JSON.stringify(columnMapping)}`);
+
     const normalizedRows = this.rowNormalizerService.normalizeRows(
       parseResult.rows,
       columnMapping,
     );
+
+    const skuCol = columnMapping['sku'];
+    if (skuCol) {
+      const sampleSkus = normalizedRows.slice(0, 5).map((r) => r[skuCol]);
+      this.logger.log(`Sample SKUs after normalize: ${JSON.stringify(sampleSkus)}`);
+    }
 
     const { parsedOrders } = await this.dataTransformerService.transformAndMapOutbound(
       columnMapping,
@@ -86,6 +96,8 @@ export class UploadService {
       if (p.sku && !productBySku.has(p.sku)) productBySku.set(p.sku, p);
     }
 
+    this.logger.log(`Products loaded: ${allProducts.length}, matching by name(${productByName.size}) and sku(${productBySku.size})`);
+
     const unmatched: UnmatchedItem[] = [];
     const outbounds: OutboundItemDto[] = [];
 
@@ -104,6 +116,12 @@ export class UploadService {
           unmatched.push({ sku: item.sku, quantity: item.quantity, reason: 'Product not found' });
         }
       }
+    }
+
+    this.logger.log(`Matched: ${outbounds.length}, Unmatched: ${unmatched.length}`);
+    if (unmatched.length > 0) {
+      const sample = unmatched.slice(0, 5).map((u) => u.sku);
+      this.logger.warn(`Unmatched sample SKUs: ${JSON.stringify(sample)}`);
     }
 
     if (outbounds.length > 0) {
