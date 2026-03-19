@@ -14,10 +14,10 @@ Required fields to map:
 - orderId: for tracking order
   Pattern: Long numeric string
 
-- sku: single product name per row
-  IMPORTANT: Choose the column where each cell contains the SHORTEST, cleanest single product name.
-  AVOID columns that contain multiple product names joined by "+" or combined with category/set prefixes like "세트 - A + B + C".
-  If two columns both contain product names, always pick the one with shorter, simpler values.
+- sku: product name column
+  IMPORTANT: Choose the column whose values match the pattern "(상품명 / Nea)" — e.g. "(스코_윈터_키링_니노 / 1ea)".
+  This column may contain multiple items separated by newlines like "(상품A / 1ea)\\r\\n(상품B / 1ea)".
+  Do NOT pick code/ID columns like "(V_01184)" or columns with "+" joined names.
 
 - quantity: item quantity per unit
   Pattern: Number
