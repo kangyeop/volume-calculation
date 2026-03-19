@@ -95,6 +95,13 @@ export class AIService {
         return result;
       }
 
+      const delimiterIssues = this.validateDelimiter(result.delimiter, result.parsedSamples);
+      if (delimiterIssues.length > 0) {
+        this.logger.warn(
+          `Delimiter "${result.delimiter}" found inside parsedSamples.raw, samples may not be split correctly: ${JSON.stringify(delimiterIssues)}`,
+        );
+      }
+
       for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         const failures = this.validatePattern(result.itemPattern, result.parsedSamples);
 
@@ -162,6 +169,23 @@ export class AIService {
     }
 
     return failures;
+  }
+
+  private unescapeDelimiter(delimiter: string): string {
+    return delimiter
+      .replace(/\\r\\n/g, '\r\n')
+      .replace(/\\n/g, '\n')
+      .replace(/\\r/g, '\r')
+      .replace(/\\t/g, '\t');
+  }
+
+  private validateDelimiter(
+    delimiter: string | null,
+    samples: { raw: string }[],
+  ): string[] {
+    if (!delimiter) return [];
+    const unescaped = this.unescapeDelimiter(delimiter);
+    return samples.filter((s) => s.raw.includes(unescaped)).map((s) => s.raw);
   }
 
   async mapProductColumns(headers: string[], sampleRows: any[]): Promise<ProductMappingResult> {
