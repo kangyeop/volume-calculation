@@ -12,7 +12,13 @@ import { UploadService } from '../services/upload.service';
 import { DataTransformerService } from '../services/dataTransformer.service';
 import { ProductsService } from '../services/products.service';
 import { ConfirmUploadDto } from '../dto/confirmUpload.dto';
-import type { OutboundUploadResult, ProductMappingData, ProductMatchResult } from '@wms/types';
+import type {
+  OutboundUploadResult,
+  ProductMappingData,
+  ProductMatchResult,
+  ParseOutboundResponse,
+  ProcessOutboundRequest,
+} from '@wms/types';
 
 @ApiTags('upload')
 @Controller('upload')
@@ -96,6 +102,35 @@ export class UploadController {
     @Body() confirmUploadDto: ConfirmUploadDto,
   ): Promise<{ success: boolean; data: { imported: number } }> {
     const result = await this.uploadService.confirmUpload(confirmUploadDto);
+    return { success: true, data: result };
+  }
+
+  @Post('parse-outbound')
+  @ApiOperation({ summary: 'Parse outbound Excel file for preview with template matching' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } },
+  })
+  @ApiResponse({ status: 200, description: 'File parsed successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024 } }))
+  async parseOutbound(
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<{ success: boolean; data: ParseOutboundResponse }> {
+    if (!file) throw new BadRequestException('File is required');
+
+    const result = await this.uploadService.parseForPreview(file);
+    return { success: true, data: result };
+  }
+
+  @Post('process-outbound')
+  @ApiOperation({ summary: 'Process confirmed outbound upload with column mapping' })
+  @ApiResponse({ status: 200, description: 'Outbound data processed successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  async processOutbound(
+    @Body() body: ProcessOutboundRequest,
+  ): Promise<{ success: boolean; data: OutboundUploadResult }> {
+    const result = await this.uploadService.processConfirmed(body);
     return { success: true, data: result };
   }
 }

@@ -14,6 +14,8 @@ import {
   ProductMappingData,
   PackingResultDetail,
   ProjectStats,
+  ParseOutboundResponse,
+  ProcessOutboundRequest,
 } from '@wms/types';
 
 const API_BASE = '/api';
@@ -257,6 +259,24 @@ export const api = {
       const response = await apiClient.post<ApiResponse<ProductMappingData>>(
         `/upload/map-products`,
         { columnMapping, rows },
+      );
+      return unwrapResponse({ data: response.data });
+    },
+
+    parseOutbound: async (file: File): Promise<ParseOutboundResponse> => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await apiClient.post<ApiResponse<ParseOutboundResponse>>(
+        '/upload/parse-outbound',
+        formData,
+      );
+      return unwrapResponse({ data: response.data });
+    },
+
+    processOutbound: async (data: ProcessOutboundRequest): Promise<OutboundUploadResult> => {
+      const response = await apiClient.post<ApiResponse<OutboundUploadResult>>(
+        '/upload/process-outbound',
+        data,
       );
       return unwrapResponse({ data: response.data });
     },

@@ -36,6 +36,8 @@ interface MappingConfirmationProps {
     unmappedColumns: string[];
     notes?: string;
   };
+  source?: 'template' | 'ai';
+  templateName?: string;
   onConfirm: (mapping: Record<string, string | null>) => void;
   onFallback?: () => void;
   onCancel: () => void;
@@ -61,6 +63,8 @@ export const MappingConfirmation: React.FC<MappingConfirmationProps> = ({
   sessionId: _sessionId,
   headers,
   mapping,
+  source,
+  templateName,
   onConfirm,
   onFallback,
   onCancel,
@@ -105,13 +109,16 @@ export const MappingConfirmation: React.FC<MappingConfirmationProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-blue-50 p-4 rounded-lg">
+      <div className={`${source === 'template' ? 'bg-green-50' : 'bg-blue-50'} p-4 rounded-lg`}>
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">AI 매핑 확인</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              {source === 'template' ? '템플릿 매핑 확인' : 'AI 매핑 확인'}
+            </h2>
             <p className="text-sm text-gray-600 mt-1">
-              AI가 분석한 칼럼 매핑을 확인하고 필요 시 수정하세요
+              {source === 'template'
+                ? `"${templateName}" 템플릿의 매핑을 확인하세요`
+                : 'AI가 분석한 칼럼 매핑을 확인하고 필요 시 수정하세요'}
             </p>
           </div>
           <div className="flex items-center space-x-2">

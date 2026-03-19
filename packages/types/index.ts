@@ -224,6 +224,39 @@ export interface PackingResult {
 
 export type UploadType = 'outbound' | 'product';
 
+export interface UploadTemplate {
+  id: string;
+  name: string;
+  type: 'outbound' | 'product';
+  headers: string[];
+  columnMapping: Record<string, string>;
+  rowStructure: 'single' | 'compound';
+  compoundPattern: string | null;
+  usageCount: number;
+  lastUsedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ParseOutboundResponse {
+  sessionId: string;
+  headers: string[];
+  sampleRows: Record<string, unknown>[];
+  rowCount: number;
+  fileName: string;
+  suggestedMapping: MappingResult;
+  matchedTemplate: { id: string; name: string; similarity: number } | null;
+  source: 'template' | 'ai';
+}
+
+export interface ProcessOutboundRequest {
+  sessionId: string;
+  columnMapping: Record<string, string>;
+  saveAsTemplate?: boolean;
+  templateName?: string;
+  matchedTemplateId?: string;
+}
+
 export interface ColumnMapping {
   columnName: string;
 }

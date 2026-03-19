@@ -15,6 +15,7 @@ import { BoxGroupsModule } from './modules/box-groups.module';
 import { UploadModule } from './modules/upload.module';
 import { ProductUploadModule } from './modules/productUpload.module';
 import { DashboardModule } from './modules/dashboard.module';
+import { UploadTemplateModule } from './modules/upload-template.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { DashboardModule } from './modules/dashboard.module';
     UploadModule,
     ProductUploadModule,
     DashboardModule,
+    UploadTemplateModule,
   ],
   controllers: [AppController],
   providers: [AppService],
