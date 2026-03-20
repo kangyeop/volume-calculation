@@ -3,7 +3,7 @@ import { BaseEntity } from '../common/entities/base.entity';
 import { ProductGroupEntity } from './product-group.entity';
 
 @Entity('products')
-@Unique(['productGroup', 'sku'])
+@Unique(['sku'])
 export class ProductEntity extends BaseEntity {
   @Column()
   sku!: string;

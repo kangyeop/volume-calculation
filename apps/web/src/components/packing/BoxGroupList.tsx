@@ -1,16 +1,29 @@
 import React, { useState } from 'react';
-import { Package, Layers, ChevronDown, ChevronRight, Maximize2 } from 'lucide-react';
+import { Package, Layers, ChevronDown, ChevronRight, Maximize2, Pencil, Check, X } from 'lucide-react';
 import type { NormalizedBoxGroup } from '@/hooks/usePackingNormalizer';
+import type { Box } from '@wms/types';
 
 interface BoxGroupListProps {
   normalizedBoxes: NormalizedBoxGroup[];
   showFilter?: boolean;
   skuDimensionsMap?: Map<string, { width: number; length: number; height: number; name: string }>;
+  availableBoxes?: Box[];
+  onBoxOverride?: (groupIndex: number, boxIndex: number, newBoxId: string) => void;
+  onUpdateProduct?: (productId: string, dims: { width: number; length: number; height: number }) => Promise<void>;
 }
 
-export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes, showFilter = true, skuDimensionsMap }) => {
+export const BoxGroupList: React.FC<BoxGroupListProps> = ({
+  normalizedBoxes,
+  showFilter = true,
+  skuDimensionsMap,
+  availableBoxes,
+  onBoxOverride,
+  onUpdateProduct,
+}) => {
   const [expandedLabels, setExpandedLabels] = useState<Set<string>>(new Set());
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [editingSku, setEditingSku] = useState<string | null>(null);
+  const [editDims, setEditDims] = useState<{ width: number; length: number; height: number }>({ width: 0, length: 0, height: 0 });
 
   const toggleLabels = (key: string) => {
     setExpandedLabels((prev) => {
@@ -19,6 +32,23 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes, sho
       else next.add(key);
       return next;
     });
+  };
+
+  const startEditing = (skuId: string) => {
+    const dims = skuDimensionsMap?.get(skuId);
+    if (!dims) return;
+    setEditingSku(skuId);
+    setEditDims({ width: dims.width, length: dims.length, height: dims.height });
+  };
+
+  const cancelEditing = () => {
+    setEditingSku(null);
+  };
+
+  const saveEditing = async () => {
+    if (!editingSku || !onUpdateProduct) return;
+    await onUpdateProduct(editingSku, editDims);
+    setEditingSku(null);
   };
 
   const filteredBoxes = activeFilter
@@ -62,12 +92,16 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes, sho
       </div>
 
       {filteredBoxes.map((boxGroup, idx) => {
+        const isUnassigned = boxGroup.box.id === 'unassigned';
+
         const groupedShipments = new Map<
           string,
           {
             items: (typeof boxGroup.shipments)[0];
             totalCount: number;
             labels: string[];
+            groupIndices: number[];
+            boxIndices: number[];
           }
         >();
 
@@ -82,11 +116,15 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes, sho
               items: shipment,
               totalCount: shipment.count,
               labels: [shipment.groupLabel],
+              groupIndices: [shipment.groupIndex ?? 0],
+              boxIndices: [shipment.boxIndex ?? 0],
             });
           } else {
             const existing = groupedShipments.get(skuKey)!;
             existing.totalCount += shipment.count;
             existing.labels.push(shipment.groupLabel);
+            existing.groupIndices.push(shipment.groupIndex ?? 0);
+            existing.boxIndices.push(shipment.boxIndex ?? 0);
           }
         }
 
@@ -96,28 +134,43 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes, sho
             className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500"
             style={{ animationDelay: `${idx * 100}ms` }}
           >
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg border border-indigo-200 gap-4">
+            <div className={`flex flex-col md:flex-row justify-between items-start md:items-center p-4 rounded-lg border gap-4 ${
+              isUnassigned
+                ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200'
+                : 'bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200'
+            }`}>
               <div>
-                <h3 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
+                <h3 className={`text-lg font-bold flex items-center gap-2 ${
+                  isUnassigned ? 'text-amber-900' : 'text-indigo-900'
+                }`}>
                   <Package className="h-5 w-5" />
                   {boxGroup.box.name}
+                  {isUnassigned && (
+                    <span className="text-xs font-normal bg-amber-200 text-amber-800 px-2 py-0.5 rounded">
+                      박스 미지정
+                    </span>
+                  )}
                 </h3>
-                <p className="text-sm text-muted-foreground">
-                  {boxGroup.box.width} x {boxGroup.box.length} x {boxGroup.box.height} mm
-                </p>
+                {!isUnassigned && (
+                  <p className="text-sm text-muted-foreground">
+                    {boxGroup.box.width} x {boxGroup.box.length} x {boxGroup.box.height} mm
+                  </p>
+                )}
               </div>
               <div className="flex gap-6">
                 <div className="text-right">
                   <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
                     Total Boxes
                   </p>
-                  <p className="font-mono font-bold text-indigo-700 text-xl">{boxGroup.count}</p>
+                  <p className={`font-mono font-bold text-xl ${isUnassigned ? 'text-amber-700' : 'text-indigo-700'}`}>
+                    {boxGroup.count}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
                     Volume
                   </p>
-                  <p className="font-mono font-bold text-indigo-700">
+                  <p className={`font-mono font-bold ${isUnassigned ? 'text-amber-700' : 'text-indigo-700'}`}>
                     {boxGroup.totalCBM.toFixed(4)} CBM
                   </p>
                 </div>
@@ -125,12 +178,43 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes, sho
                   <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
                     Efficiency
                   </p>
-                  <p className="font-mono font-bold text-indigo-700">
+                  <p className={`font-mono font-bold ${isUnassigned ? 'text-amber-700' : 'text-indigo-700'}`}>
                     {(boxGroup.efficiency * 100).toFixed(1)}%
                   </p>
                 </div>
               </div>
             </div>
+
+            {isUnassigned && availableBoxes && availableBoxes.length > 0 && onBoxOverride && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-sm font-medium text-amber-800 mb-2">박스를 선택하여 할당하세요:</p>
+                {boxGroup.shipments.map((shipment, sIdx) => {
+                  const groupIdx = shipment.groupIndex ?? 0;
+                  const boxIdx = shipment.boxIndex ?? 0;
+                  return (
+                    <div key={sIdx} className="flex items-center gap-2 mb-1">
+                      <span className="text-xs text-gray-600 min-w-[120px]">{shipment.groupLabel}:</span>
+                      <select
+                        className="border border-amber-300 rounded px-2 py-1 text-sm bg-white focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                        defaultValue=""
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            onBoxOverride(groupIdx, boxIdx, e.target.value);
+                          }
+                        }}
+                      >
+                        <option value="">박스 선택...</option>
+                        {availableBoxes.map((box) => (
+                          <option key={box.id} value={box.id}>
+                            {box.name} ({box.width}×{box.length}×{box.height} mm)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             <div className="space-y-4">
               {Array.from(groupedShipments.entries()).map(([skuKey, grouped], gIdx) => {
@@ -229,31 +313,86 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes, sho
                         Contents per box
                       </p>
                       <ul className="space-y-1">
-                        {sortedSKUs.map((sku, skuIdx) => (
-                          <li
-                            key={skuIdx}
-                            className="flex justify-between items-center text-sm py-1 border-b border-gray-100 last:border-0"
-                          >
-                            <div className="flex items-center gap-2 overflow-hidden">
-                              <span className="font-medium text-gray-900 truncate" title={sku.name}>
-                                {sku.name || 'Unknown Product'}
-                              </span>
-                              <span className="font-mono text-xs text-gray-500 flex-shrink-0">
-                                ({sku.skuId})
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              {skuDimensionsMap?.get(sku.skuId) && (
-                                <span className="font-mono text-xs text-gray-400">
-                                  {skuDimensionsMap.get(sku.skuId)!.width}×{skuDimensionsMap.get(sku.skuId)!.length}×{skuDimensionsMap.get(sku.skuId)!.height} mm
+                        {sortedSKUs.map((sku, skuIdx) => {
+                          const isEditing = editingSku === sku.skuId;
+                          const dims = skuDimensionsMap?.get(sku.skuId);
+
+                          return (
+                            <li
+                              key={skuIdx}
+                              className="flex justify-between items-center text-sm py-1 border-b border-gray-100 last:border-0"
+                            >
+                              <div className="flex items-center gap-2 overflow-hidden">
+                                <span className="font-medium text-gray-900 truncate" title={sku.name}>
+                                  {sku.name || 'Unknown Product'}
                                 </span>
-                              )}
-                              <span className="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium text-gray-600">
-                                qty: {sku.quantity}
-                              </span>
-                            </div>
-                          </li>
-                        ))}
+                                <span className="font-mono text-xs text-gray-500 flex-shrink-0">
+                                  ({sku.skuId})
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                {isEditing ? (
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="number"
+                                      value={editDims.width}
+                                      onChange={(e) => setEditDims({ ...editDims, width: parseFloat(e.target.value) || 0 })}
+                                      className="w-16 px-1 py-0.5 border border-indigo-300 rounded text-xs font-mono text-center focus:ring-1 focus:ring-indigo-400 outline-none"
+                                      step="0.01"
+                                    />
+                                    <span className="text-xs text-gray-400">×</span>
+                                    <input
+                                      type="number"
+                                      value={editDims.length}
+                                      onChange={(e) => setEditDims({ ...editDims, length: parseFloat(e.target.value) || 0 })}
+                                      className="w-16 px-1 py-0.5 border border-indigo-300 rounded text-xs font-mono text-center focus:ring-1 focus:ring-indigo-400 outline-none"
+                                      step="0.01"
+                                    />
+                                    <span className="text-xs text-gray-400">×</span>
+                                    <input
+                                      type="number"
+                                      value={editDims.height}
+                                      onChange={(e) => setEditDims({ ...editDims, height: parseFloat(e.target.value) || 0 })}
+                                      className="w-16 px-1 py-0.5 border border-indigo-300 rounded text-xs font-mono text-center focus:ring-1 focus:ring-indigo-400 outline-none"
+                                      step="0.01"
+                                    />
+                                    <span className="text-xs text-gray-400">mm</span>
+                                    <button
+                                      onClick={saveEditing}
+                                      className="p-0.5 text-green-600 hover:text-green-800"
+                                      title="저장"
+                                    >
+                                      <Check className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={cancelEditing}
+                                      className="p-0.5 text-red-500 hover:text-red-700"
+                                      title="취소"
+                                    >
+                                      <X className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    {dims && (
+                                      <span
+                                        className={`font-mono text-xs text-gray-400 ${onUpdateProduct ? 'cursor-pointer hover:text-indigo-600 hover:bg-indigo-50 px-1 rounded transition-colors' : ''}`}
+                                        onClick={() => onUpdateProduct && startEditing(sku.skuId)}
+                                        title={onUpdateProduct ? '클릭하여 치수 편집' : undefined}
+                                      >
+                                        {dims.width}×{dims.length}×{dims.height} mm
+                                        {onUpdateProduct && <Pencil className="h-2.5 w-2.5 inline ml-1 opacity-0 group-hover:opacity-100" />}
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                                <span className="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium text-gray-600">
+                                  qty: {sku.quantity}
+                                </span>
+                              </div>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   </div>

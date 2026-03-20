@@ -396,6 +396,48 @@ export class PackingService {
     return await this.packingResultDetailRepository.findAll(outboundBatchId);
   }
 
+  async updateBoxAssignment(
+    outboundBatchId: string,
+    groupIndex: number,
+    boxIndex: number,
+    newBoxId: string,
+  ): Promise<PackingRecommendation> {
+    const batch = await this.outboundBatchRepository.findOne({
+      where: { id: outboundBatchId },
+    });
+    if (!batch?.packingRecommendation) {
+      throw new BadRequestException('패킹 추천 결과가 없습니다.');
+    }
+
+    const recommendation: PackingRecommendation = batch.packingRecommendation;
+
+    if (groupIndex < 0 || groupIndex >= recommendation.groups.length) {
+      throw new BadRequestException(`유효하지 않은 그룹 인덱스입니다: ${groupIndex}`);
+    }
+
+    const group = recommendation.groups[groupIndex];
+    if (boxIndex < 0 || boxIndex >= group.boxes.length) {
+      throw new BadRequestException(`유효하지 않은 박스 인덱스입니다: ${boxIndex}`);
+    }
+
+    const newBox = await this.boxesService.findOne(newBoxId);
+
+    group.boxes[boxIndex].box = {
+      id: newBox.id,
+      name: newBox.name,
+      width: newBox.width,
+      length: newBox.length,
+      height: newBox.height,
+      boxGroupId: newBox.boxGroupId,
+    };
+
+    await this.outboundBatchRepository.update(outboundBatchId, {
+      packingRecommendation: recommendation as any,
+    });
+
+    return recommendation;
+  }
+
   async getRecommendation(outboundBatchId: string): Promise<PackingRecommendation | null> {
     const batch = await this.outboundBatchRepository.findOne({
       where: { id: outboundBatchId },

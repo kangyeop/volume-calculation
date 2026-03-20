@@ -87,7 +87,7 @@ export class ProductsRepository {
       .insert()
       .into(ProductEntity)
       .values(entities)
-      .orUpdate(['name', 'width', 'length', 'height'], ['productGroupId', 'sku'])
+      .orUpdate(['name', 'width', 'length', 'height'], ['sku'])
       .execute();
 
     return entities;

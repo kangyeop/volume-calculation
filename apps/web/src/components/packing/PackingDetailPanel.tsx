@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronLeft } from 'lucide-react';
 import type { NormalizedBoxGroup } from '@/hooks/usePackingNormalizer';
+import type { Box } from '@wms/types';
 import { BoxGroupList } from './BoxGroupList';
 
 interface PackingDetailPanelProps {
@@ -8,9 +9,20 @@ interface PackingDetailPanelProps {
   filteredBoxes: NormalizedBoxGroup[];
   onBack: () => void;
   skuDimensionsMap?: Map<string, { width: number; length: number; height: number; name: string }>;
+  availableBoxes?: Box[];
+  onBoxOverride?: (groupIndex: number, boxIndex: number, newBoxId: string) => void;
+  onUpdateProduct?: (productId: string, dims: { width: number; length: number; height: number }) => Promise<void>;
 }
 
-export const PackingDetailPanel: React.FC<PackingDetailPanelProps> = ({ title, filteredBoxes, onBack, skuDimensionsMap }) => {
+export const PackingDetailPanel: React.FC<PackingDetailPanelProps> = ({
+  title,
+  filteredBoxes,
+  onBack,
+  skuDimensionsMap,
+  availableBoxes,
+  onBoxOverride,
+  onUpdateProduct,
+}) => {
   return (
     <div className="space-y-4">
       <button
@@ -21,7 +33,14 @@ export const PackingDetailPanel: React.FC<PackingDetailPanelProps> = ({ title, f
         대시보드로
       </button>
       <h2 className="text-xl font-semibold">{title}</h2>
-      <BoxGroupList normalizedBoxes={filteredBoxes} showFilter={true} skuDimensionsMap={skuDimensionsMap} />
+      <BoxGroupList
+        normalizedBoxes={filteredBoxes}
+        showFilter={true}
+        skuDimensionsMap={skuDimensionsMap}
+        availableBoxes={availableBoxes}
+        onBoxOverride={onBoxOverride}
+        onUpdateProduct={onUpdateProduct}
+      />
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body } from '@nestjs/common';
 import { PackingService } from '../services/packing.service';
 import { ExcelService } from '../services/excel.service';
 import { PackingRecommendation, PackingResult3DLegacy } from '@wms/types';
@@ -6,6 +6,7 @@ import { PackingResultEntity } from '../entities/packingResult.entity';
 import { PackingResultDetailEntity } from '../entities/packingResultDetail.entity';
 import { CalculatePackingDto } from '../dto/calculatePacking.dto';
 import { CalculateOrderPackingDto } from '../dto/calculateOrderPacking.dto';
+import { UpdateBoxAssignmentDto } from '../dto/updateBoxAssignment.dto';
 
 @Controller('outbound-batches/:batchId/packing')
 export class PackingController {
@@ -20,6 +21,19 @@ export class PackingController {
     @Body() calculatePackingDto: CalculatePackingDto,
   ): Promise<PackingRecommendation> {
     return this.packingService.calculate(batchId, calculatePackingDto.groupingOption, calculatePackingDto.boxGroupId);
+  }
+
+  @Patch('recommendation')
+  async updateBoxAssignment(
+    @Param('batchId') batchId: string,
+    @Body() dto: UpdateBoxAssignmentDto,
+  ): Promise<PackingRecommendation> {
+    return this.packingService.updateBoxAssignment(
+      batchId,
+      dto.groupIndex,
+      dto.boxIndex,
+      dto.newBoxId,
+    );
   }
 
   @Get('recommendation')

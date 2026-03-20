@@ -29,6 +29,21 @@ export function useCreateProducts(
   });
 }
 
+export function useUpdateProduct(): UseMutationResult<
+  Product,
+  Error,
+  { id: string; data: Partial<Pick<Product, 'width' | 'length' | 'height' | 'name'>> }
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }) => api.products.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: products.all._def });
+    },
+  });
+}
+
 export function useDeleteProduct(): UseMutationResult<void, Error, string> {
   const queryClient = useQueryClient();
 

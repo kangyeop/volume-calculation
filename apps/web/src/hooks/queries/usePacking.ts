@@ -58,6 +58,22 @@ export function useCalculateOrderPacking(): UseMutationResult<
   });
 }
 
+export function useUpdateBoxAssignment(): UseMutationResult<
+  PackingRecommendation,
+  Error,
+  { batchId: string; groupIndex: number; boxIndex: number; newBoxId: string }
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ batchId, groupIndex, boxIndex, newBoxId }) =>
+      api.packing.updateBoxAssignment(batchId, { groupIndex, boxIndex, newBoxId }),
+    onSuccess: (_, { batchId }) => {
+      queryClient.invalidateQueries({ queryKey: packing.recommendation(batchId).queryKey });
+    },
+  });
+}
+
 export function useExportPacking(): UseMutationResult<void, Error, { batchId: string }> {
   return useMutation({
     mutationFn: ({ batchId }) => api.packing.export(batchId),

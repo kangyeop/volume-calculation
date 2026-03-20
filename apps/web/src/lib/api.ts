@@ -100,6 +100,8 @@ export const api = {
         method: 'POST',
         data: products,
       }),
+    update: (id: string, data: Partial<Pick<Product, 'width' | 'length' | 'height' | 'name'>>) =>
+      fetchApi<Product>(`/products/${id}`, { method: 'PATCH', data }),
     delete: (id: string) => fetchApi<void>(`/products/${id}`, { method: 'DELETE' }),
     deleteBulk: (projectId: string, ids: string[]) =>
       fetchApi<void>(`/projects/${projectId}/products`, {
@@ -210,6 +212,11 @@ export const api = {
         data: { orderId, groupLabel },
       });
     },
+    updateBoxAssignment: (batchId: string, data: { groupIndex: number; boxIndex: number; newBoxId: string }) =>
+      fetchApi<PackingRecommendation>(`/outbound-batches/${batchId}/packing/recommendation`, {
+        method: 'PATCH',
+        data,
+      }),
     recommendation: (batchId: string) =>
       fetchApi<PackingRecommendation | null>(`/outbound-batches/${batchId}/packing/recommendation`),
     history: (batchId: string) =>

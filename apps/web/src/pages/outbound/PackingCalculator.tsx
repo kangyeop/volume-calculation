@@ -6,7 +6,9 @@ import {
   useCalculatePacking,
   useExportPacking,
   usePackingRecommendation,
+  useUpdateBoxAssignment,
   useProductGroups,
+  useUpdateProduct,
   useBoxGroups,
 } from '@/hooks/queries';
 import { usePackingNormalizer } from '@/hooks/usePackingNormalizer';
@@ -26,6 +28,8 @@ export const PackingCalculator: React.FC = () => {
     usePackingRecommendation(batchId ?? '');
   const calculatePacking = useCalculatePacking();
   const exportPacking = useExportPacking();
+  const updateBoxAssignment = useUpdateBoxAssignment();
+  const updateProduct = useUpdateProduct();
   const { data: productGroups = [] } = useProductGroups();
   const { data: boxGroupList = [] } = useBoxGroups();
 
@@ -159,6 +163,39 @@ export const PackingCalculator: React.FC = () => {
     }
   };
 
+  const availableBoxes = useMemo(() => {
+    if (!selectedBoxGroupId) return [];
+    const group = boxGroupList.find((g) => g.id === selectedBoxGroupId);
+    return group?.boxes ?? [];
+  }, [selectedBoxGroupId, boxGroupList]);
+
+  const handleBoxOverride = async (groupIndex: number, boxIndex: number, newBoxId: string) => {
+    if (!batchId) return;
+    try {
+      const updated = await updateBoxAssignment.mutateAsync({
+        batchId,
+        groupIndex,
+        boxIndex,
+        newBoxId,
+      });
+      setFreshResult(updated);
+      toast.success('박스가 변경되었습니다.');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : '박스 변경에 실패했습니다.';
+      toast.error('박스 변경 실패', { description: message });
+    }
+  };
+
+  const handleUpdateProduct = async (productId: string, dims: { width: number; length: number; height: number }) => {
+    try {
+      await updateProduct.mutateAsync({ id: productId, data: dims });
+      toast.success('상품 치수가 변경되었습니다. 재계산하면 반영됩니다.');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : '치수 변경에 실패했습니다.';
+      toast.error('치수 변경 실패', { description: message });
+    }
+  };
+
   const handleExport = async () => {
     if (!batchId) return;
     try {
@@ -240,6 +277,9 @@ export const PackingCalculator: React.FC = () => {
               filteredBoxes={detailBoxes}
               onBack={() => setDetailView(null)}
               skuDimensionsMap={skuDimensionsMap}
+              availableBoxes={availableBoxes}
+              onBoxOverride={handleBoxOverride}
+              onUpdateProduct={handleUpdateProduct}
             />
           ) : (
             <>

@@ -21,6 +21,8 @@ export interface NormalizedBoxGroup {
     groupLabel: string;
     count: number;
     packedSKUs: { skuId: string; name?: string; quantity: number }[];
+    groupIndex?: number;
+    boxIndex?: number;
   }[];
 }
 
@@ -36,8 +38,10 @@ export const usePackingNormalizer = (
       const rec = result as PackingRecommendation;
       const boxMap = new Map<string, NormalizedBoxGroup>();
 
-      for (const group of rec.groups) {
-        for (const boxGroup of group.boxes) {
+      for (let gi = 0; gi < rec.groups.length; gi++) {
+        const group = rec.groups[gi];
+        for (let bi = 0; bi < group.boxes.length; bi++) {
+          const boxGroup = group.boxes[bi];
           const boxId = boxGroup.box.id;
           const boxCBM = (boxGroup.box.width * boxGroup.box.length * boxGroup.box.height) / 1_000_000;
 
@@ -59,6 +63,8 @@ export const usePackingNormalizer = (
             groupLabel: group.groupLabel,
             count: boxGroup.count,
             packedSKUs: boxGroup.packedSKUs,
+            groupIndex: gi,
+            boxIndex: bi,
           });
         }
       }
