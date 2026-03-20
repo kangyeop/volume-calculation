@@ -67,6 +67,18 @@ import { UploadTemplateModule } from './modules/upload-template.module';
               `ALTER TABLE products ADD CONSTRAINT \`FK_products_productGroupId\` FOREIGN KEY (\`productGroupId\`) REFERENCES \`product_groups\`(\`id\`) ON DELETE CASCADE`,
             ).catch(() => {});
 
+            const [dupes] = await conn.query<any[]>(
+              `SELECT sku FROM products GROUP BY sku HAVING COUNT(*) > 1`,
+            );
+            if (dupes?.length > 0) {
+              logger.log(`Found ${dupes.length} duplicate SKUs, keeping newest per SKU...`);
+              await conn.query(
+                `DELETE p1 FROM products p1
+                 INNER JOIN products p2
+                 ON p1.sku = p2.sku AND p1.createdAt < p2.createdAt`,
+              );
+            }
+
             logger.log('Migration complete: composite unique constraint removed, FK recreated');
           }
 
