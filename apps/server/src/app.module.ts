@@ -34,31 +34,40 @@ import { UploadTemplateModule } from './modules/upload-template.module';
             database: 'wms',
           });
 
-          const [fkRows] = await conn.query<any[]>(
-            `SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
-             WHERE TABLE_SCHEMA = 'wms' AND TABLE_NAME = 'products'
-               AND COLUMN_NAME = 'productGroupId' AND REFERENCED_TABLE_NAME IS NOT NULL`,
+          const [compositeUx] = await conn.query<any[]>(
+            `SELECT DISTINCT s.INDEX_NAME
+             FROM information_schema.STATISTICS s
+             JOIN information_schema.TABLE_CONSTRAINTS tc
+               ON tc.TABLE_SCHEMA = s.TABLE_SCHEMA
+               AND tc.TABLE_NAME = s.TABLE_NAME
+               AND tc.CONSTRAINT_NAME = s.INDEX_NAME
+               AND tc.CONSTRAINT_TYPE = 'UNIQUE'
+             WHERE s.TABLE_SCHEMA = 'wms' AND s.TABLE_NAME = 'products'
+               AND s.COLUMN_NAME = 'productGroupId'`,
           );
 
-          const [uxRows] = await conn.query<any[]>(
-            `SELECT DISTINCT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS
-             WHERE TABLE_SCHEMA = 'wms' AND TABLE_NAME = 'products'
-               AND CONSTRAINT_TYPE = 'UNIQUE' AND CONSTRAINT_NAME LIKE '%sku%'`,
-          );
+          if (compositeUx?.length > 0) {
+            const [fkRows] = await conn.query<any[]>(
+              `SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
+               WHERE TABLE_SCHEMA = 'wms' AND TABLE_NAME = 'products'
+                 AND COLUMN_NAME = 'productGroupId' AND REFERENCED_TABLE_NAME IS NOT NULL`,
+            );
 
-          const hasCompositeUnique = uxRows?.some((r: any) => {
-            return r.CONSTRAINT_NAME?.includes('productGroup') || r.CONSTRAINT_NAME?.includes('IDX');
-          });
-
-          if (hasCompositeUnique && fkRows?.length > 0) {
-            const fkName = fkRows[0].CONSTRAINT_NAME;
-            logger.log(`Migrating products unique constraint: dropping FK ${fkName}, recreating...`);
-            await conn.query(`ALTER TABLE products DROP FOREIGN KEY \`${fkName}\``);
-            for (const ux of uxRows) {
-              await conn.query(`ALTER TABLE products DROP INDEX \`${ux.CONSTRAINT_NAME}\``).catch(() => {});
+            for (const fk of fkRows ?? []) {
+              logger.log(`Dropping FK ${fk.CONSTRAINT_NAME} before index migration...`);
+              await conn.query(`ALTER TABLE products DROP FOREIGN KEY \`${fk.CONSTRAINT_NAME}\``).catch(() => {});
             }
-            await conn.query(`ALTER TABLE products ADD CONSTRAINT \`FK_products_productGroupId\` FOREIGN KEY (\`productGroupId\`) REFERENCES \`product_groups\`(\`id\`) ON DELETE CASCADE`);
-            logger.log('Migration complete: products unique constraint updated');
+
+            for (const ux of compositeUx) {
+              logger.log(`Dropping composite unique index ${ux.INDEX_NAME}...`);
+              await conn.query(`ALTER TABLE products DROP INDEX \`${ux.INDEX_NAME}\``).catch(() => {});
+            }
+
+            await conn.query(
+              `ALTER TABLE products ADD CONSTRAINT \`FK_products_productGroupId\` FOREIGN KEY (\`productGroupId\`) REFERENCES \`product_groups\`(\`id\`) ON DELETE CASCADE`,
+            ).catch(() => {});
+
+            logger.log('Migration complete: composite unique constraint removed, FK recreated');
           }
 
           await conn.end();
