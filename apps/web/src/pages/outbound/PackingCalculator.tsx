@@ -11,7 +11,6 @@ import {
 } from '@/hooks/queries';
 import { usePackingNormalizer } from '@/hooks/usePackingNormalizer';
 import type { PackingCalculationResult } from '@/hooks/usePackingNormalizer';
-import { PackingSummaryCards } from '@/components/packing/PackingSummaryCards';
 import { BoxTypeCard } from '@/components/packing/BoxTypeCard';
 import { PackingDetailPanel } from '@/components/packing/PackingDetailPanel';
 import { UnpackedItemsAlert } from '@/components/packing/UnpackedItemsAlert';
@@ -235,11 +234,6 @@ export const PackingCalculator: React.FC = () => {
 
       {result && (
         <div className="space-y-8">
-          <PackingSummaryCards
-            totalCBM={result.totalCBM}
-            totalEfficiency={result.totalEfficiency}
-          />
-
           {detailView ? (
             <PackingDetailPanel
               title={detailTitle}

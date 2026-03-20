@@ -154,6 +154,18 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes, sho
                     )
                   : null;
 
+                const occupancyPct = skuDimensionsMap
+                  ? (() => {
+                      const itemsVolume = grouped.items.packedSKUs.reduce((sum, sku) => {
+                        const dims = skuDimensionsMap.get(sku.skuId);
+                        if (!dims) return sum;
+                        return sum + dims.width * dims.length * dims.height * sku.quantity;
+                      }, 0);
+                      const boxVolume = boxGroup.box.width * boxGroup.box.length * boxGroup.box.height;
+                      return boxVolume > 0 ? (itemsVolume / boxVolume) * 100 : 0;
+                    })()
+                  : null;
+
                 return (
                   <div
                     key={gIdx}
@@ -162,8 +174,20 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes, sho
                     <div className="bg-gray-50 px-4 py-2 border-b flex justify-between items-start gap-2">
                       <div className="flex flex-col gap-1.5 min-w-0">
                         {grouped.labels.length > 1 && (
-                          <span className="font-semibold text-gray-700">
-                            Configuration × {grouped.totalCount}
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-gray-700">
+                              Configuration × {grouped.totalCount}
+                            </span>
+                            {occupancyPct !== null && (
+                              <span className="text-xs font-mono font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
+                                {occupancyPct.toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {grouped.labels.length <= 1 && occupancyPct !== null && (
+                          <span className="text-xs font-mono font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded w-fit">
+                            {occupancyPct.toFixed(1)}%
                           </span>
                         )}
                         {maxItem && (
@@ -218,9 +242,16 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes, sho
                                 ({sku.skuId})
                               </span>
                             </div>
-                            <span className="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium text-gray-600 flex-shrink-0">
-                              qty: {sku.quantity}
-                            </span>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {skuDimensionsMap?.get(sku.skuId) && (
+                                <span className="font-mono text-xs text-gray-400">
+                                  {skuDimensionsMap.get(sku.skuId)!.width}×{skuDimensionsMap.get(sku.skuId)!.length}×{skuDimensionsMap.get(sku.skuId)!.height} mm
+                                </span>
+                              )}
+                              <span className="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium text-gray-600">
+                                qty: {sku.quantity}
+                              </span>
+                            </div>
                           </li>
                         ))}
                       </ul>
