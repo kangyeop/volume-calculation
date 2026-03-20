@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { Package, Layers, ChevronDown, ChevronRight } from 'lucide-react';
+import { Package, Layers, ChevronDown, ChevronRight, Maximize2 } from 'lucide-react';
 import type { NormalizedBoxGroup } from '@/hooks/usePackingNormalizer';
 
 interface BoxGroupListProps {
   normalizedBoxes: NormalizedBoxGroup[];
   showFilter?: boolean;
+  skuDimensionsMap?: Map<string, { width: number; length: number; height: number; name: string }>;
 }
 
-export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes, showFilter = true }) => {
+export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes, showFilter = true, skuDimensionsMap }) => {
   const [expandedLabels, setExpandedLabels] = useState<Set<string>>(new Set());
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
@@ -139,6 +140,20 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes, sho
                   (a.name || a.skuId).localeCompare(b.name || b.skuId),
                 );
 
+                const maxItem = skuDimensionsMap
+                  ? grouped.items.packedSKUs.reduce<{ name: string; width: number; length: number; height: number; volume: number } | null>(
+                      (max, sku) => {
+                        const dims = skuDimensionsMap.get(sku.skuId);
+                        if (!dims) return max;
+                        const vol = dims.width * dims.length * dims.height;
+                        return !max || vol > max.volume
+                          ? { name: dims.name, width: dims.width, length: dims.length, height: dims.height, volume: vol }
+                          : max;
+                      },
+                      null,
+                    )
+                  : null;
+
                 return (
                   <div
                     key={gIdx}
@@ -149,6 +164,12 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({ normalizedBoxes, sho
                         {grouped.labels.length > 1 && (
                           <span className="font-semibold text-gray-700">
                             Configuration × {grouped.totalCount}
+                          </span>
+                        )}
+                        {maxItem && (
+                          <span className="flex items-center gap-1 text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md w-fit">
+                            <Maximize2 className="h-3 w-3 flex-shrink-0" />
+                            최대 아이템: {maxItem.name} ({maxItem.width}×{maxItem.length}×{maxItem.height} mm)
                           </span>
                         )}
                         <button

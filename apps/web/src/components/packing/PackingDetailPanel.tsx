@@ -7,9 +7,10 @@ interface PackingDetailPanelProps {
   title: string;
   filteredBoxes: NormalizedBoxGroup[];
   onBack: () => void;
+  skuDimensionsMap?: Map<string, { width: number; length: number; height: number; name: string }>;
 }
 
-export const PackingDetailPanel: React.FC<PackingDetailPanelProps> = ({ title, filteredBoxes, onBack }) => {
+export const PackingDetailPanel: React.FC<PackingDetailPanelProps> = ({ title, filteredBoxes, onBack, skuDimensionsMap }) => {
   return (
     <div className="space-y-4">
       <button
@@ -20,7 +21,7 @@ export const PackingDetailPanel: React.FC<PackingDetailPanelProps> = ({ title, f
         대시보드로
       </button>
       <h2 className="text-xl font-semibold">{title}</h2>
-      <BoxGroupList normalizedBoxes={filteredBoxes} showFilter={true} />
+      <BoxGroupList normalizedBoxes={filteredBoxes} showFilter={true} skuDimensionsMap={skuDimensionsMap} />
     </div>
   );
 };

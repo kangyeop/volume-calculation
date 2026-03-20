@@ -37,6 +37,16 @@ export const PackingCalculator: React.FC = () => {
   const result = freshResult ?? savedRecommendation ?? null;
   const { normalizedBoxes, unpackedItems } = usePackingNormalizer(result);
 
+  const skuDimensionsMap = useMemo(() => {
+    const map = new Map<string, { width: number; length: number; height: number; name: string }>();
+    for (const group of productGroups) {
+      for (const product of group.products ?? []) {
+        map.set(product.id, { width: product.width, length: product.length, height: product.height, name: product.name });
+      }
+    }
+    return map;
+  }, [productGroups]);
+
   const skuToGroupId = useMemo(() => {
     const map = new Map<string, string>();
     for (const group of productGroups) {
@@ -235,6 +245,7 @@ export const PackingCalculator: React.FC = () => {
               title={detailTitle}
               filteredBoxes={detailBoxes}
               onBack={() => setDetailView(null)}
+              skuDimensionsMap={skuDimensionsMap}
             />
           ) : (
             <>
