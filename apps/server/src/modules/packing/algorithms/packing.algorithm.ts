@@ -4,13 +4,14 @@ const EFFICIENCY_THRESHOLD = 0.9;
 
 export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationResult {
   if (!boxes || boxes.length === 0) {
+    const unassignedBox: Box = { id: 'unassigned', name: '미지정', width: 0, length: 0, height: 0, boxGroupId: '' };
     return {
-      boxes: [],
-      unpackedItems: skus.map((sku) => ({
-        skuId: sku.id,
-        quantity: sku.quantity,
-        reason: 'Too large for any box',
-      })),
+      boxes: [{
+        box: unassignedBox,
+        count: 1,
+        packedSKUs: skus.map((sku) => ({ skuId: sku.id, quantity: sku.quantity })),
+      }],
+      unpackedItems: [],
       totalCBM: 0,
       totalEfficiency: 0,
     };
@@ -80,13 +81,24 @@ export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationR
 
       itemsToPack = [];
     } else {
-      for (const item of itemsToPack) {
-        unpackedItems.push({
-          skuId: item.skuId,
-          quantity: item.quantity,
-          reason: '한 박스에 담을 수 없음',
-        });
-      }
+      const totalVolume = itemsToPack.reduce((sum, item) => sum + item.volume * item.quantity, 0);
+      const unassignedBox: Box = {
+        id: 'unassigned',
+        name: '미지정',
+        width: 0,
+        length: 0,
+        height: 0,
+        boxGroupId: '',
+      };
+
+      totalUsedVolume += totalVolume;
+
+      recommendedBoxes.push({
+        box: unassignedBox,
+        count: 1,
+        packedSKUs: itemsToPack.map((item) => ({ skuId: item.skuId, quantity: item.quantity })),
+      });
+
       itemsToPack = [];
     }
   }
