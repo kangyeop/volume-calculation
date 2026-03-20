@@ -6,8 +6,9 @@ import { api } from '@/lib/api';
 import { products as productsKey } from '@/hooks/queries/queryKeys';
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { toast } from 'sonner';
-import { ArrowLeft, Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Trash2, Loader2, AlertCircle, Check, X } from 'lucide-react';
 import type { Product } from '@wms/types';
+import { useUpdateProduct } from '@/hooks/queries';
 
 export const ProductGroupDetail: React.FC = () => {
   const { id: groupId } = useParams<{ id: string }>();
@@ -24,6 +25,9 @@ export const ProductGroupDetail: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDims, setEditDims] = useState({ width: 0, length: 0, height: 0 });
+  const updateProduct = useUpdateProduct();
 
   const handleToggleRow = (id: string) => {
     setSelectedIds((prev) => {
@@ -78,6 +82,25 @@ export const ProductGroupDetail: React.FC = () => {
       toast.error('업로드 실패', { description: '상품 파일 처리에 실패했습니다.' });
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const startEditing = (p: Product) => {
+    setEditingId(p.id);
+    setEditDims({ width: p.width, length: p.length, height: p.height });
+  };
+
+  const cancelEditing = () => setEditingId(null);
+
+  const saveEditing = async () => {
+    if (!editingId || !groupId) return;
+    try {
+      await updateProduct.mutateAsync({ id: editingId, data: editDims });
+      queryClient.invalidateQueries({ queryKey: productsKey.byGroup(groupId).queryKey });
+      toast.success('치수가 변경되었습니다.');
+      setEditingId(null);
+    } catch {
+      toast.error('치수 변경 실패');
     }
   };
 
@@ -186,7 +209,47 @@ export const ProductGroupDetail: React.FC = () => {
                       <td className="px-4 py-3 font-mono">{p.sku}</td>
                       <td className="px-4 py-3">{p.name}</td>
                       <td className="px-4 py-3 text-gray-500">
-                        {p.width} × {p.length} × {p.height}
+                        {editingId === p.id ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              value={editDims.width}
+                              onChange={(e) => setEditDims({ ...editDims, width: parseFloat(e.target.value) || 0 })}
+                              className="w-16 px-1.5 py-1 border border-indigo-300 rounded text-xs font-mono text-center focus:ring-1 focus:ring-indigo-400 outline-none"
+                              step="0.01"
+                            />
+                            <span className="text-gray-400">×</span>
+                            <input
+                              type="number"
+                              value={editDims.length}
+                              onChange={(e) => setEditDims({ ...editDims, length: parseFloat(e.target.value) || 0 })}
+                              className="w-16 px-1.5 py-1 border border-indigo-300 rounded text-xs font-mono text-center focus:ring-1 focus:ring-indigo-400 outline-none"
+                              step="0.01"
+                            />
+                            <span className="text-gray-400">×</span>
+                            <input
+                              type="number"
+                              value={editDims.height}
+                              onChange={(e) => setEditDims({ ...editDims, height: parseFloat(e.target.value) || 0 })}
+                              className="w-16 px-1.5 py-1 border border-indigo-300 rounded text-xs font-mono text-center focus:ring-1 focus:ring-indigo-400 outline-none"
+                              step="0.01"
+                            />
+                            <button onClick={saveEditing} className="p-1 text-green-600 hover:text-green-800">
+                              <Check className="h-4 w-4" />
+                            </button>
+                            <button onClick={cancelEditing} className="p-1 text-red-500 hover:text-red-700">
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span
+                            className="cursor-pointer hover:text-indigo-600 hover:bg-indigo-50 px-1 rounded transition-colors"
+                            onClick={() => startEditing(p)}
+                            title="클릭하여 치수 편집"
+                          >
+                            {p.width} × {p.length} × {p.height}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}

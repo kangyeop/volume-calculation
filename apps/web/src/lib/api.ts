@@ -53,6 +53,7 @@ export interface OutboundBatch {
   name: string;
   orderCount?: number;
   itemCount?: number;
+  lastBoxGroupId?: string | null;
   createdAt: Date | string;
   updatedAt?: Date | string;
 }

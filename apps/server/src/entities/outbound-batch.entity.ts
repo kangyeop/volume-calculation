@@ -12,6 +12,9 @@ export class OutboundBatchEntity extends BaseEntity {
   @Column({ type: 'json', nullable: true })
   packingRecommendation!: any | null;
 
+  @Column({ type: 'uuid', nullable: true })
+  lastBoxGroupId!: string | null;
+
   @OneToMany(() => OrderEntity, (order) => order.outboundBatch)
   orders!: OrderEntity[];
 

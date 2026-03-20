@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Package, Layers, ChevronDown, ChevronRight, Maximize2, Pencil, Check, X } from 'lucide-react';
+import { Package, Layers, ChevronDown, ChevronRight, Maximize2 } from 'lucide-react';
 import type { NormalizedBoxGroup } from '@/hooks/usePackingNormalizer';
 import type { Box } from '@wms/types';
 
@@ -9,7 +9,6 @@ interface BoxGroupListProps {
   skuDimensionsMap?: Map<string, { width: number; length: number; height: number; name: string }>;
   availableBoxes?: Box[];
   onBoxOverride?: (groupIndex: number, boxIndex: number, newBoxId: string) => void;
-  onUpdateProduct?: (productId: string, dims: { width: number; length: number; height: number }) => Promise<void>;
 }
 
 export const BoxGroupList: React.FC<BoxGroupListProps> = ({
@@ -18,12 +17,9 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
   skuDimensionsMap,
   availableBoxes,
   onBoxOverride,
-  onUpdateProduct,
 }) => {
   const [expandedLabels, setExpandedLabels] = useState<Set<string>>(new Set());
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  const [editingSku, setEditingSku] = useState<string | null>(null);
-  const [editDims, setEditDims] = useState<{ width: number; length: number; height: number }>({ width: 0, length: 0, height: 0 });
 
   const toggleLabels = (key: string) => {
     setExpandedLabels((prev) => {
@@ -32,23 +28,6 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
       else next.add(key);
       return next;
     });
-  };
-
-  const startEditing = (skuId: string) => {
-    const dims = skuDimensionsMap?.get(skuId);
-    if (!dims) return;
-    setEditingSku(skuId);
-    setEditDims({ width: dims.width, length: dims.length, height: dims.height });
-  };
-
-  const cancelEditing = () => {
-    setEditingSku(null);
-  };
-
-  const saveEditing = async () => {
-    if (!editingSku || !onUpdateProduct) return;
-    await onUpdateProduct(editingSku, editDims);
-    setEditingSku(null);
   };
 
   const filteredBoxes = activeFilter
@@ -185,37 +164,6 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
               </div>
             </div>
 
-            {isUnassigned && availableBoxes && availableBoxes.length > 0 && onBoxOverride && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                <p className="text-sm font-medium text-amber-800 mb-2">박스를 선택하여 할당하세요:</p>
-                {boxGroup.shipments.map((shipment, sIdx) => {
-                  const groupIdx = shipment.groupIndex ?? 0;
-                  const boxIdx = shipment.boxIndex ?? 0;
-                  return (
-                    <div key={sIdx} className="flex items-center gap-2 mb-1">
-                      <span className="text-xs text-gray-600 min-w-[120px]">{shipment.groupLabel}:</span>
-                      <select
-                        className="border border-amber-300 rounded px-2 py-1 text-sm bg-white focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
-                        defaultValue=""
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            onBoxOverride(groupIdx, boxIdx, e.target.value);
-                          }
-                        }}
-                      >
-                        <option value="">박스 선택...</option>
-                        {availableBoxes.map((box) => (
-                          <option key={box.id} value={box.id}>
-                            {box.name} ({box.width}×{box.length}×{box.height} mm)
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
             <div className="space-y-4">
               {Array.from(groupedShipments.entries()).map(([skuKey, grouped], gIdx) => {
                 const labelKey = `${idx}-${gIdx}-${skuKey}`;
@@ -304,95 +252,62 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
                           </div>
                         )}
                       </div>
-                      <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs font-medium flex-shrink-0">
-                        {grouped.totalCount} box{grouped.totalCount > 1 ? 'es' : ''}
-                      </span>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {isUnassigned && availableBoxes && availableBoxes.length > 0 && onBoxOverride && (
+                          <select
+                            className="border border-amber-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
+                            defaultValue=""
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                for (let i = 0; i < grouped.groupIndices.length; i++) {
+                                  onBoxOverride(grouped.groupIndices[i], grouped.boxIndices[i], e.target.value);
+                                }
+                              }
+                            }}
+                          >
+                            <option value="">박스 선택...</option>
+                            {availableBoxes.map((box) => (
+                              <option key={box.id} value={box.id}>
+                                {box.name} ({box.width}×{box.length}×{box.height})
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs font-medium">
+                          {grouped.totalCount} box{grouped.totalCount > 1 ? 'es' : ''}
+                        </span>
+                      </div>
                     </div>
                     <div className="p-3">
                       <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">
                         Contents per box
                       </p>
                       <ul className="space-y-1">
-                        {sortedSKUs.map((sku, skuIdx) => {
-                          const isEditing = editingSku === sku.skuId;
-                          const dims = skuDimensionsMap?.get(sku.skuId);
-
-                          return (
-                            <li
-                              key={skuIdx}
-                              className="flex justify-between items-center text-sm py-1 border-b border-gray-100 last:border-0"
-                            >
-                              <div className="flex items-center gap-2 overflow-hidden">
-                                <span className="font-medium text-gray-900 truncate" title={sku.name}>
-                                  {sku.name || 'Unknown Product'}
+                        {sortedSKUs.map((sku, skuIdx) => (
+                          <li
+                            key={skuIdx}
+                            className="flex justify-between items-center text-sm py-1 border-b border-gray-100 last:border-0"
+                          >
+                            <div className="flex items-center gap-2 overflow-hidden">
+                              <span className="font-medium text-gray-900 truncate" title={sku.name}>
+                                {sku.name || 'Unknown Product'}
+                              </span>
+                              <span className="font-mono text-xs text-gray-500 flex-shrink-0">
+                                ({sku.skuId})
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {skuDimensionsMap?.get(sku.skuId) && (
+                                <span className="font-mono text-xs text-gray-400">
+                                  {skuDimensionsMap.get(sku.skuId)!.width}×{skuDimensionsMap.get(sku.skuId)!.length}×{skuDimensionsMap.get(sku.skuId)!.height} mm
                                 </span>
-                                <span className="font-mono text-xs text-gray-500 flex-shrink-0">
-                                  ({sku.skuId})
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                {isEditing ? (
-                                  <div className="flex items-center gap-1">
-                                    <input
-                                      type="number"
-                                      value={editDims.width}
-                                      onChange={(e) => setEditDims({ ...editDims, width: parseFloat(e.target.value) || 0 })}
-                                      className="w-16 px-1 py-0.5 border border-indigo-300 rounded text-xs font-mono text-center focus:ring-1 focus:ring-indigo-400 outline-none"
-                                      step="0.01"
-                                    />
-                                    <span className="text-xs text-gray-400">×</span>
-                                    <input
-                                      type="number"
-                                      value={editDims.length}
-                                      onChange={(e) => setEditDims({ ...editDims, length: parseFloat(e.target.value) || 0 })}
-                                      className="w-16 px-1 py-0.5 border border-indigo-300 rounded text-xs font-mono text-center focus:ring-1 focus:ring-indigo-400 outline-none"
-                                      step="0.01"
-                                    />
-                                    <span className="text-xs text-gray-400">×</span>
-                                    <input
-                                      type="number"
-                                      value={editDims.height}
-                                      onChange={(e) => setEditDims({ ...editDims, height: parseFloat(e.target.value) || 0 })}
-                                      className="w-16 px-1 py-0.5 border border-indigo-300 rounded text-xs font-mono text-center focus:ring-1 focus:ring-indigo-400 outline-none"
-                                      step="0.01"
-                                    />
-                                    <span className="text-xs text-gray-400">mm</span>
-                                    <button
-                                      onClick={saveEditing}
-                                      className="p-0.5 text-green-600 hover:text-green-800"
-                                      title="저장"
-                                    >
-                                      <Check className="h-3.5 w-3.5" />
-                                    </button>
-                                    <button
-                                      onClick={cancelEditing}
-                                      className="p-0.5 text-red-500 hover:text-red-700"
-                                      title="취소"
-                                    >
-                                      <X className="h-3.5 w-3.5" />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <>
-                                    {dims && (
-                                      <span
-                                        className={`font-mono text-xs text-gray-400 ${onUpdateProduct ? 'cursor-pointer hover:text-indigo-600 hover:bg-indigo-50 px-1 rounded transition-colors' : ''}`}
-                                        onClick={() => onUpdateProduct && startEditing(sku.skuId)}
-                                        title={onUpdateProduct ? '클릭하여 치수 편집' : undefined}
-                                      >
-                                        {dims.width}×{dims.length}×{dims.height} mm
-                                        {onUpdateProduct && <Pencil className="h-2.5 w-2.5 inline ml-1 opacity-0 group-hover:opacity-100" />}
-                                      </span>
-                                    )}
-                                  </>
-                                )}
-                                <span className="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium text-gray-600">
-                                  qty: {sku.quantity}
-                                </span>
-                              </div>
-                            </li>
-                          );
-                        })}
+                              )}
+                              <span className="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium text-gray-600">
+                                qty: {sku.quantity}
+                              </span>
+                            </div>
+                          </li>
+                        ))}
                       </ul>
                     </div>
                   </div>

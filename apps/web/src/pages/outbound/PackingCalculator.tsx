@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Download, RefreshCw } from 'lucide-react';
@@ -8,8 +8,8 @@ import {
   usePackingRecommendation,
   useUpdateBoxAssignment,
   useProductGroups,
-  useUpdateProduct,
   useBoxGroups,
+  useOutboundBatch,
 } from '@/hooks/queries';
 import { usePackingNormalizer } from '@/hooks/usePackingNormalizer';
 import type { PackingCalculationResult } from '@/hooks/usePackingNormalizer';
@@ -26,16 +26,22 @@ export const PackingCalculator: React.FC = () => {
   const { id: batchId } = useParams<{ id: string }>();
   const { data: savedRecommendation, isLoading: isLoadingRecommendation } =
     usePackingRecommendation(batchId ?? '');
+  const { data: batch } = useOutboundBatch(batchId ?? '');
   const calculatePacking = useCalculatePacking();
   const exportPacking = useExportPacking();
   const updateBoxAssignment = useUpdateBoxAssignment();
-  const updateProduct = useUpdateProduct();
   const { data: productGroups = [] } = useProductGroups();
   const { data: boxGroupList = [] } = useBoxGroups();
 
   const [freshResult, setFreshResult] = useState<PackingRecommendation | PackingCalculationResult | null>(null);
   const [detailView, setDetailView] = useState<DetailView>(null);
   const [selectedBoxGroupId, setSelectedBoxGroupId] = useState<string>('');
+
+  useEffect(() => {
+    if (batch?.lastBoxGroupId && !selectedBoxGroupId) {
+      setSelectedBoxGroupId(batch.lastBoxGroupId);
+    }
+  }, [batch?.lastBoxGroupId]);
 
   const result = freshResult ?? savedRecommendation ?? null;
   const { normalizedBoxes, unpackedItems } = usePackingNormalizer(result);
@@ -186,16 +192,6 @@ export const PackingCalculator: React.FC = () => {
     }
   };
 
-  const handleUpdateProduct = async (productId: string, dims: { width: number; length: number; height: number }) => {
-    try {
-      await updateProduct.mutateAsync({ id: productId, data: dims });
-      toast.success('상품 치수가 변경되었습니다. 재계산하면 반영됩니다.');
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : '치수 변경에 실패했습니다.';
-      toast.error('치수 변경 실패', { description: message });
-    }
-  };
-
   const handleExport = async () => {
     if (!batchId) return;
     try {
@@ -279,7 +275,6 @@ export const PackingCalculator: React.FC = () => {
               skuDimensionsMap={skuDimensionsMap}
               availableBoxes={availableBoxes}
               onBoxOverride={handleBoxOverride}
-              onUpdateProduct={handleUpdateProduct}
             />
           ) : (
             <>

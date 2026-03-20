@@ -269,6 +269,7 @@ export class PackingService {
 
     await this.outboundBatchRepository.update(outboundBatchId, {
       packingRecommendation: result as any,
+      lastBoxGroupId: boxGroupId,
     });
 
     return result;

@@ -11,7 +11,6 @@ interface PackingDetailPanelProps {
   skuDimensionsMap?: Map<string, { width: number; length: number; height: number; name: string }>;
   availableBoxes?: Box[];
   onBoxOverride?: (groupIndex: number, boxIndex: number, newBoxId: string) => void;
-  onUpdateProduct?: (productId: string, dims: { width: number; length: number; height: number }) => Promise<void>;
 }
 
 export const PackingDetailPanel: React.FC<PackingDetailPanelProps> = ({
@@ -21,7 +20,6 @@ export const PackingDetailPanel: React.FC<PackingDetailPanelProps> = ({
   skuDimensionsMap,
   availableBoxes,
   onBoxOverride,
-  onUpdateProduct,
 }) => {
   return (
     <div className="space-y-4">
@@ -39,7 +37,6 @@ export const PackingDetailPanel: React.FC<PackingDetailPanelProps> = ({
         skuDimensionsMap={skuDimensionsMap}
         availableBoxes={availableBoxes}
         onBoxOverride={onBoxOverride}
-        onUpdateProduct={onUpdateProduct}
       />
     </div>
   );
