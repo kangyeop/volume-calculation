@@ -4,6 +4,7 @@ import { ProductGroupList } from './pages/products/ProductGroupList';
 import { ProductGroupCreate } from './pages/products/ProductGroupCreate';
 import { ProductGroupDetail } from './pages/products/ProductGroupDetail';
 import { OutboundList } from './pages/outbound/OutboundList';
+import { OutboundCreate } from './pages/outbound/OutboundCreate';
 import { OutboundDetail } from './pages/outbound/OutboundDetail';
 import { PackingCalculator } from './pages/outbound/PackingCalculator';
 import { BoxGroupList } from './pages/boxes/BoxGroupList';
@@ -24,6 +25,7 @@ export function App() {
             <Route path="/products/new" element={<ProductGroupCreate />} />
             <Route path="/products/:id" element={<ProductGroupDetail />} />
             <Route path="/outbound" element={<OutboundList />} />
+            <Route path="/outbound/new" element={<OutboundCreate />} />
             <Route path="/outbound/:id" element={<OutboundDetail />} />
             <Route path="/outbound/:id/packing" element={<PackingCalculator />} />
             <Route path="/boxes" element={<BoxGroupList />} />

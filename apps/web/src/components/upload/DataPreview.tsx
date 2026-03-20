@@ -1,5 +1,4 @@
 import React from 'react';
-import { CheckCircle } from 'lucide-react';
 
 interface DataPreviewProps {
   headers: string[];
@@ -7,7 +6,7 @@ interface DataPreviewProps {
   maxRows?: number;
 }
 
-const PATTERN_REGEX = /\(\s*([^/]+?)\s*\/\s*(\d+)\s*ea\s*\)/gi;
+const PATTERN_REGEX = /\(\s*([^/]+?)\s*\/\s*(\d+)\s*ea\s*\)/i;
 
 const containsPattern = (value: unknown): boolean => {
   if (!value) return false;
@@ -18,44 +17,16 @@ const containsPattern = (value: unknown): boolean => {
 const getPatternCount = (value: unknown): number => {
   if (!value) return 0;
   const str = String(value);
-  const matches = str.match(PATTERN_REGEX);
+  const matches = str.match(/\(\s*([^/]+?)\s*\/\s*(\d+)\s*ea\s*\)/gi);
   return matches ? matches.length : 0;
 };
-
-interface DataPreviewProps {
-  headers: string[];
-  data: Record<string, unknown>[];
-  maxRows?: number;
-}
 
 export const DataPreview: React.FC<DataPreviewProps> = ({ headers, data, maxRows = 5 }) => {
   const displayData = data.slice(0, maxRows);
   const totalRows = data.length;
-  const patternRowIndices = displayData
-    .map((_, index) => index)
-    .filter(
-      (index) =>
-        displayData[index] && Object.values(displayData[index]).some((v) => containsPattern(v)),
-    );
 
   return (
     <div className="border rounded-lg overflow-hidden">
-      {patternRowIndices.length > 0 && (
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-purple-600" />
-            <div>
-              <div className="font-medium text-purple-700">
-                {patternRowIndices.length}개 행에서 패턴 감지됨
-              </div>
-              <div className="text-sm text-purple-600">
-                (상품명 / 개수ea) 형식의 데이터가 자동으로 분할됩니다
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="bg-gray-50 p-3 border-b">
         <h3 className="text-sm font-medium text-gray-700">
           데이터 미리보기 ({displayData.length} / {totalRows} 행)
