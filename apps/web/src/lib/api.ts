@@ -174,6 +174,13 @@ export const api = {
           skuItems: { sku: string; productName?: string; quantity: number }[];
           orderCount: number;
           orderIds: string[];
+          largestItem: {
+            width: number;
+            length: number;
+            height: number;
+            volume: number;
+            productName?: string;
+          } | null;
         }[];
       }>(`/outbound-batches/${batchId}/outbounds/configuration-summary`),
   },

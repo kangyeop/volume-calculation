@@ -103,6 +103,13 @@ export class OutboundService {
       skuItems: { sku: string; productName?: string; quantity: number }[];
       orderCount: number;
       orderIds: string[];
+      largestItem: {
+        width: number;
+        length: number;
+        height: number;
+        volume: number;
+        productName?: string;
+      } | null;
     }[];
   }> {
     const allOutbounds = await this.outboundRepository.findAll(outboundBatchId);
@@ -138,12 +145,36 @@ export class OutboundService {
     }
 
     const configurations = Array.from(configMap.entries())
-      .map(([skuKey, { skuItems, orderIds }]) => ({
-        skuKey,
-        skuItems,
-        orderCount: orderIds.length,
-        orderIds,
-      }))
+      .map(([skuKey, { skuItems, orderIds }]) => {
+        let largestItem: {
+          width: number;
+          length: number;
+          height: number;
+          volume: number;
+          productName?: string;
+        } | null = null;
+
+        for (const outbound of allOutbounds) {
+          const orderKey = outbound.orderIdentifier || outbound.orderId;
+          if (!orderIds.includes(orderKey)) continue;
+          if (!outbound.product) continue;
+
+          const { width, length, height, name } = outbound.product;
+          const volume = width * length * height;
+
+          if (!largestItem || volume > largestItem.volume) {
+            largestItem = { width, length, height, volume, productName: name };
+          }
+        }
+
+        return {
+          skuKey,
+          skuItems,
+          orderCount: orderIds.length,
+          orderIds,
+          largestItem,
+        };
+      })
       .sort((a, b) => b.skuItems.length - a.skuItems.length || b.orderCount - a.orderCount);
 
     return {

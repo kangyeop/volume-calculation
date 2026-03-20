@@ -112,6 +112,15 @@ export const OutboundDetail: React.FC = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                          {config.largestItem && (
+                            <span
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-amber-50 text-amber-700 border border-amber-200"
+                              title={`최대 상품: ${config.largestItem.productName || '-'}`}
+                            >
+                              <Package className="h-3 w-3" />
+                              {config.largestItem.width}×{config.largestItem.length}×{config.largestItem.height}
+                            </span>
+                          )}
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                             {config.orderCount}건
                           </span>

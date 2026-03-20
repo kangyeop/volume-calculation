@@ -22,8 +22,6 @@ export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationR
     return volA - volB;
   });
 
-  const largestBox = sortedBoxes[sortedBoxes.length - 1];
-
   const skuDetailsMap = new Map<string, SKU>();
   for (const sku of skus) {
     skuDetailsMap.set(sku.id, sku);
@@ -82,65 +80,14 @@ export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationR
 
       itemsToPack = [];
     } else {
-      const boxVolume = largestBox.width * largestBox.length * largestBox.height;
-      const effectiveCapacity = boxVolume * EFFICIENCY_THRESHOLD;
-
-      let currentBoxUsedVolume = 0;
-      const packedInThisBox: { skuId: string; volume: number; quantity: number }[] = [];
-      const remainingItems: { skuId: string; volume: number; quantity: number }[] = [];
-
       for (const item of itemsToPack) {
-        const fitsPhysically = doesItemFit(item.skuId, largestBox);
-        if (!fitsPhysically) {
-          remainingItems.push(item);
-          continue;
-        }
-
-        const spaceLeft = effectiveCapacity - currentBoxUsedVolume;
-        const maxQtyByVolume = Math.floor(spaceLeft / item.volume);
-        const qtyToPack = Math.min(item.quantity, maxQtyByVolume);
-
-        if (qtyToPack > 0) {
-          currentBoxUsedVolume += item.volume * qtyToPack;
-          packedInThisBox.push({ skuId: item.skuId, volume: item.volume, quantity: qtyToPack });
-          const leftover = item.quantity - qtyToPack;
-          if (leftover > 0) {
-            remainingItems.push({ skuId: item.skuId, volume: item.volume, quantity: leftover });
-          }
-        } else {
-          remainingItems.push(item);
-        }
-      }
-
-      if (packedInThisBox.length === 0 && itemsToPack.length > 0) {
-        const failedItem = itemsToPack[0];
-        console.warn(
-          `Item ${failedItem.skuId} is too large for the largest box (Volume or Dimensions)`,
-        );
-        const existing = unpackedItems.find((i) => i.skuId === failedItem.skuId);
-        if (existing) {
-          existing.quantity += failedItem.quantity;
-        } else {
-          unpackedItems.push({
-            skuId: failedItem.skuId,
-            quantity: failedItem.quantity,
-            reason: 'Too large for any box',
-          });
-        }
-        remainingItems.shift();
-      } else {
-        totalCBM += boxVolume / 1_000_000;
-        totalUsedVolume += currentBoxUsedVolume;
-        totalAvailableVolume += boxVolume;
-
-        recommendedBoxes.push({
-          box: largestBox,
-          count: 1,
-          packedSKUs: packedInThisBox.map((item) => ({ skuId: item.skuId, quantity: item.quantity })),
+        unpackedItems.push({
+          skuId: item.skuId,
+          quantity: item.quantity,
+          reason: '한 박스에 담을 수 없음',
         });
       }
-
-      itemsToPack = remainingItems;
+      itemsToPack = [];
     }
   }
 
