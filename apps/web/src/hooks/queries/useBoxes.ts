@@ -36,3 +36,13 @@ export function useDeleteBox(): UseMutationResult<void, Error, string> {
     },
   });
 }
+
+export function useUploadBoxes(): UseMutationResult<{ imported: number }, Error, { file: File; groupId: string }> {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ file, groupId }) => api.boxes.uploadExcel(file, groupId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: boxes.all.queryKey });
+    },
+  });
+}

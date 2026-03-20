@@ -41,6 +41,11 @@ export class BoxesRepository {
     });
   }
 
+  async createBulk(boxes: Partial<BoxEntity>[]): Promise<BoxEntity[]> {
+    const entities = this.repository.create(boxes);
+    return await this.repository.save(entities);
+  }
+
   async remove(id: string): Promise<boolean> {
     const result = await this.repository.delete(id);
     return (result.affected ?? 0) > 0;

@@ -234,6 +234,13 @@ export const api = {
         data,
       }),
     delete: (id: string) => fetchApi<void>(`/boxes/${id}`, { method: 'DELETE' }),
+    uploadExcel: (file: File, groupId: string): Promise<{ imported: number }> => {
+      const formData = new FormData();
+      formData.append('file', file);
+      return apiClient
+        .post<ApiResponse<{ imported: number }>>(`/boxes/upload?groupId=${encodeURIComponent(groupId)}`, formData)
+        .then(unwrapResponse);
+    },
   },
   upload: {
     confirm: async (

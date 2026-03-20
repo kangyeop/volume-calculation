@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useBoxGroup, useCreateBox, useDeleteBox } from '@/hooks/queries';
+import { useBoxGroup, useCreateBox, useDeleteBox, useUploadBoxes } from '@/hooks/queries';
 import { boxGroups } from '@/hooks/queries/queryKeys';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ArrowLeft, Trash2, Plus, Box as BoxIcon, Ruler, AlertCircle } from 'lucide-react';
+import { ExcelUpload } from '@/components/ExcelUpload';
 
 export const BoxGroupDetail: React.FC = () => {
   const { id: groupId } = useParams<{ id: string }>();
@@ -13,6 +14,7 @@ export const BoxGroupDetail: React.FC = () => {
   const { data: group, isLoading } = useBoxGroup(groupId || '');
   const createBox = useCreateBox();
   const deleteBox = useDeleteBox();
+  const uploadBoxes = useUploadBoxes();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -40,6 +42,17 @@ export const BoxGroupDetail: React.FC = () => {
       toast.success('박스 생성 완료', { description: '새로운 박스가 추가되었습니다.' });
     } catch {
       toast.error('생성 실패', { description: '박스 생성에 실패했습니다.' });
+    }
+  };
+
+  const handleExcelUpload = async (file: File) => {
+    if (!groupId) return;
+    try {
+      const result = await uploadBoxes.mutateAsync({ file, groupId });
+      queryClient.invalidateQueries({ queryKey: boxGroups.detail(groupId).queryKey });
+      toast.success('엑셀 업로드 완료', { description: `${result.imported}개의 박스가 등록되었습니다.` });
+    } catch {
+      toast.error('업로드 실패');
     }
   };
 
@@ -186,6 +199,15 @@ export const BoxGroupDetail: React.FC = () => {
                 Add Box Type
               </button>
             </form>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
+              <h2 className="font-semibold text-gray-900">엑셀로 일괄 등록</h2>
+            </div>
+            <div className="p-6">
+              <ExcelUpload onUpload={handleExcelUpload} title="박스 엑셀 파일 업로드" />
+            </div>
           </div>
         </div>
 
