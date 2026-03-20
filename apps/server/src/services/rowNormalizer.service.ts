@@ -27,6 +27,10 @@ export class RowNormalizerService {
         continue;
       }
 
+      const orderQuantity = quantityColumn
+        ? parseInt(String(row[quantityColumn] ?? '1'), 10) || 1
+        : 1;
+
       const parts = skuValue.split(/\r?\n/).map((p) => p.trim()).filter(Boolean);
 
       if (parts.length <= 1) {
@@ -34,7 +38,7 @@ export class RowNormalizerService {
         if (parsed) {
           const expandedRow = { ...row };
           expandedRow[skuColumn] = parsed.productName;
-          if (quantityColumn) expandedRow[quantityColumn] = parsed.quantity;
+          if (quantityColumn) expandedRow[quantityColumn] = parsed.quantity * orderQuantity;
           result.push(expandedRow);
         } else {
           result.push(row);
@@ -48,7 +52,7 @@ export class RowNormalizerService {
 
         if (parsed) {
           expandedRow[skuColumn] = parsed.productName;
-          if (quantityColumn) expandedRow[quantityColumn] = parsed.quantity;
+          if (quantityColumn) expandedRow[quantityColumn] = parsed.quantity * orderQuantity;
         } else {
           expandedRow[skuColumn] = part.replace(/^\(|\)$/g, '').trim();
         }

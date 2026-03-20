@@ -75,6 +75,30 @@ describe('RowNormalizerService', () => {
     });
   });
 
+  describe('주문 수량 × 파싱 수량', () => {
+    it('단일 복합 항목: 주문수량 2 × 파싱수량 3 = 6', () => {
+      const rows = [{ '상품명': '(상품A / 3ea)', '수량': 2 }];
+      const result = service.normalizeRows(rows, columnMapping);
+      expect(result).toHaveLength(1);
+      expect(result[0]['상품명']).toBe('상품A');
+      expect(result[0]['수량']).toBe(6);
+    });
+
+    it('복합 상품: 주문수량 3 × 각 파싱수량', () => {
+      const rows = [{
+        '상품명': '(상품A / 2ea)\n(상품B / 1ea)',
+        '수량': 3,
+        '주문번호': 'ORD-1',
+      }];
+      const result = service.normalizeRows(rows, columnMapping);
+      expect(result).toHaveLength(2);
+      expect(result[0]['상품명']).toBe('상품A');
+      expect(result[0]['수량']).toBe(6);
+      expect(result[1]['상품명']).toBe('상품B');
+      expect(result[1]['수량']).toBe(3);
+    });
+  });
+
   describe('빈 값 처리', () => {
     it('빈 sku는 원본 유지', () => {
       const rows = [{ '상품명': '', '수량': 1 }];
