@@ -16,8 +16,10 @@ Next.js 15 (App Router) + Supabase PostgreSQL 풀스택 앱. 출고 박스 패�
 ## Guidelines
 
 - Follow the specific agent rules in `.claude/agents/`
+- Follow the specific skill rules in `.claude/skills/`
 - Run hooks in `.claude/hooks/` after development
 - **No Comments**: Do not add comments to the code. Code should be self-documenting. Only add comments if the logic is extremely complex and cannot be simplified.
+- **DB 변경**: 스키마 수정 시 `.claude/skills/db-schema.md` 규칙을 반드시 따른다. 변경 후 `pnpm db:generate`로 마이그레이션 생성 필수.
 
 ## Env
 
