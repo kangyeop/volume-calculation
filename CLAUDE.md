@@ -1,23 +1,17 @@
-# AI Agent Specification
+# dnut VC
 
-This project is a Next.js 15 full-stack application (App Router) with Supabase PostgreSQL.
+Next.js 15 (App Router) + Supabase PostgreSQL 풀스택 앱. 출고 박스 패킹 최적화 시스템.
 
-## Structure
+## Docs
 
-- `src/app/`: Next.js App Router pages and API routes
-- `src/components/`: React UI components
-- `src/hooks/`: Custom React hooks
-- `src/lib/`: Services, database, utilities
-- `src/types/`: Shared TypeScript types
+- [프로젝트 개요](docs/PROJECT_OVERVIEW.md) — 목적, 비즈니스 로직, 사용자 플로우
+- [시스템 아키텍처](docs/architecture.md) — 기술 스택, 디렉토리 구조, ER 다이어그램, API 라우트
 
-## Tech Stack
+## Commands
 
-- **Package Manager**: pnpm
-- **Framework**: Next.js 15 (App Router)
-- **Database**: Supabase PostgreSQL, Drizzle ORM
-- **Frontend**: React 19, TailwindCSS, Radix UI, Jotai, React Query
-- **AI**: OpenAI SDK (direct)
-- **File Storage**: Supabase Storage
+- `pnpm dev` / `pnpm build` / `pnpm start`
+- `pnpm lint` / `pnpm type-check`
+- `pnpm db:generate` / `pnpm db:push` / `pnpm db:studio`
 
 ## Guidelines
 
@@ -25,19 +19,6 @@ This project is a Next.js 15 full-stack application (App Router) with Supabase P
 - Run hooks in `.claude/hooks/` after development
 - **No Comments**: Do not add comments to the code. Code should be self-documenting. Only add comments if the logic is extremely complex and cannot be simplified.
 
-## Development Commands
+## Env
 
-- **Dev**: `pnpm dev`
-- **Build**: `pnpm build`
-- **Start**: `pnpm start`
-- **Lint**: `pnpm lint`
-- **Type Check**: `pnpm type-check`
-- **DB Generate**: `pnpm db:generate`
-- **DB Push**: `pnpm db:push`
-- **DB Studio**: `pnpm db:studio`
-
-## Database
-
-- **Provider**: Supabase PostgreSQL
-- **ORM**: Drizzle ORM
-- **Config**: Set `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`
+Set in `.env.local`: `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `OPENAI_API_KEY`
