@@ -1,25 +1,42 @@
 {
-  "name": "wms-monorepo",
+  "name": "wms-volume-calculator",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "type-check": "turbo run type-check",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "dev:web": "turbo run dev --filter=web",
-    "dev:server": "turbo run dev --filter=server",
-    "build:web": "turbo run build --filter=web"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lukemorales/query-key-factory": "^1.3.4",
+    "@radix-ui/react-collapsible": "^1.1.12",
+    "@radix-ui/react-tabs": "^1.1.13",
+    "@tanstack/react-query": "^5.90.21",
+    "axios": "^1.13.5",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "jotai": "^2.18.0",
+    "lucide-react": "^0.563.0",
+    "next": "^15.3.3",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.4.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "@eslint/compat": "^2.0.2",
-    "prettier": "latest",
-    "turbo": "latest"
-  },
-  "pnpm": {
-    "overrides": {
-      "zod": "3.25.67"
-    }
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "autoprefixer": "^10.4.24",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "^15.3.3",
+    "postcss": "^8.5.6",
+    "tailwindcss": "3.4.17",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "~5.9.3"
   },
   "packageManager": "pnpm@9.0.0",
   "engines": {

@@ -25,6 +25,7 @@ dist-ssr
 *.sw?
 
 .turbo
+.next
 
 .env
 
