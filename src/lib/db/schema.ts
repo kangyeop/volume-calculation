@@ -165,6 +165,13 @@ export const uploadTemplates = pgTable('upload_templates', {
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
 });
 
+export const uploadSessions = pgTable('upload_sessions', {
+  id: varchar('id', { length: 255 }).primaryKey(),
+  data: jsonb('data').notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const productGroupsRelations = relations(productGroups, ({ many }) => ({
   products: many(products),
 }));
