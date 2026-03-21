@@ -22,8 +22,11 @@ interface ParseProductResult {
 function parseDimensions(raw: string): { width: number; length: number; height: number } | null {
   const cleaned = raw.replace(/(cm|mm|m|in|inch)$/i, '').trim();
   const parts = cleaned.split(/[*xX×]/).map((p) => parseFloat(p.trim()));
-  if (parts.length < 3 || parts.some((v) => isNaN(v) || v <= 0)) return null;
-  return { width: parts[0], length: parts[1], height: parts[2] };
+  if (parts.length === 0 || parts.some((v) => isNaN(v) || v <= 0)) return null;
+  const width = parts[0];
+  const length = parts[1] ?? 1;
+  const height = parts[2] ?? 1;
+  return { width, length, height };
 }
 
 export function parseFile(
