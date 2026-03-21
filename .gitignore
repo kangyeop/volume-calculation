@@ -31,7 +31,3 @@ drizzle/
 
 .omc
 .omx
-
-# Supabase local
-supabase/.branches
-supabase/.temp
