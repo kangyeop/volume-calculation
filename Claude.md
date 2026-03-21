@@ -1,20 +1,23 @@
 # AI Agent Specification
 
-This project is a Monorepo using Turbo, NestJS, React, and MySQL.
+This project is a Next.js 15 full-stack application (App Router) with Supabase PostgreSQL.
 
 ## Structure
 
-- `apps/server`: NestJS backend
-- `apps/web`: React frontend
-- `packages/types`: Shared types
+- `src/app/`: Next.js App Router pages and API routes
+- `src/components/`: React UI components
+- `src/hooks/`: Custom React hooks
+- `src/lib/`: Services, database, utilities
+- `src/types/`: Shared TypeScript types
 
 ## Tech Stack
 
 - **Package Manager**: pnpm
-- **Monorepo**: Turbo
-- **Backend**: NestJS, TypeORM, MySQL
-- **Frontend**: React, Vite, TailwindCSS, Lucide React
-- **Testing**: Jest
+- **Framework**: Next.js 15 (App Router)
+- **Database**: Supabase PostgreSQL, Drizzle ORM
+- **Frontend**: React 19, TailwindCSS, Radix UI, Jotai, React Query
+- **AI**: OpenAI SDK (direct)
+- **File Storage**: Supabase Storage
 
 ## Guidelines
 
@@ -22,25 +25,19 @@ This project is a Monorepo using Turbo, NestJS, React, and MySQL.
 - Run hooks in `.claude/hooks/` after development
 - **No Comments**: Do not add comments to the code. Code should be self-documenting. Only add comments if the logic is extremely complex and cannot be simplified.
 
-## Agent Guidelines
-
-- **server**: Use for all backend tasks including API design, database schema changes (TypeORM), and business logic implementation in `apps/server`.
-- **web**: Use for all frontend tasks including UI component creation, styling (TailwindCSS), and client-side state management in `apps/web`.
-- **general**: Use for project-level configuration, shared types in `packages/types`, or tasks involving both ends (e.g., full-stack feature integration).
-- **planner**: Use for architectural planning, requirements analysis, and task breakdown. Focuses on high-level design and implementation strategies across the monorepo.
-- **qa**: Use for testing strategy, writing test cases, and executing tests using Jest. Handles unit tests, integration tests, and end-to-end scenarios.
-
 ## Development Commands
 
-- **Start All**: `pnpm dev` (Runs both server and web concurrently via Turbo)
-- **Start Backend**: `pnpm dev:server`
-- **Start Frontend**: `pnpm dev:web`
+- **Dev**: `pnpm dev`
 - **Build**: `pnpm build`
+- **Start**: `pnpm start`
 - **Lint**: `pnpm lint`
-- **Format**: `pnpm format`
-- **Database**: `docker-compose up -d`
+- **Type Check**: `pnpm type-check`
+- **DB Generate**: `pnpm db:generate`
+- **DB Push**: `pnpm db:push`
+- **DB Studio**: `pnpm db:studio`
 
-## Database Requirement
+## Database
 
-- **Config**: Host `localhost` (if running locally) or `db` (if running in Docker network), Port `3306`, User `root`, Password `root`, Database `wms`.
-- **Environment**: Update `apps/server/.env` or `process.env` if using different credentials.
+- **Provider**: Supabase PostgreSQL
+- **ORM**: Drizzle ORM
+- **Config**: Set `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`
