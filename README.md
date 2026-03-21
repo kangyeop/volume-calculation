@@ -1,13 +1,13 @@
-# WMS Monorepo
+# dnut VC
 
-이 저장소를 빠르게 파악하려면 먼저 [docs/README.md](/Users/yeop/dev/wms/docs/README.md)를 보는 것을 권장합니다.
+이 저장소를 빠르게 파악하려면 먼저 [docs/README.md](docs/README.md)를 보는 것을 권장합니다.
 
 핵심 문서:
 
-- [문서 인덱스](/Users/yeop/dev/wms/docs/README.md)
-- [프로젝트 개요](/Users/yeop/dev/wms/docs/01-프로젝트-개요.md)
-- [구조와 실행 흐름](/Users/yeop/dev/wms/docs/02-구조와-실행-흐름.md)
-- [현재 스펙](/Users/yeop/dev/wms/docs/03-현재-스펙.md)
+- [문서 인덱스](docs/README.md)
+- [프로젝트 개요](docs/01-프로젝트-개요.md)
+- [구조와 실행 흐름](docs/02-구조와-실행-흐름.md)
+- [현재 스펙](docs/03-현재-스펙.md)
 
 ## 실행
 

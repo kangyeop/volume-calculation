@@ -3,7 +3,7 @@ import './globals.css';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: 'WMS Volume Calculator',
+  title: 'dnut VC',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

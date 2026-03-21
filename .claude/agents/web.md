@@ -22,7 +22,7 @@ description: Specialized agent for frontend development using React, Vite, and T
 - **Client**: Use `src/lib/api.ts` for all backend communication.
 - **Pattern**: Centralize API calls in the `api` object (grouped by resource).
 - **Proxy**: Vite is configured to proxy `/api` requests to the backend (port 3000).
-- **Types**: Share types with the backend using `@wms/types`.
+- **Types**: Share types with the backend using `@/types`.
 - **State Management**: Use TanStack Query (`@tanstack/react-query`) for all server state management.
   - Query hooks are organized by domain in `src/hooks/queries/`
     - `queryKeys.ts`: Centralized query keys

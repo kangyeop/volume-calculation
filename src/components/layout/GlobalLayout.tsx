@@ -23,7 +23,7 @@ export const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     <div className="flex min-h-screen min-w-[1280px] bg-background">
       <aside className="w-64 border-r bg-gray-50/40 h-screen sticky top-0 flex flex-col">
         <div className="px-6 py-5 border-b">
-          <span className="text-xl font-bold tracking-tight">WMS</span>
+          <span className="text-xl font-bold tracking-tight">dnut VC</span>
         </div>
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => (
