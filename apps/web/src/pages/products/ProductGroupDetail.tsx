@@ -7,7 +7,7 @@ import { products as productsKey } from '@/hooks/queries/queryKeys';
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { toast } from 'sonner';
 import { ArrowLeft, Trash2, Loader2, AlertCircle, Check, X } from 'lucide-react';
-import type { Product } from '@wms/types';
+import type { Product } from '@/types';
 import { useUpdateProduct } from '@/hooks/queries';
 
 export const ProductGroupDetail: React.FC = () => {

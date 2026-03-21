@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { PackingRecommendation } from '@wms/types';
+import type { PackingRecommendation } from '@/types';
 
 export interface PackingCalculationResult {
   boxes: {

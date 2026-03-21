@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Product } from '@wms/types';
+import type { Product } from '@/types';
 
 interface FilterOptions {
   search?: string;

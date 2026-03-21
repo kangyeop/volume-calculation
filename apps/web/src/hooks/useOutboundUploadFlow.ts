@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/lib/api';
-import type { ParseOutboundResponse, OutboundUploadResult } from '@wms/types';
+import type { ParseOutboundResponse, OutboundUploadResult } from '@/types';
 
 type FlowStep = 'idle' | 'parsing' | 'confirming' | 'processing' | 'done' | 'error';
 

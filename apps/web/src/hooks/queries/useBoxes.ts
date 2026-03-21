@@ -6,7 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { boxes } from './queryKeys';
-import type { Box } from '@wms/types';
+import type { Box } from '@/types';
 
 export function useBoxes() {
   return useQuery({

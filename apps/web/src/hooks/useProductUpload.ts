@@ -1,6 +1,6 @@
 import { useCreateProducts } from '@/hooks/queries';
 import { useUploadState } from './useUploadState';
-import { Product } from '@wms/types';
+import type { Product } from '@/types';
 
 export const useProductUpload = (projectId: string) => {
   const createProducts = useCreateProducts(projectId);

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Package, Layers, ChevronDown, ChevronRight, Maximize2 } from 'lucide-react';
 import type { NormalizedBoxGroup } from '@/hooks/usePackingNormalizer';
-import type { Box } from '@wms/types';
+import type { Box } from '@/types';
 
 interface BoxGroupListProps {
   normalizedBoxes: NormalizedBoxGroup[];

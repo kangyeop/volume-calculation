@@ -6,7 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { products } from './queryKeys';
-import type { Product } from '@wms/types';
+import type { Product } from '@/types';
 
 export function useProducts(projectId: string) {
   return useQuery({

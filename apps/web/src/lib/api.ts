@@ -16,7 +16,7 @@ import {
   ProjectStats,
   ParseOutboundResponse,
   ProcessOutboundRequest,
-} from '@wms/types';
+} from '@/types';
 
 const API_BASE = '/api';
 

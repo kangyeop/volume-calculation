@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronLeft } from 'lucide-react';
 import type { NormalizedBoxGroup } from '@/hooks/usePackingNormalizer';
-import type { Box } from '@wms/types';
+import type { Box } from '@/types';
 import { BoxGroupList } from './BoxGroupList';
 
 interface PackingDetailPanelProps {

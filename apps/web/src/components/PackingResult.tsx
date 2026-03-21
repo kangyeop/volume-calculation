@@ -1,6 +1,6 @@
 import React from 'react';
 import { Package, Box } from 'lucide-react';
-import type { PackingResult3D, PackedBox3D, PackedItem3D, Rotation } from '@wms/types';
+import type { PackingResult3D, PackedBox3D, PackedItem3D, Rotation } from '@/types';
 
 interface PackingResultProps {
   result: PackingResult3D;

@@ -26,8 +26,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@wms/types": ["../../packages/types/index.ts"]
+      "@wms/types": ["../../packages/types/index.ts"],
+      "@/types": ["../../packages/types/index.ts"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "../../packages/types"]
 }

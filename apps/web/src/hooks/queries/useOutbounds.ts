@@ -6,7 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { outbounds } from './queryKeys';
-import type { Outbound } from '@wms/types';
+import type { Outbound } from '@/types';
 
 export function useOutbounds(projectId: string) {
   return useQuery({

@@ -7,7 +7,7 @@ import {
 } from '@tanstack/react-query';
 import { api, type OutboundBatch } from '@/lib/api';
 import { outboundBatches } from './queryKeys';
-import type { Outbound } from '@wms/types';
+import type { Outbound } from '@/types';
 
 export function useOutboundBatches() {
   return useQuery({

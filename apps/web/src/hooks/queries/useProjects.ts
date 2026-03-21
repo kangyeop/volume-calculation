@@ -6,7 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { projects } from './queryKeys';
-import type { Project, ProjectStats } from '@wms/types';
+import type { Project, ProjectStats } from '@/types';
 
 export function useProjects() {
   return useQuery({

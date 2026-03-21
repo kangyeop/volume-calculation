@@ -6,7 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { boxGroups } from './queryKeys';
-import type { BoxGroup } from '@wms/types';
+import type { BoxGroup } from '@/types';
 
 export function useBoxGroups() {
   return useQuery({

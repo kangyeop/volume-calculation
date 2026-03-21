@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, X as XIcon } from 'lucide-react';
-import type { ProductMatchResult, Product } from '@wms/types';
+import type { ProductMatchResult, Product } from '@/types';
 
 interface MappingPreviewProps {
   results: ProductMatchResult[];

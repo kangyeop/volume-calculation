@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Outbound } from '@wms/types';
+import type { Outbound } from '@/types';
 
 interface FilterOptions {
   searchTerm?: string;

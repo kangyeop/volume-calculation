@@ -16,7 +16,8 @@ import type { PackingCalculationResult } from '@/hooks/usePackingNormalizer';
 import { BoxTypeCard } from '@/components/packing/BoxTypeCard';
 import { PackingDetailPanel } from '@/components/packing/PackingDetailPanel';
 import { UnpackedItemsAlert } from '@/components/packing/UnpackedItemsAlert';
-import { PackingGroupingOption, PackingRecommendation } from '@wms/types';
+import { PackingGroupingOption } from '@/types';
+import type { PackingRecommendation } from '@/types';
 
 type DetailView =
   | { type: 'box'; boxId: string; groupId?: string | null }

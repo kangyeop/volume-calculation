@@ -6,7 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { packing } from './queryKeys';
-import type { PackingGroupingOption, PackingRecommendation, PackingResult3D } from '@wms/types';
+import type { PackingGroupingOption, PackingRecommendation, PackingResult3D } from '@/types';
 
 export function usePackingHistory(batchId: string) {
   return useQuery({

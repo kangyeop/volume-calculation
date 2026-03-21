@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { outbounds, products } from './queryKeys';
-import type { ConfirmUploadResponse, ProductMappingData } from '@wms/types';
+import type { ConfirmUploadResponse, ProductMappingData } from '@/types';
 
 export function useUploadParse() {
   // Parsing is handled implicitly by direct upload or product group parse now
