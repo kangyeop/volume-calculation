@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as productGroupsService from '@/lib/services/product-groups';
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ groupId: string }> }) {
   try {
-    const { id } = await params;
-    const result = await productGroupsService.findOne(id);
+    const { groupId } = await params;
+    const result = await productGroupsService.findOne(groupId);
     if (!result) {
       return NextResponse.json({ error: 'Product group not found' }, { status: 404 });
     }
@@ -14,10 +14,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ groupId: string }> }) {
   try {
-    const { id } = await params;
-    await productGroupsService.deleteProductGroup(id);
+    const { groupId } = await params;
+    await productGroupsService.deleteProductGroup(groupId);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to delete product group' }, { status: 500 });
