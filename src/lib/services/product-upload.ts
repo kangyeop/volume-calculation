@@ -1,7 +1,8 @@
 import { parseExcelFile } from '@/lib/services/excel';
-import * as aiService from '@/lib/services/ai';
 import * as productsService from '@/lib/services/products';
-import type { ParseProductUploadData } from '@/types';
+
+const COLUMN_SKU = '상품명';
+const COLUMN_DIMENSIONS = '체적정보';
 
 type CreateProductDto = {
   sku: string;
@@ -11,76 +12,67 @@ type CreateProductDto = {
   height: number;
 };
 
-export async function parseFile(
+interface ParseProductResult {
+  rowCount: number;
+  products: CreateProductDto[];
+  errors: string[];
+  fileName: string;
+}
+
+function parseDimensions(raw: string): { width: number; length: number; height: number } | null {
+  const cleaned = raw.replace(/(cm|mm|m|in|inch)$/i, '').trim();
+  const parts = cleaned.split(/[*xX×]/).map((p) => parseFloat(p.trim()));
+  if (parts.length < 3 || parts.some((v) => isNaN(v) || v <= 0)) return null;
+  return { width: parts[0], length: parts[1], height: parts[2] };
+}
+
+export function parseFile(
   buffer: Buffer,
   originalName: string,
-): Promise<ParseProductUploadData> {
+): ParseProductResult {
   const parseResult = parseExcelFile(buffer, originalName);
-  const mapping = await aiService.mapProductColumns(parseResult.headers, parseResult.rows);
+  const products: CreateProductDto[] = [];
+  const errors: string[] = [];
+
+  for (let i = 0; i < parseResult.rows.length; i++) {
+    const row = parseResult.rows[i];
+    const rowNum = i + 2;
+    const sku = String(row[COLUMN_SKU] || '').trim();
+
+    if (!sku) continue;
+
+    const dimsRaw = String(row[COLUMN_DIMENSIONS] || '').trim();
+    const dims = dimsRaw ? parseDimensions(dimsRaw) : null;
+
+    if (!dims) {
+      errors.push(`행 ${rowNum} (${sku}): 체적정보가 없거나 형식이 올바르지 않습니다.`);
+      continue;
+    }
+
+    products.push({
+      sku,
+      name: sku,
+      ...dims,
+    });
+  }
 
   return {
-    sessionId: crypto.randomUUID(),
-    headers: parseResult.headers,
     rowCount: parseResult.rowCount,
-    rows: parseResult.rows,
-    mapping,
+    products,
+    errors,
     fileName: originalName,
   };
 }
 
-export function transformAndCreateProducts(
-  rows: Record<string, unknown>[],
-  mapping: ParseProductUploadData['mapping'],
-): CreateProductDto[] {
-  const products: CreateProductDto[] = [];
-
-  for (const row of rows) {
-    const sku = mapping.mapping.sku
-      ? String(row[mapping.mapping.sku.columnName] || '').trim()
-      : '';
-    const name = mapping.mapping.name
-      ? String(row[mapping.mapping.name.columnName] || '').trim()
-      : '';
-
-    if (!sku && !name) continue;
-
-    let width = 0,
-      length = 0,
-      height = 0;
-
-    if (mapping.dimensionFormat === 'combined' && mapping.mapping.dimensions) {
-      const dims = String(row[mapping.mapping.dimensions.columnName] || '').trim();
-      const cleaned = dims.replace(/(cm|mm|m|in|inch)$/i, '').trim();
-      const parts = cleaned.split(/[*xX×]/).map((p) => parseFloat(p.trim()));
-      width = parts[0] || 1;
-      length = parts[1] || 1;
-      height = parts[2] ?? 1;
-    }
-
-    products.push({
-      sku: sku || name,
-      name: name || sku,
-      width,
-      length,
-      height,
-    });
-  }
-
-  return products;
-}
-
 export async function confirmProductUpload(
   productGroupId: string,
-  rows: Record<string, unknown>[],
-  mapping: ParseProductUploadData['mapping'],
+  products: CreateProductDto[],
 ): Promise<{ imported: number }> {
-  const productDtos = transformAndCreateProducts(rows, mapping);
-
-  if (productDtos.length === 0) {
+  if (products.length === 0) {
     return { imported: 0 };
   }
 
-  await productsService.createBulk(productGroupId, productDtos);
+  await productsService.createBulk(productGroupId, products);
 
-  return { imported: productDtos.length };
+  return { imported: products.length };
 }

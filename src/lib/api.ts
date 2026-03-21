@@ -9,7 +9,6 @@ import {
   Box,
   BoxGroup,
   PackingResult3D,
-  ParseProductUploadData,
   ApiResponse,
   ProductMappingData,
   PackingResultDetail,
@@ -304,32 +303,21 @@ export const api = {
     },
   },
   productUpload: {
-    parse: (file: File, groupId: string): Promise<ParseProductUploadData> => {
+    parse: async (
+      file: File,
+      groupId: string,
+    ): Promise<{ imported: number; rowCount: number; errors: string[]; fileName: string }> => {
       const formData = new FormData();
       formData.append('file', file);
 
-      return apiClient
-        .post<
-          ApiResponse<ParseProductUploadData>
-        >(`/product-upload/parse?groupId=${encodeURIComponent(groupId)}`, formData)
-        .then((response) => {
-          if (!response.data.success) {
-            throw new Error(response.data.message || response.data.error || 'API request failed');
-          }
-          return response.data.data;
-        });
-    },
+      const response = await apiClient.post<
+        ApiResponse<{ imported: number; rowCount: number; errors: string[]; fileName: string }>
+      >(`/product-upload/parse?groupId=${encodeURIComponent(groupId)}`, formData);
 
-    confirm: async (
-      groupId: string,
-      rows: Record<string, unknown>[],
-      mapping: ParseProductUploadData['mapping'],
-    ): Promise<{ imported: number }> => {
-      const response = await apiClient.post<ApiResponse<{ imported: number }>>(
-        `/product-upload/confirm`,
-        { groupId, rows, mapping },
-      );
-      return unwrapResponse({ data: response.data });
+      if (!response.data.success) {
+        throw new Error(response.data.message || response.data.error || 'API request failed');
+      }
+      return response.data.data;
     },
   },
   dashboard: {

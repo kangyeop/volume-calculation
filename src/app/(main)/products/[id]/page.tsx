@@ -68,15 +68,12 @@ export default function ProductGroupDetail() {
     if (!groupId) return;
     setIsUploading(true);
     try {
-      const parseResult = await api.productUpload.parse(file, groupId);
-      toast.info('AI 분석 완료', {
-        description: `${parseResult.rowCount}개의 행을 분석했습니다.`,
-      });
-      const result = await api.productUpload.confirm(
-        groupId,
-        parseResult.rows,
-        parseResult.mapping,
-      );
+      const result = await api.productUpload.parse(file, groupId);
+      if (result.errors.length > 0) {
+        toast.warning('일부 행 오류', {
+          description: `${result.errors.length}건의 오류가 있습니다.`,
+        });
+      }
       toast.success('가져오기 완료', {
         description: `${result.imported}개의 상품이 등록되었습니다.`,
       });
@@ -152,12 +149,29 @@ export default function ProductGroupDetail() {
             <ExcelUpload onUpload={handleUpload} title="상품 파일 추가" />
           )}
           <div className="p-4 bg-blue-50 rounded-lg text-xs text-blue-700">
-            <strong>권장 형식:</strong>
-            <ul className="list-disc ml-4 mt-1 space-y-0.5">
-              <li>SKU (String)</li>
-              <li>상품명 (String)</li>
-              <li>규격 (예: 10*20*30 또는 10x20x30)</li>
-            </ul>
+            <strong>엑셀 컬럼 매핑:</strong>
+            <table className="mt-2 w-full text-left">
+              <thead>
+                <tr className="border-b border-blue-200">
+                  <th className="pb-1 font-semibold">엑셀 컬럼</th>
+                  <th className="pb-1 font-semibold">→</th>
+                  <th className="pb-1 font-semibold">필드</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="py-0.5 font-mono">상품명</td>
+                  <td className="py-0.5">→</td>
+                  <td className="py-0.5">상품명 (SKU)</td>
+                </tr>
+                <tr>
+                  <td className="py-0.5 font-mono">체적정보</td>
+                  <td className="py-0.5">→</td>
+                  <td className="py-0.5">가로 × 세로 × 높이</td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="mt-2 text-blue-500">예: 체적정보 = 10x20x30 또는 10*20*30</p>
           </div>
         </div>
 
@@ -193,7 +207,6 @@ export default function ProductGroupDetail() {
                         className="rounded border-gray-300 cursor-pointer"
                       />
                     </th>
-                    <th className="px-4 py-3">SKU</th>
                     <th className="px-4 py-3">상품명</th>
                     <th className="px-4 py-3">규격 (W × L × H cm)</th>
                   </tr>
@@ -209,8 +222,7 @@ export default function ProductGroupDetail() {
                           className="rounded border-gray-300 cursor-pointer"
                         />
                       </td>
-                      <td className="px-4 py-3 font-mono">{p.sku}</td>
-                      <td className="px-4 py-3">{p.name}</td>
+                      <td className="px-4 py-3">{p.sku}</td>
                       <td className="px-4 py-3 text-gray-500">
                         {editingId === p.id ? (
                           <div className="flex items-center gap-1">
@@ -276,7 +288,7 @@ export default function ProductGroupDetail() {
                   ))}
                   {productList.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="px-4 py-12 text-center text-gray-400">
+                      <td colSpan={3} className="px-4 py-12 text-center text-gray-400">
                         등록된 상품이 없습니다.
                       </td>
                     </tr>

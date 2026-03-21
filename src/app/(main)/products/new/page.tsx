@@ -31,15 +31,12 @@ export default function ProductGroupCreate() {
     if (!createdGroupId) return;
     setIsUploading(true);
     try {
-      const parseResult = await api.productUpload.parse(file, createdGroupId);
-      toast.info('AI 분석 완료', {
-        description: `${parseResult.rowCount}개의 행을 분석했습니다. 상품을 등록 중...`,
-      });
-      const result = await api.productUpload.confirm(
-        createdGroupId,
-        parseResult.rows,
-        parseResult.mapping,
-      );
+      const result = await api.productUpload.parse(file, createdGroupId);
+      if (result.errors.length > 0) {
+        toast.warning('일부 행 오류', {
+          description: `${result.errors.length}건의 오류가 있습니다.`,
+        });
+      }
       toast.success('가져오기 완료', {
         description: `${result.imported}개의 상품이 등록되었습니다.`,
       });
@@ -106,7 +103,7 @@ export default function ProductGroupCreate() {
               <ExcelUpload onUpload={handleUpload} title="엑셀 파일을 업로드하세요" />
             )}
             <div className="p-3 bg-blue-50 rounded-lg text-xs text-blue-700">
-              <strong>권장 형식:</strong> SKU, 상품명, 규격(W×L×H cm)
+              <strong>엑셀 컬럼:</strong> 상품명, 체적정보 (예: 10x20x30)
             </div>
           </div>
 

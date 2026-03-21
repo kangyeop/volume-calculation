@@ -18,8 +18,26 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const data = await productUploadService.parseFile(buffer, file.name);
-    return NextResponse.json({ success: true, data });
+    const result = productUploadService.parseFile(buffer, file.name);
+
+    if (result.errors.length > 0 && result.products.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'No valid products found', errors: result.errors },
+        { status: 400 },
+      );
+    }
+
+    const imported = await productUploadService.confirmProductUpload(groupId, result.products);
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...imported,
+        rowCount: result.rowCount,
+        errors: result.errors,
+        fileName: result.fileName,
+      },
+    });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to parse product file' }, { status: 500 });
   }
