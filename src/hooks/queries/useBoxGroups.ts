@@ -28,7 +28,8 @@ export function useCreateBoxGroup(): UseMutationResult<BoxGroup, Error, string> 
 
   return useMutation({
     mutationFn: (name: string) => api.boxGroups.create(name),
-    onSuccess: () => {
+    onSuccess: (newGroup) => {
+      queryClient.setQueryData(boxGroups.detail(newGroup.id).queryKey, { ...newGroup, boxes: [] });
       queryClient.invalidateQueries({ queryKey: boxGroups.all.queryKey });
     },
   });
@@ -39,7 +40,20 @@ export function useDeleteBoxGroup(): UseMutationResult<void, Error, string> {
 
   return useMutation({
     mutationFn: (id: string) => api.boxGroups.delete(id),
-    onSuccess: () => {
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: boxGroups.all.queryKey });
+      const previous = queryClient.getQueryData<BoxGroup[]>(boxGroups.all.queryKey);
+      queryClient.setQueryData<BoxGroup[]>(boxGroups.all.queryKey, (old) =>
+        old?.filter((g) => g.id !== id) ?? []
+      );
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(boxGroups.all.queryKey, context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: boxGroups.all.queryKey });
     },
   });

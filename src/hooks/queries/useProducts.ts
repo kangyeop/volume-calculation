@@ -8,6 +8,12 @@ import { api } from '@/lib/api';
 import { products } from './queryKeys';
 import type { Product } from '@/types';
 
+type UpdateProductVars = {
+  id: string;
+  data: Partial<Pick<Product, 'width' | 'length' | 'height' | 'name'>>;
+  groupId: string;
+};
+
 export function useProducts(projectId: string) {
   return useQuery({
     ...products.all(projectId),
@@ -29,16 +35,25 @@ export function useCreateProducts(
   });
 }
 
-export function useUpdateProduct(): UseMutationResult<
-  Product,
-  Error,
-  { id: string; data: Partial<Pick<Product, 'width' | 'length' | 'height' | 'name'>> }
-> {
+export function useUpdateProduct(): UseMutationResult<Product, Error, UpdateProductVars> {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ id, data }) => api.products.update(id, data),
-    onSuccess: () => {
+    onMutate: async ({ id, data, groupId }) => {
+      await queryClient.cancelQueries({ queryKey: products.byGroup(groupId).queryKey });
+      const previous = queryClient.getQueryData<Product[]>(products.byGroup(groupId).queryKey);
+      queryClient.setQueryData<Product[]>(products.byGroup(groupId).queryKey, (old) =>
+        old?.map((p) => (p.id === id ? { ...p, ...data } : p)) ?? []
+      );
+      return { previous };
+    },
+    onError: (_err, { groupId }, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(products.byGroup(groupId).queryKey, context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: products.all._def });
     },
   });

@@ -60,7 +60,20 @@ export function useDeleteShipment(): UseMutationResult<void, Error, string> {
 
   return useMutation({
     mutationFn: (id: string) => api.shipments.delete(id),
-    onSuccess: () => {
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: shipments.all.queryKey });
+      const previous = queryClient.getQueryData<Shipment[]>(shipments.all.queryKey);
+      queryClient.setQueryData<Shipment[]>(shipments.all.queryKey, (old) =>
+        old?.filter((s) => s.id !== id) ?? []
+      );
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(shipments.all.queryKey, context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: shipments.all.queryKey });
     },
   });
