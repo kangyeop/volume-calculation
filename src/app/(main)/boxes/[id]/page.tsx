@@ -3,17 +3,15 @@
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useBoxGroup, useCreateBox, useDeleteBox, useUploadBoxes } from '@/hooks/queries';
-import { boxGroups } from '@/hooks/queries/queryKeys';
-import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ArrowLeft, Trash2, Plus, Box as BoxIcon, Ruler, AlertCircle } from 'lucide-react';
 import { ExcelUpload } from '@/components/ExcelUpload';
+import { BoxDetailSkeleton } from '@/components/skeletons';
 
 export default function BoxGroupDetail() {
   const params = useParams<{ id: string }>();
   const groupId = params.id;
   const router = useRouter();
-  const queryClient = useQueryClient();
   const { data: group, isLoading } = useBoxGroup(groupId || '');
   const createBox = useCreateBox();
   const deleteBox = useDeleteBox();
@@ -42,7 +40,6 @@ export default function BoxGroupDetail() {
         boxGroupId: groupId,
       });
       setFormData({ name: '', width: '', length: '', height: '', price: '' });
-      queryClient.invalidateQueries({ queryKey: boxGroups.detail(groupId).queryKey });
       toast.success('박스 생성 완료', { description: '새로운 박스가 추가되었습니다.' });
     } catch {
       toast.error('생성 실패', { description: '박스 생성에 실패했습니다.' });
@@ -53,7 +50,6 @@ export default function BoxGroupDetail() {
     if (!groupId) return;
     try {
       const result = await uploadBoxes.mutateAsync({ file, groupId });
-      queryClient.invalidateQueries({ queryKey: boxGroups.detail(groupId).queryKey });
       toast.success('엑셀 업로드 완료', {
         description: `${result.imported}개의 박스가 등록되었습니다.`,
       });
@@ -65,8 +61,7 @@ export default function BoxGroupDetail() {
   const handleDelete = async (id: string) => {
     if (!groupId || !confirm('이 박스를 삭제하시겠습니까?')) return;
     try {
-      await deleteBox.mutateAsync(id);
-      queryClient.invalidateQueries({ queryKey: boxGroups.detail(groupId).queryKey });
+      await deleteBox.mutateAsync({ id, groupId });
       toast.success('삭제 완료', { description: '박스가 삭제되었습니다.' });
     } catch {
       toast.error('삭제 실패', { description: '박스 삭제에 실패했습니다.' });
@@ -74,11 +69,7 @@ export default function BoxGroupDetail() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-      </div>
-    );
+    return <BoxDetailSkeleton />;
   }
 
   if (!group) {

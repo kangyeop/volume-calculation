@@ -5,11 +5,14 @@ import { useRouter } from 'next/navigation';
 import { useBoxGroups, useDeleteBoxGroup } from '@/hooks/queries';
 import { Plus, Package, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { usePrefetchBoxGroup } from '@/hooks/usePrefetch';
+import { ListTableSkeleton } from '@/components/skeletons';
 
 export default function BoxGroupList() {
   const router = useRouter();
   const { data: groups = [], isLoading } = useBoxGroups();
   const deleteGroup = useDeleteBoxGroup();
+  const prefetch = usePrefetchBoxGroup();
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -24,11 +27,7 @@ export default function BoxGroupList() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-      </div>
-    );
+    return <ListTableSkeleton />;
   }
 
   return (
@@ -68,6 +67,7 @@ export default function BoxGroupList() {
                 <tr
                   key={group.id}
                   onClick={() => router.push(`/boxes/${group.id}`)}
+                  onMouseEnter={() => prefetch(group.id)}
                   className="hover:bg-gray-50 cursor-pointer transition-colors"
                 >
                   <td className="px-4 py-3 font-medium text-gray-900">{group.name}</td>

@@ -19,6 +19,7 @@ import { BoxTypeCard } from '@/components/packing/BoxTypeCard';
 import { PackingDetailPanel } from '@/components/packing/PackingDetailPanel';
 import { UnpackedItemsAlert } from '@/components/packing/UnpackedItemsAlert';
 import type { PackingRecommendation } from '@/types';
+import { PackingCalculatorSkeleton } from '@/components/skeletons';
 
 type DetailView = { type: 'box'; boxId: string; groupId?: string | null } | null;
 
@@ -253,9 +254,7 @@ export default function PackingCalculator() {
       </div>
 
       {isLoadingRecommendation && !result && (
-        <div className="flex justify-center items-center py-16">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
-        </div>
+        <PackingCalculatorSkeleton />
       )}
 
       {!isLoadingRecommendation && !result && !isCalculating && (
@@ -266,9 +265,7 @@ export default function PackingCalculator() {
       )}
 
       {isCalculating && !result && (
-        <div className="flex justify-center items-center py-16">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
-        </div>
+        <PackingCalculatorSkeleton />
       )}
 
       {result && (

@@ -22,18 +22,18 @@ export default function OutboundCreate() {
 
   const handleFileSelect = async (file: File) => {
     try {
-      const result = await flow.upload(file, format);
-      if (result) {
-        toast.success('업로드 완료', { description: `${result.imported}건이 등록되었습니다.` });
-        router.push(`/shipments/${result.shipmentId}`);
-      }
+      const resultPromise = flow.mutateAsync({ file, format });
+      router.prefetch('/shipments');
+      const result = await resultPromise;
+      toast.success('업로드 완료', { description: `${result.imported}건이 등록되었습니다.` });
+      router.replace(`/shipments/${result.shipmentId}`);
     } catch {
       toast.error('업로드 실패', { description: '처리 중 오류가 발생했습니다.' });
     }
   };
 
   const handleCancel = () => {
-    if (flow.step === 'uploading') return;
+    if (flow.isPending) return;
     flow.reset();
     router.push('/shipments');
   };
@@ -56,7 +56,7 @@ export default function OutboundCreate() {
       <div className="bg-white border rounded-xl shadow-sm p-6 space-y-4">
         {flow.error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-            {flow.error}
+            {flow.error.message}
           </div>
         )}
 
@@ -65,7 +65,7 @@ export default function OutboundCreate() {
           <select
             value={format}
             onChange={(e) => setFormat(e.target.value as ShipmentFormat)}
-            disabled={flow.step === 'uploading'}
+            disabled={flow.isPending}
             className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
           >
             {FORMAT_OPTIONS.map((opt) => (
@@ -76,7 +76,7 @@ export default function OutboundCreate() {
           </select>
         </div>
 
-        {flow.step === 'uploading' ? (
+        {flow.isPending ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
             <p className="text-sm text-gray-500">데이터를 처리하고 있습니다...</p>

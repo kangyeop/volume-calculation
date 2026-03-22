@@ -5,11 +5,14 @@ import { useRouter } from 'next/navigation';
 import { useShipments, useDeleteShipment } from '@/hooks/queries';
 import { Plus, Truck, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { usePrefetchShipmentDetail } from '@/hooks/usePrefetch';
+import { ListTableSkeleton } from '@/components/skeletons';
 
 export default function OutboundList() {
   const router = useRouter();
   const { data: batches = [], isLoading } = useShipments();
   const deleteBatch = useDeleteShipment();
+  const prefetch = usePrefetchShipmentDetail();
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -23,11 +26,7 @@ export default function OutboundList() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-      </div>
-    );
+    return <ListTableSkeleton />;
   }
 
   return (
@@ -67,6 +66,7 @@ export default function OutboundList() {
                 <tr
                   key={batch.id}
                   onClick={() => router.push(`/shipments/${batch.id}`)}
+                  onMouseEnter={() => prefetch(batch.id)}
                   className="hover:bg-gray-50 cursor-pointer transition-colors"
                 >
                   <td className="px-4 py-3 font-medium text-gray-900">{batch.name}</td>

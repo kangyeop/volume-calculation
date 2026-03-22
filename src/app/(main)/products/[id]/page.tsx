@@ -9,6 +9,7 @@ import { products as productsKey } from '@/hooks/queries/queryKeys';
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { toast } from 'sonner';
 import { ArrowLeft, Trash2, Loader2, AlertCircle, Check, X } from 'lucide-react';
+import { ProductDetailSkeleton } from '@/components/skeletons';
 import type { Product } from '@/types';
 import { useUpdateProduct } from '@/hooks/queries';
 
@@ -95,8 +96,7 @@ export default function ProductGroupDetail() {
   const saveEditing = async () => {
     if (!editingId || !groupId) return;
     try {
-      await updateProduct.mutateAsync({ id: editingId, data: editDims });
-      queryClient.invalidateQueries({ queryKey: productsKey.byGroup(groupId).queryKey });
+      await updateProduct.mutateAsync({ id: editingId, data: editDims, groupId });
       toast.success('치수가 변경되었습니다.');
       setEditingId(null);
     } catch {
@@ -108,11 +108,7 @@ export default function ProductGroupDetail() {
   const someSelected = selectedIds.size > 0 && selectedIds.size < productList.length;
 
   if (groupLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-      </div>
-    );
+    return <ProductDetailSkeleton />;
   }
 
   if (!group) {

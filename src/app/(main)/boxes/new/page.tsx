@@ -15,9 +15,11 @@ export default function BoxGroupCreate() {
     e.preventDefault();
     if (!groupName.trim()) return;
     try {
-      const group = await createGroup.mutateAsync(groupName.trim());
+      const groupPromise = createGroup.mutateAsync(groupName.trim());
+      router.prefetch('/boxes');
+      const group = await groupPromise;
       toast.success('박스 그룹이 생성되었습니다.');
-      router.push(`/boxes/${group.id}`);
+      router.replace(`/boxes/${group.id}`);
     } catch {
       toast.error('생성 실패', { description: '박스 그룹 생성에 실패했습니다.' });
     }

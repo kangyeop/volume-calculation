@@ -31,7 +31,9 @@ export default function ProductGroupCreate() {
     if (!createdGroupId) return;
     setIsUploading(true);
     try {
-      const result = await api.productUpload.parse(file, createdGroupId);
+      const resultPromise = api.productUpload.parse(file, createdGroupId);
+      router.prefetch(`/products/${createdGroupId}`);
+      const result = await resultPromise;
       if (result.errors.length > 0) {
         toast.warning('일부 행 오류', {
           description: `${result.errors.length}건의 오류가 있습니다.`,
@@ -40,7 +42,7 @@ export default function ProductGroupCreate() {
       toast.success('가져오기 완료', {
         description: `${result.imported}개의 상품이 등록되었습니다.`,
       });
-      router.push(`/products/${createdGroupId}`);
+      router.replace(`/products/${createdGroupId}`);
     } catch {
       toast.error('업로드 실패', { description: '상품 파일 처리에 실패했습니다.' });
     } finally {
@@ -108,7 +110,7 @@ export default function ProductGroupCreate() {
           </div>
 
           <button
-            onClick={() => router.push(`/products/${createdGroupId}`)}
+            onClick={() => router.replace(`/products/${createdGroupId}`)}
             className="w-full border border-gray-300 text-gray-700 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors"
           >
             그룹 상세 페이지로 이동

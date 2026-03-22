@@ -7,6 +7,7 @@ import { useConfigurationSummary } from '@/hooks/queries';
 import { shipments } from '@/hooks/queries/queryKeys';
 import type { Shipment } from '@/lib/api';
 import { ArrowLeft, ChevronDown, ChevronRight, Calculator, Package, Layers } from 'lucide-react';
+import { ShipmentDetailSkeleton } from '@/components/skeletons';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Table,
@@ -60,9 +61,7 @@ export default function OutboundDetail() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-        </div>
+        <ShipmentDetailSkeleton />
       ) : summary ? (
         <>
           <div className="grid grid-cols-2 gap-4">
