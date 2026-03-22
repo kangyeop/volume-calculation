@@ -4,10 +4,12 @@
 
 ```mermaid
 erDiagram
+    BoxGroup ||--o{ ProductGroup : "used by"
     ProductGroup ||--o{ Product : "has many"
     ProductGroup {
         uuid id PK
         varchar name
+        uuid boxGroupId FK
         timestamp createdAt
         timestamp updatedAt
     }
@@ -161,6 +163,7 @@ erDiagram
 | 부모 | 자식 | 관계 | onDelete |
 |------|------|------|----------|
 | `ProductGroup` | `Product` | 1:N | CASCADE |
+| `BoxGroup` | `ProductGroup` | 1:N | - |
 | `BoxGroup` | `Box` | 1:N | CASCADE |
 | `Shipment` | `Order` | 1:N | - |
 | `Shipment` | `OrderItem` | 1:N | - |

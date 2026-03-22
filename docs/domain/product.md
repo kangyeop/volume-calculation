@@ -10,8 +10,11 @@
 |------|------|------|
 | id | UUID (PK) | |
 | name | varchar(255) | 그룹 이름 |
+| boxGroupId | UUID (FK → boxGroups) | 패킹 시 사용할 박스 그룹 |
 | createdAt | timestamp | |
 | updatedAt | timestamp | |
+
+**관계:** ProductGroup N : 1 BoxGroup (패킹 시 이 상품 그룹의 주문은 연결된 박스 그룹의 박스를 사용)
 
 ### Product
 
@@ -50,8 +53,9 @@
 | Method | Endpoint | 설명 |
 |--------|----------|------|
 | GET | `/api/product-groups` | 전체 목록 조회 |
-| POST | `/api/product-groups` | 그룹 생성 |
+| POST | `/api/product-groups` | 그룹 생성 (name, boxGroupId) |
 | GET | `/api/product-groups/{groupId}` | 그룹 상세 (상품 포함) |
+| PATCH | `/api/product-groups/{groupId}` | 그룹 수정 (name, boxGroupId) |
 | DELETE | `/api/product-groups/{groupId}` | 그룹 삭제 (상품 CASCADE) |
 
 ### 상품
@@ -96,8 +100,9 @@
 
 | 연관 도메인 | 관계 |
 |-------------|------|
+| **Box** | 상품 그룹은 박스 그룹과 1:1 연결되어, 패킹 시 해당 박스 그룹의 박스를 사용 |
 | **Outbound** | 출고 아이템의 SKU를 상품 마스터와 AI 매칭하여 `productId` 연결 |
-| **Packing** | 상품 치수(W×L×H)를 패킹 알고리즘에서 부피 계산에 사용 |
+| **Packing** | 상품 치수(W×L×H)를 패킹 알고리즘에서 부피 계산에 사용. 상품 그룹의 `boxGroupId`로 박스 그룹 자동 결정 |
 
 ## 주요 파일
 

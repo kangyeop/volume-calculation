@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCreateProductGroup } from '@/hooks/queries';
+import { useCreateProductGroup, useBoxGroups } from '@/hooks/queries';
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2 } from 'lucide-react';
@@ -11,15 +11,17 @@ import { api } from '@/lib/api';
 export default function ProductGroupCreate() {
   const router = useRouter();
   const createGroup = useCreateProductGroup();
+  const { data: boxGroupList = [] } = useBoxGroups();
   const [groupName, setGroupName] = useState('');
+  const [selectedBoxGroupId, setSelectedBoxGroupId] = useState('');
   const [createdGroupId, setCreatedGroupId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!groupName.trim()) return;
+    if (!groupName.trim() || !selectedBoxGroupId) return;
     try {
-      const group = await createGroup.mutateAsync(groupName.trim());
+      const group = await createGroup.mutateAsync({ name: groupName.trim(), boxGroupId: selectedBoxGroupId });
       setCreatedGroupId(group.id);
       toast.success('상품 그룹이 생성되었습니다.');
     } catch {
@@ -79,9 +81,25 @@ export default function ProductGroupCreate() {
                 required
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">박스 그룹</label>
+              <select
+                value={selectedBoxGroupId}
+                onChange={(e) => setSelectedBoxGroupId(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                required
+              >
+                <option value="">박스 그룹 선택</option>
+                {boxGroupList.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name} ({g.boxes?.length ?? 0}개)
+                  </option>
+                ))}
+              </select>
+            </div>
             <button
               type="submit"
-              disabled={createGroup.isPending || !groupName.trim()}
+              disabled={createGroup.isPending || !groupName.trim() || !selectedBoxGroupId}
               className="w-full bg-indigo-600 text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {createGroup.isPending ? '생성 중...' : '그룹 생성'}

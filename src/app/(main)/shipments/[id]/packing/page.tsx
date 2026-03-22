@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Download, RefreshCw } from 'lucide-react';
@@ -11,7 +11,6 @@ import {
   useUpdateBoxAssignment,
   useProductGroups,
   useBoxGroups,
-  useShipment,
 } from '@/hooks/queries';
 import { usePackingNormalizer } from '@/hooks/usePackingNormalizer';
 import type { PackingCalculationResult } from '@/hooks/usePackingNormalizer';
@@ -28,7 +27,6 @@ export default function PackingCalculator() {
   const router = useRouter();
   const { data: savedRecommendation, isLoading: isLoadingRecommendation } =
     usePackingRecommendation(batchId ?? '');
-  const { data: batch } = useShipment(batchId ?? '');
   const calculatePacking = useCalculatePacking();
   const exportPacking = useExportPacking();
   const updateBoxAssignment = useUpdateBoxAssignment();
@@ -38,7 +36,6 @@ export default function PackingCalculator() {
   const [freshResult, setFreshResult] = useState<
     PackingRecommendation | PackingCalculationResult | null
   >(null);
-  const [selectedBoxGroupId, setSelectedBoxGroupId] = useState<string>('');
 
   const detailBoxId = searchParams.get('boxId');
   const detailGroupId = searchParams.get('groupId');
@@ -66,12 +63,6 @@ export default function PackingCalculator() {
     },
     [searchParams, router],
   );
-
-  useEffect(() => {
-    if (batch?.lastBoxGroupId && !selectedBoxGroupId) {
-      setSelectedBoxGroupId(batch.lastBoxGroupId);
-    }
-  }, [batch?.lastBoxGroupId]);
 
   const result = freshResult ?? savedRecommendation ?? null;
   const { normalizedBoxes, unpackedItems } = usePackingNormalizer(result);
@@ -185,11 +176,10 @@ export default function PackingCalculator() {
   const isCalculating = calculatePacking.isPending;
 
   const handleCalculate = async () => {
-    if (!batchId || !selectedBoxGroupId) return;
+    if (!batchId) return;
     try {
       const data = await calculatePacking.mutateAsync({
         batchId,
-        boxGroupId: selectedBoxGroupId,
       });
       setFreshResult(data);
       const p = new URLSearchParams(searchParams.toString());
@@ -206,10 +196,8 @@ export default function PackingCalculator() {
   };
 
   const availableBoxes = useMemo(() => {
-    if (!selectedBoxGroupId) return [];
-    const group = boxGroupList.find((g) => g.id === selectedBoxGroupId);
-    return group?.boxes ?? [];
-  }, [selectedBoxGroupId, boxGroupList]);
+    return boxGroupList.flatMap((g) => g.boxes ?? []);
+  }, [boxGroupList]);
 
   const handleBoxOverride = async (groupIndex: number, boxIndex: number, newBoxId: string) => {
     if (!batchId) return;
@@ -247,22 +235,9 @@ export default function PackingCalculator() {
         </div>
 
         <div className="flex items-center gap-2">
-          <select
-            value={selectedBoxGroupId}
-            onChange={(e) => setSelectedBoxGroupId(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-          >
-            <option value="">박스 그룹 선택</option>
-            {boxGroupList.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.name} ({g.boxes?.length ?? 0}개)
-              </option>
-            ))}
-          </select>
-
           <button
             onClick={handleCalculate}
-            disabled={isCalculating || !selectedBoxGroupId}
+            disabled={isCalculating}
             className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
           >
             <RefreshCw className={`h-4 w-4 ${isCalculating ? 'animate-spin' : ''}`} />

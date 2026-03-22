@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useProductGroup } from '@/hooks/queries';
+import { useProductGroup, useBoxGroups, useUpdateProductGroup } from '@/hooks/queries';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { products as productsKey } from '@/hooks/queries/queryKeys';
@@ -19,6 +19,8 @@ export default function ProductGroupDetail() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: group, isLoading: groupLoading } = useProductGroup(groupId || '');
+  const { data: boxGroupList = [] } = useBoxGroups();
+  const updateProductGroup = useUpdateProductGroup();
 
   const { data: productList = [], isLoading: productsLoading } = useQuery({
     ...productsKey.byGroup(groupId || ''),
@@ -129,9 +131,30 @@ export default function ProductGroupDetail() {
         >
           <ArrowLeft className="h-5 w-5 text-gray-600" />
         </button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold tracking-tight">{group.name}</h1>
           <p className="text-muted-foreground">상품을 관리합니다.</p>
+        </div>
+        <div className="flex items-center gap-2 ml-auto">
+          <label className="text-sm font-medium text-gray-700 whitespace-nowrap">박스 그룹</label>
+          <select
+            value={group.boxGroupId ?? ''}
+            onChange={async (e) => {
+              try {
+                await updateProductGroup.mutateAsync({ id: groupId!, data: { boxGroupId: e.target.value } });
+                toast.success('박스 그룹이 변경되었습니다.');
+              } catch {
+                toast.error('박스 그룹 변경 실패');
+              }
+            }}
+            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+          >
+            {boxGroupList.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name} ({g.boxes?.length ?? 0}개)
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
