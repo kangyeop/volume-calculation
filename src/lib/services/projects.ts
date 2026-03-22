@@ -31,16 +31,16 @@ export async function remove(id: string) {
 export async function getStats(): Promise<ProjectStats[]> {
   const results = await db
     .select({
-      projectId: packingResults.outboundBatchId,
+      projectId: packingResults.shipmentId,
       projectName: projects.name,
       createdAt: projects.createdAt,
       boxName: packingResults.boxName,
       boxCount: sql<string>`COUNT(*)`,
     })
     .from(packingResults)
-    .innerJoin(projects, eq(projects.id, packingResults.outboundBatchId))
+    .innerJoin(projects, eq(projects.id, packingResults.shipmentId))
     .groupBy(
-      packingResults.outboundBatchId,
+      packingResults.shipmentId,
       projects.name,
       projects.createdAt,
       packingResults.boxName,

@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { outboundItems, packingResults, packingResultDetails, outboundBatches, orders, products } from '@/lib/db/schema';
+import { orderItems, packingResults, packingResultDetails, shipments, orders, products } from '@/lib/db/schema';
 export { exportPackingResults } from '@/lib/services/excel';
 import { eq, and } from 'drizzle-orm';
 import { calculatePacking, calculateOrderPackingUnified } from '@/lib/algorithms/packing';
@@ -15,28 +15,28 @@ import * as boxesService from '@/lib/services/boxes';
 
 const CHUNK_SIZE = 500;
 
-type OutboundItemRow = typeof outboundItems.$inferSelect & {
+type OrderItemRow = typeof orderItems.$inferSelect & {
   product?: typeof products.$inferSelect | null;
   order?: typeof orders.$inferSelect | null;
 };
 
 export async function calculate(
-  outboundBatchId: string,
+  shipmentId: string,
   groupingOption: PackingGroupingOption,
   boxGroupId: string,
 ): Promise<PackingRecommendation> {
-  const allOutbounds = await db.query.outboundItems.findMany({
-    where: eq(outboundItems.outboundBatchId, outboundBatchId),
+  const allItems = await db.query.orderItems.findMany({
+    where: eq(orderItems.shipmentId, shipmentId),
     with: { product: true },
   });
 
   const allOrderRows = await db.query.orders.findMany({
-    where: eq(orders.outboundBatchId, outboundBatchId),
+    where: eq(orders.shipmentId, shipmentId),
   });
   const orderById = new Map(allOrderRows.map((o) => [o.id, o]));
 
-  const outboundsWithOrder: (OutboundItemRow & { order: typeof orders.$inferSelect | undefined })[] =
-    allOutbounds.map((o) => ({ ...o, order: orderById.get(o.orderId) }));
+  const itemsWithOrder: (OrderItemRow & { order: typeof orders.$inferSelect | undefined })[] =
+    allItems.map((o) => ({ ...o, order: orderById.get(o.orderId) }));
 
   const allProducts = await db.select().from(products);
   const productMapById = new Map(allProducts.map((p) => [p.id, p]));
@@ -48,7 +48,7 @@ export async function calculate(
     throw new Error('선택한 박스 그룹에 등록된 박스가 없습니다. 박스 관리 메뉴에서 박스를 먼저 등록해주세요.');
   }
 
-  const groupedOutbounds = groupOutbounds(outboundsWithOrder, groupingOption);
+  const groupedItems = groupOrderItems(itemsWithOrder, groupingOption);
 
   const groups: PackingGroup[] = [];
   let grandTotalCBM = 0;
@@ -58,10 +58,10 @@ export async function calculate(
   const allDetailRows: (typeof packingResultDetails.$inferInsert)[] = [];
   const allResultRows: (typeof packingResults.$inferInsert)[] = [];
 
-  await db.delete(packingResults).where(eq(packingResults.outboundBatchId, outboundBatchId));
-  await db.delete(packingResultDetails).where(eq(packingResultDetails.outboundBatchId, outboundBatchId));
+  await db.delete(packingResults).where(eq(packingResults.shipmentId, shipmentId));
+  await db.delete(packingResultDetails).where(eq(packingResultDetails.shipmentId, shipmentId));
 
-  for (const group of groupedOutbounds) {
+  for (const group of groupedItems) {
     if (group.length === 0) continue;
 
     const skus: SKU[] = group
@@ -115,13 +115,13 @@ export async function calculate(
     });
 
     const groupOrderId = group[0].orderIdentifier || group[0].orderId;
-    const skuToOutbound = new Map<string, { sku: string }>();
-    for (const outbound of group) {
+    const skuToItem = new Map<string, { sku: string }>();
+    for (const item of group) {
       const product =
-        (outbound.productId ? productMapById.get(outbound.productId) : undefined) ??
-        productMapBySku.get(outbound.sku);
-      if (product && !skuToOutbound.has(product.id)) {
-        skuToOutbound.set(product.id, { sku: outbound.sku });
+        (item.productId ? productMapById.get(item.productId) : undefined) ??
+        productMapBySku.get(item.sku);
+      if (product && !skuToItem.has(product.id)) {
+        skuToItem.set(product.id, { sku: item.sku });
       }
     }
 
@@ -135,7 +135,7 @@ export async function calculate(
           const product = productMapById.get(packedSku.skuId);
           if (!product) continue;
 
-          const outboundInfo = skuToOutbound.get(packedSku.skuId);
+          const itemInfo = skuToItem.get(packedSku.skuId);
           const efficiency =
             boxVol > 0
               ? (Number(product.width) * Number(product.length) * Number(product.height) * packedSku.quantity) /
@@ -143,10 +143,10 @@ export async function calculate(
               : 0;
 
           allDetailRows.push({
-            outboundBatchId,
+            shipmentId,
             orderId: groupOrderId,
             recipientName: '',
-            sku: outboundInfo?.sku || product.sku,
+            sku: itemInfo?.sku || product.sku,
             productName: product.name,
             quantity: packedSku.quantity,
             boxName: box.box.name,
@@ -163,12 +163,12 @@ export async function calculate(
     }
 
     for (const item of unpackedWithNames) {
-      const outboundInfo = skuToOutbound.get(item.skuId);
+      const itemInfo = skuToItem.get(item.skuId);
       allDetailRows.push({
-        outboundBatchId,
+        shipmentId,
         orderId: groupOrderId,
         recipientName: '',
-        sku: outboundInfo?.sku || item.skuId,
+        sku: itemInfo?.sku || item.skuId,
         productName: item.name,
         quantity: item.quantity,
         boxName: 'Unpacked',
@@ -202,7 +202,7 @@ export async function calculate(
 
       for (let i = 0; i < box.count; i++) {
         allResultRows.push({
-          outboundBatchId,
+          shipmentId,
           orderId: groupLabel,
           boxName: box.box.name,
           packedCount: box.packedSKUs.reduce((a, s) => a + s.quantity, 0),
@@ -237,25 +237,25 @@ export async function calculate(
   };
 
   await db
-    .update(outboundBatches)
+    .update(shipments)
     .set({ packingRecommendation: result as unknown as Record<string, unknown>, lastBoxGroupId: boxGroupId })
-    .where(eq(outboundBatches.id, outboundBatchId));
+    .where(eq(shipments.id, shipmentId));
 
   return result;
 }
 
-function groupOutbounds(
-  outbounds: (OutboundItemRow & { order: typeof orders.$inferSelect | undefined })[],
+function groupOrderItems(
+  items: (OrderItemRow & { order: typeof orders.$inferSelect | undefined })[],
   option: PackingGroupingOption,
-): (OutboundItemRow & { order: typeof orders.$inferSelect | undefined })[][] {
+): (OrderItemRow & { order: typeof orders.$inferSelect | undefined })[][] {
   const groups = new Map<
     string,
-    (OutboundItemRow & { order: typeof orders.$inferSelect | undefined })[]
+    (OrderItemRow & { order: typeof orders.$inferSelect | undefined })[]
   >();
 
-  for (const outbound of outbounds) {
-    const orderIdentifier = outbound.orderIdentifier || outbound.orderId;
-    const recipientName = outbound.order?.recipientName || 'Unknown Recipient';
+  for (const item of items) {
+    const orderIdentifier = item.orderIdentifier || item.orderId;
+    const recipientName = item.order?.recipientName || 'Unknown Recipient';
 
     let key = '';
     switch (option) {
@@ -273,18 +273,18 @@ function groupOutbounds(
     }
 
     if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(outbound);
+    groups.get(key)!.push(item);
   }
 
   return Array.from(groups.values());
 }
 
 function generateGroupLabel(
-  outbound: OutboundItemRow & { order: typeof orders.$inferSelect | undefined },
+  item: OrderItemRow & { order: typeof orders.$inferSelect | undefined },
   option: PackingGroupingOption,
 ): string {
-  const orderIdentifier = outbound.orderIdentifier || outbound.orderId;
-  const recipientName = outbound.order?.recipientName || 'Unknown Recipient';
+  const orderIdentifier = item.orderIdentifier || item.orderId;
+  const recipientName = item.order?.recipientName || 'Unknown Recipient';
 
   switch (option) {
     case 'ORDER':
@@ -298,46 +298,46 @@ function generateGroupLabel(
   }
 }
 
-export async function findAll(outboundBatchId: string) {
-  return db.select().from(packingResults).where(eq(packingResults.outboundBatchId, outboundBatchId));
+export async function findAll(shipmentId: string) {
+  return db.select().from(packingResults).where(eq(packingResults.shipmentId, shipmentId));
 }
 
-export async function findByOrderId(outboundBatchId: string, orderId: string) {
+export async function findByOrderId(shipmentId: string, orderId: string) {
   return db
     .select()
     .from(packingResults)
-    .where(and(eq(packingResults.outboundBatchId, outboundBatchId), eq(packingResults.orderId, orderId)));
+    .where(and(eq(packingResults.shipmentId, shipmentId), eq(packingResults.orderId, orderId)));
 }
 
-export async function findAllDetails(outboundBatchId: string) {
+export async function findAllDetails(shipmentId: string) {
   return db
     .select()
     .from(packingResultDetails)
-    .where(eq(packingResultDetails.outboundBatchId, outboundBatchId));
+    .where(eq(packingResultDetails.shipmentId, shipmentId));
 }
 
-export async function getRecommendation(outboundBatchId: string): Promise<PackingRecommendation | null> {
-  const batch = await db.query.outboundBatches.findFirst({
-    where: eq(outboundBatches.id, outboundBatchId),
+export async function getRecommendation(shipmentId: string): Promise<PackingRecommendation | null> {
+  const shipment = await db.query.shipments.findFirst({
+    where: eq(shipments.id, shipmentId),
   });
-  if (!batch?.packingRecommendation) return null;
-  return batch.packingRecommendation as unknown as PackingRecommendation;
+  if (!shipment?.packingRecommendation) return null;
+  return shipment.packingRecommendation as unknown as PackingRecommendation;
 }
 
 export async function updateBoxAssignment(
-  outboundBatchId: string,
+  shipmentId: string,
   groupIndex: number,
   boxIndex: number,
   newBoxId: string,
 ): Promise<PackingRecommendation> {
-  const batch = await db.query.outboundBatches.findFirst({
-    where: eq(outboundBatches.id, outboundBatchId),
+  const shipment = await db.query.shipments.findFirst({
+    where: eq(shipments.id, shipmentId),
   });
-  if (!batch?.packingRecommendation) {
+  if (!shipment?.packingRecommendation) {
     throw new Error('패킹 추천 결과가 없습니다.');
   }
 
-  const recommendation = batch.packingRecommendation as unknown as PackingRecommendation;
+  const recommendation = shipment.packingRecommendation as unknown as PackingRecommendation;
 
   if (groupIndex < 0 || groupIndex >= recommendation.groups.length) {
     throw new Error(`유효하지 않은 그룹 인덱스입니다: ${groupIndex}`);
@@ -361,23 +361,23 @@ export async function updateBoxAssignment(
   };
 
   await db
-    .update(outboundBatches)
+    .update(shipments)
     .set({ packingRecommendation: recommendation as unknown as Record<string, unknown> })
-    .where(eq(outboundBatches.id, outboundBatchId));
+    .where(eq(shipments.id, shipmentId));
 
   return recommendation;
 }
 
 export async function calculateOrderPacking(
-  outboundBatchId: string,
+  shipmentId: string,
   orderId: string,
   groupLabel?: string,
   boxGroupId?: string,
 ): Promise<PackingResult3D> {
   const order = await db.query.orders.findFirst({
-    where: and(eq(orders.outboundBatchId, outboundBatchId), eq(orders.orderId, orderId)),
+    where: and(eq(orders.shipmentId, shipmentId), eq(orders.orderId, orderId)),
     with: {
-      outboundItems: {
+      orderItems: {
         with: { product: true },
       },
     },
@@ -397,7 +397,7 @@ export async function calculateOrderPacking(
 
   const skuMap = new Map<string, SKU>();
 
-  for (const item of order.outboundItems) {
+  for (const item of order.orderItems) {
     const product = item.product;
     if (!product) continue;
 
@@ -424,18 +424,18 @@ export async function calculateOrderPacking(
 
   const result = calculateOrderPackingUnified(orderId, skus, boxes, groupLabel || order.orderId);
 
-  await savePackingResults3D(outboundBatchId, result);
+  await savePackingResults3D(shipmentId, result);
 
   return result;
 }
 
-async function savePackingResults3D(outboundBatchId: string, result: PackingResult3D): Promise<void> {
+async function savePackingResults3D(shipmentId: string, result: PackingResult3D): Promise<void> {
   await db
     .delete(packingResults)
-    .where(and(eq(packingResults.outboundBatchId, outboundBatchId), eq(packingResults.orderId, result.orderId)));
+    .where(and(eq(packingResults.shipmentId, shipmentId), eq(packingResults.orderId, result.orderId)));
 
   const rows = result.boxes.map((box) => ({
-    outboundBatchId,
+    shipmentId,
     orderId: result.orderId,
     boxId: box.boxId,
     boxName: box.boxName,

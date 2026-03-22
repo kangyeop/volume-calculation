@@ -24,13 +24,13 @@ export const Sidebar: React.FC = () => {
       icon: Package,
     },
     {
-      to: `/projects/${id}/outbound/upload`,
-      label: 'Outbound Upload',
+      to: `/projects/${id}/shipments/upload`,
+      label: 'Shipment Upload',
       icon: Wand2,
     },
     {
-      to: `/projects/${id}/outbound/list`,
-      label: 'Outbound List',
+      to: `/projects/${id}/shipments/list`,
+      label: 'Shipment List',
       icon: ClipboardList,
     },
     {

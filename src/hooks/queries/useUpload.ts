@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import { outbounds, products } from './queryKeys';
+import { shipments, products } from './queryKeys';
 import type { ConfirmUploadResponse, ProductMappingData } from '@/types';
 
 export function useUploadParse() {
@@ -14,7 +14,7 @@ export function useUploadConfirm() {
     ConfirmUploadResponse['data'],
     Error,
     {
-      outboundBatchId: string;
+      shipmentId: string;
       orders: Array<{
         orderId: string;
         sku: string;
@@ -25,12 +25,12 @@ export function useUploadConfirm() {
       }>;
     }
   >({
-    mutationFn: ({ outboundBatchId, orders }) => api.upload.confirm(outboundBatchId, orders),
+    mutationFn: ({ shipmentId, orders }) => api.upload.confirm(shipmentId, orders),
     onSuccess: (data) => {
       toast.success('가져오기 완료', {
         description: `${data.imported}개의 데이터가 등록되었습니다.`,
       });
-      queryClient.invalidateQueries({ queryKey: outbounds.all._def });
+      queryClient.invalidateQueries({ queryKey: shipments.all.queryKey });
       queryClient.invalidateQueries({ queryKey: products.all._def });
     },
     onError: (error) => {

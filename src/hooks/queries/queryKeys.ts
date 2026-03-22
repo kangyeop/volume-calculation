@@ -16,16 +16,16 @@ export const products = createQueryKeys('products', {
   byGroup: (groupId: string) => [groupId, 'group'],
 });
 
-export const outbounds = createQueryKeys('outbounds', {
+export const orderItems = createQueryKeys('orderItems', {
   all: (projectId: string) => [projectId],
 });
 
-export const outboundBatches = createQueryKeys('outboundBatches', {
+export const shipments = createQueryKeys('shipments', {
   all: null,
   detail: (id: string) => [id],
-  outbounds: (batchId: string) => [batchId, 'outbounds'],
-  infiniteOutbounds: (batchId: string) => [batchId, 'outbounds', 'infinite'],
-  configurationSummary: (batchId: string) => [batchId, 'configuration-summary'],
+  orderItems: (shipmentId: string) => [shipmentId, 'order-items'],
+  infiniteOrderItems: (shipmentId: string) => [shipmentId, 'order-items', 'infinite'],
+  configurationSummary: (shipmentId: string) => [shipmentId, 'configuration-summary'],
 });
 
 export const boxes = createQueryKeys('boxes', {
@@ -40,9 +40,9 @@ export const boxGroups = createQueryKeys('boxGroups', {
 export const packing = createQueryKeys('packing', {
   history: (projectId: string) => [projectId, 'history'],
   details: (projectId: string) => [projectId, 'details'],
-  historyByBatch: (batchId: string) => [batchId, 'batch', 'history'],
-  detailsByBatch: (batchId: string) => [batchId, 'batch', 'details'],
-  recommendation: (batchId: string) => [batchId, 'recommendation'],
+  historyByBatch: (shipmentId: string) => [shipmentId, 'batch', 'history'],
+  detailsByBatch: (shipmentId: string) => [shipmentId, 'batch', 'details'],
+  recommendation: (shipmentId: string) => [shipmentId, 'recommendation'],
 });
 
 export const upload = createQueryKeys('upload', {

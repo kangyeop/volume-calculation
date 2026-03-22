@@ -63,30 +63,30 @@ export interface Order {
   orderId: string;
   recipient?: string;
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED';
-  outboundBatchId: string;
+  shipmentId: string;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface OutboundItem {
+export interface OrderItem {
   id: string;
   orderId: string;
   sku: string;
   quantity: number;
-  outboundBatchId: string;
+  shipmentId: string;
   productId?: string;
   product?: Product;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface OutboundBatch {
+export interface Shipment {
   id: string;
   name: string;
   createdAt: string;
   updatedAt: string;
   orders?: Order[];
-  outboundItems?: OutboundItem[];
+  orderItems?: OrderItem[];
   packingResults?: PackingResult[];
 }
 
@@ -145,7 +145,7 @@ export interface PackingResult3D {
 
 export interface PackingResultDetail {
   id: string;
-  outboundBatchId: string;
+  shipmentId: string;
   orderId: string;
   recipientName?: string;
   sku: string;
@@ -182,11 +182,11 @@ export interface UnmatchedItem {
   reason?: string;
 }
 
-export interface OutboundUploadResult {
+export interface ShipmentUploadResult {
   imported: number;
   unmatched: UnmatchedItem[];
-  batchName: string;
-  batchId: string;
+  shipmentName: string;
+  shipmentId: string;
   totalRows: number;
 }
 
@@ -212,7 +212,7 @@ export interface BatchStats {
 
 export interface PackingResult {
   id: string;
-  outboundBatchId: string;
+  shipmentId: string;
   boxId?: string;
   boxName?: string;
   packedCount: number;
@@ -238,7 +238,7 @@ export interface UploadTemplate {
   updatedAt: string;
 }
 
-export interface ParseOutboundResponse {
+export interface ParseShipmentUploadResponse {
   sessionId: string;
   headers: string[];
   sampleRows: Record<string, unknown>[];
@@ -249,7 +249,7 @@ export interface ParseOutboundResponse {
   source: 'template' | 'ai';
 }
 
-export interface ProcessOutboundRequest {
+export interface ProcessShipmentUploadRequest {
   sessionId: string;
   columnMapping: Record<string, string>;
   saveAsTemplate?: boolean;
@@ -331,7 +331,7 @@ export interface UploadRemapRequest {
 }
 
 export interface ProductMatchResult {
-  outboundItemIndex: number;
+  orderItemIndex: number;
   orderId?: string;
   productIds?: string[] | null;
   sku?: string;
@@ -375,7 +375,7 @@ export interface ConfirmMappingUploadResponse {
   data: ConfirmMappingUploadData;
 }
 
-export interface OutboundWithProduct extends OutboundItem {
+export interface OrderItemWithProduct extends OrderItem {
   productId?: string;
   mappingConfidence?: number | null;
   product?: Product;
@@ -422,7 +422,7 @@ export interface PackingResult3DLegacy {
 
 export interface PackingResultDetailLegacy {
   id: string;
-  outboundBatchId: string;
+  shipmentId: string;
   orderId: string;
   recipientName?: string;
   sku: string;

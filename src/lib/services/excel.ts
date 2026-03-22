@@ -42,11 +42,11 @@ export function parseExcelFile(buffer: Buffer, filename: string): ParseResult {
   }
 }
 
-export async function exportPackingResults(outboundBatchId: string): Promise<Buffer> {
+export async function exportPackingResults(shipmentId: string): Promise<Buffer> {
   const results = await db
     .select()
     .from(packingResultDetails)
-    .where(eq(packingResultDetails.outboundBatchId, outboundBatchId))
+    .where(eq(packingResultDetails.shipmentId, shipmentId))
     .orderBy(packingResultDetails.orderId, packingResultDetails.boxIndex, packingResultDetails.boxNumber);
 
   const workbook = new ExcelJS.Workbook();

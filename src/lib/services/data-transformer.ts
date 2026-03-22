@@ -1,4 +1,4 @@
-type OutboundItemDto = {
+type OrderItemDto = {
   orderId: string;
   sku: string;
   quantity: number;
@@ -34,10 +34,10 @@ export function mapRow(
   return result;
 }
 
-export function transformOutboundRows(
+export function transformOrderItemRows(
   rows: Record<string, unknown>[],
   columnMapping: Record<string, string>,
-): OutboundItemDto[] {
+): OrderItemDto[] {
   return rows
     .filter((row) => {
       const mapped = mapRow(row, columnMapping);
@@ -58,7 +58,7 @@ export function transformOutboundRows(
     });
 }
 
-export async function transformAndMapOutbound(
+export async function transformAndMapOrderItems(
   columnMapping: Record<string, string>,
   rows: Record<string, unknown>[],
 ): Promise<{
@@ -66,14 +66,14 @@ export async function transformAndMapOutbound(
     orderId: string;
     recipientName: string;
     address: string;
-    outboundItems: Array<{
+    orderItems: Array<{
       sku: string;
       quantity: number;
       productId?: string | null;
     }>;
   }>;
 }> {
-  const transformed = transformOutboundRows(rows, columnMapping);
+  const transformed = transformOrderItemRows(rows, columnMapping);
 
   const orderMap = new Map<
     string,
@@ -81,7 +81,7 @@ export async function transformAndMapOutbound(
       orderId: string;
       recipientName: string;
       address: string;
-      outboundItems: Array<{
+      orderItems: Array<{
         sku: string;
         quantity: number;
         productId?: string | null;
@@ -97,12 +97,12 @@ export async function transformAndMapOutbound(
         orderId,
         recipientName: '',
         address: '',
-        outboundItems: [],
+        orderItems: [],
       });
     }
 
     const order = orderMap.get(orderId)!;
-    order.outboundItems.push({
+    order.orderItems.push({
       sku: item.sku.trim(),
       quantity: item.quantity || 1,
       productId: item.productId || null,

@@ -57,7 +57,7 @@ export const boxes = pgTable('boxes', {
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
 });
 
-export const outboundBatches = pgTable('outbound_batches', {
+export const shipments = pgTable('shipments', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
   packingRecommendation: jsonb('packing_recommendation'),
@@ -72,26 +72,26 @@ export const orders = pgTable('orders', {
   recipientName: varchar('recipient_name', { length: 255 }),
   address: text('address'),
   status: orderStatusEnum('status').default('PENDING').notNull(),
-  outboundBatchId: uuid('outbound_batch_id').notNull().references(() => outboundBatches.id),
+  shipmentId: uuid('shipment_id').notNull().references(() => shipments.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
 }, (table) => [
-  uniqueIndex('orders_batch_order_unique').on(table.outboundBatchId, table.orderId),
+  uniqueIndex('orders_shipment_order_unique').on(table.shipmentId, table.orderId),
 ]);
 
-export const outboundItems = pgTable('outbound_items', {
+export const orderItems = pgTable('order_items', {
   id: uuid('id').defaultRandom().primaryKey(),
   orderId: varchar('order_id', { length: 255 }).notNull(),
   sku: varchar('sku', { length: 255 }).notNull(),
   quantity: integer('quantity').notNull(),
-  outboundBatchId: uuid('outbound_batch_id').notNull().references(() => outboundBatches.id),
+  shipmentId: uuid('shipment_id').notNull().references(() => shipments.id),
   productId: uuid('product_id').references(() => products.id, { onDelete: 'set null' }),
   orderIdentifier: varchar('order_identifier', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
 }, (table) => [
-  index('outbound_items_batch_product_idx').on(table.outboundBatchId, table.productId),
-  index('outbound_items_batch_order_idx').on(table.outboundBatchId, table.orderId),
+  index('order_items_shipment_product_idx').on(table.shipmentId, table.productId),
+  index('order_items_shipment_order_idx').on(table.shipmentId, table.orderId),
 ]);
 
 export const projects = pgTable('projects', {
@@ -126,14 +126,14 @@ export const packingResults = pgTable('packing_results', {
   groupLabel: varchar('group_label', { length: 255 }),
   orderId: varchar('order_id', { length: 255 }),
   boxNumber: integer('box_number'),
-  outboundBatchId: uuid('outbound_batch_id').notNull().references(() => outboundBatches.id),
+  shipmentId: uuid('shipment_id').notNull().references(() => shipments.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
 });
 
 export const packingResultDetails = pgTable('packing_result_details', {
   id: uuid('id').defaultRandom().primaryKey(),
-  outboundBatchId: uuid('outbound_batch_id').notNull().references(() => outboundBatches.id),
+  shipmentId: uuid('shipment_id').notNull().references(() => shipments.id),
   orderId: varchar('order_id', { length: 255 }).notNull(),
   recipientName: varchar('recipient_name', { length: 255 }),
   sku: varchar('sku', { length: 255 }).notNull(),
@@ -194,27 +194,27 @@ export const boxesRelations = relations(boxes, ({ one }) => ({
   }),
 }));
 
-export const outboundBatchesRelations = relations(outboundBatches, ({ many }) => ({
+export const shipmentsRelations = relations(shipments, ({ many }) => ({
   orders: many(orders),
-  outboundItems: many(outboundItems),
+  orderItems: many(orderItems),
   packingResults: many(packingResults),
 }));
 
 export const ordersRelations = relations(orders, ({ one, many }) => ({
-  outboundBatch: one(outboundBatches, {
-    fields: [orders.outboundBatchId],
-    references: [outboundBatches.id],
+  shipment: one(shipments, {
+    fields: [orders.shipmentId],
+    references: [shipments.id],
   }),
-  outboundItems: many(outboundItems),
+  orderItems: many(orderItems),
 }));
 
-export const outboundItemsRelations = relations(outboundItems, ({ one }) => ({
-  outboundBatch: one(outboundBatches, {
-    fields: [outboundItems.outboundBatchId],
-    references: [outboundBatches.id],
+export const orderItemsRelations = relations(orderItems, ({ one }) => ({
+  shipment: one(shipments, {
+    fields: [orderItems.shipmentId],
+    references: [shipments.id],
   }),
   product: one(products, {
-    fields: [outboundItems.productId],
+    fields: [orderItems.productId],
     references: [products.id],
   }),
 }));
@@ -235,15 +235,15 @@ export const outboundsRelations = relations(outbounds, ({ one }) => ({
 }));
 
 export const packingResultsRelations = relations(packingResults, ({ one }) => ({
-  outboundBatch: one(outboundBatches, {
-    fields: [packingResults.outboundBatchId],
-    references: [outboundBatches.id],
+  shipment: one(shipments, {
+    fields: [packingResults.shipmentId],
+    references: [shipments.id],
   }),
 }));
 
 export const packingResultDetailsRelations = relations(packingResultDetails, ({ one }) => ({
-  outboundBatch: one(outboundBatches, {
-    fields: [packingResultDetails.outboundBatchId],
-    references: [outboundBatches.id],
+  shipment: one(shipments, {
+    fields: [packingResultDetails.shipmentId],
+    references: [shipments.id],
   }),
 }));

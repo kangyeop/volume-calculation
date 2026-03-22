@@ -16,10 +16,28 @@ description: Drizzle ORM 스키마 변경 및 Supabase 마이그레이션 가이
 
 ## 변경 작업 순서
 
+**`db:push`는 사용하지 않는다.** 항상 마이그레이션 파일 기반으로 작업한다.
+
 1. `src/lib/db/schema.ts` 수정
 2. `pnpm db:generate` 실행 → `drizzle/` 폴더에 migration SQL 생성
-3. 생성된 SQL 파일 검토 (destructive 변경 여부 확인)
-4. `pnpm db:push` 로 Supabase에 반영 (사용자 확인 후)
+3. 생성된 SQL 파일 검토 (아래 체크리스트 참고)
+4. 위험한 SQL이 있으면 수동 수정 (아래 "위험한 변경 시 안전한 패턴" 참고)
+5. 사용자에게 검토 결과를 보여주고 확인 받기
+6. `drizzle/` 폴더의 마이그레이션 파일을 코드와 함께 커밋
+
+스키마 변경 작업 시 **반드시 2번(`db:generate`)까지 실행**하고, 생성된 SQL을 사용자에게 보여준다.
+
+## 마이그레이션 적용
+
+배포 시 `next build` 전에 자동으로 실행된다:
+
+```json
+"build": "pnpm db:migrate && next build"
+```
+
+- Drizzle Kit이 `drizzle/` 폴더의 마이그레이션 SQL을 순서대로 실행
+- `__drizzle_migrations` 테이블로 적용 이력을 추적
+- 이미 적용된 마이그레이션은 건너뜀
 
 ## 하위호환성 규칙
 
@@ -31,20 +49,51 @@ description: Drizzle ORM 스키마 변경 및 Supabase 마이그레이션 가이
 - 새 enum 값 추가 (기존 값 뒤에)
 
 ### 위험한 변경 (사용자 확인 필수)
-- 컬럼 삭제 → 기존 데이터 유실
+- 컬럼 삭제 → 의도된 삭제면 OK, 데이터 유실 인지 필요
 - 컬럼 타입 변경 → 데이터 변환 실패 가능
 - NOT NULL 제약 추가 → 기존 null 데이터가 있으면 실패
 - enum 값 삭제/변경 → 해당 값을 쓰는 행이 있으면 실패
-- 테이블 이름 변경 → 모든 참조 코드 수정 필요
+- 테이블/컬럼 이름 변경 → Drizzle이 DROP+CREATE로 처리하므로 반드시 수동 수정
 - unique 제약 추가 → 기존 중복 데이터가 있으면 실패
 
 ### 위험한 변경 시 안전한 패턴
 
-**컬럼 이름 변경**: 새 컬럼 추가 → 데이터 복사 → 이전 컬럼 삭제 (2단계 마이그레이션)
+**테이블 이름 변경**: `db:generate`가 DROP TABLE + CREATE TABLE로 생성한다. 반드시 수동으로 `ALTER TABLE ... RENAME TO ...`로 교체한다.
+
+```sql
+-- db:generate가 생성하는 위험한 SQL (rename 의도일 때 사용 금지)
+DROP TABLE old_name;
+CREATE TABLE new_name (...);
+
+-- 수동으로 교체해야 하는 안전한 SQL
+ALTER TABLE old_name RENAME TO new_name;
+```
+
+**컬럼 이름 변경**: 마찬가지로 `db:generate`가 DROP COLUMN + ADD COLUMN으로 생성한다. 수동으로 교체한다.
+
+```sql
+ALTER TABLE table_name RENAME COLUMN old_column TO new_column;
+```
+
+**인덱스 이름 변경**:
+
+```sql
+ALTER INDEX old_index_name RENAME TO new_index_name;
+```
 
 **NOT NULL 추가**: default 값과 함께 추가하거나, 먼저 nullable로 추가 후 데이터 채운 뒤 NOT NULL 전환
 
 **컬럼 삭제**: 코드에서 먼저 해당 컬럼 참조 제거 → 배포 → 이후 컬럼 삭제
+
+## 생성된 SQL 검토 체크리스트
+
+`pnpm db:generate` 실행 후 생성된 SQL 파일에서 다음을 확인:
+
+- `DROP TABLE` → 의도된 삭제인가? rename 의도라면 ALTER RENAME으로 교체
+- `DROP COLUMN` → 의도된 삭제인가? rename 의도라면 ALTER RENAME COLUMN으로 교체
+- `ALTER COLUMN ... SET NOT NULL` → 기존 데이터에 null이 없는지
+- `ALTER TYPE` (enum 변경) → 안전한 방향인지 (값 추가만 허용)
+- 의도하지 않은 변경이 포함되어 있지 않은지
 
 ## 스키마 작성 패턴
 
@@ -53,7 +102,6 @@ description: Drizzle ORM 스키마 변경 및 Supabase 마이그레이션 가이
 ```ts
 export const newTable = pgTable('new_table', {
   id: uuid('id').defaultRandom().primaryKey(),
-  // 비즈니스 컬럼들
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
 });
@@ -76,12 +124,3 @@ export const newTableRelations = relations(newTable, ({ one, many }) => ({
   }),
 }));
 ```
-
-## 마이그레이션 생성 후 확인사항
-
-`pnpm db:generate` 실행 후 생성된 SQL 파일에서 다음을 확인:
-
-- `DROP` 문이 포함되어 있지 않은지
-- `ALTER COLUMN ... SET NOT NULL` 이 있다면 기존 데이터에 null이 없는지
-- `ALTER TYPE` (enum 변경)이 있다면 안전한 방향인지 (값 추가만 허용)
-- 의도하지 않은 변경이 포함되어 있지 않은지

@@ -1,14 +1,14 @@
 import * as uploadSession from '@/lib/services/upload-session';
 import * as templateMatcher from '@/lib/services/template-matcher';
-import * as outboundBatchesService from '@/lib/services/outbound-batches';
-import * as outboundService from '@/lib/services/outbound';
+import * as shipmentService from '@/lib/services/shipment';
+import * as orderItemService from '@/lib/services/order-item';
 import * as productsService from '@/lib/services/products';
 import * as aiService from '@/lib/services/ai';
 import { parseExcelFile } from '@/lib/services/excel';
 import type {
-  ParseOutboundResponse,
-  ProcessOutboundRequest,
-  OutboundUploadResult,
+  ParseShipmentUploadResponse,
+  ProcessShipmentUploadRequest,
+  ShipmentUploadResult,
   UnmatchedItem,
   ProductMatchResult,
   ProductMappingData,
@@ -32,7 +32,7 @@ function normalizeRows(
 function transformParsedOrders(
   columnMapping: Record<string, string>,
   normalizedRows: Record<string, unknown>[],
-): { parsedOrders: { orderId: string; outboundItems: { sku: string; quantity: number }[] }[] } {
+): { parsedOrders: { orderId: string; orderItems: { sku: string; quantity: number }[] }[] } {
   const orderMap = new Map<string, { sku: string; quantity: number }[]>();
 
   for (const row of normalizedRows) {
@@ -46,9 +46,9 @@ function transformParsedOrders(
     orderMap.get(orderId)!.push({ sku, quantity: quantity || 1 });
   }
 
-  const parsedOrders = Array.from(orderMap.entries()).map(([orderId, outboundItems]) => ({
+  const parsedOrders = Array.from(orderMap.entries()).map(([orderId, orderItems]) => ({
     orderId,
-    outboundItems,
+    orderItems,
   }));
 
   return { parsedOrders };
@@ -57,15 +57,15 @@ function transformParsedOrders(
 export async function parseForPreview(
   buffer: Buffer,
   originalName: string,
-): Promise<ParseOutboundResponse> {
+): Promise<ParseShipmentUploadResponse> {
   const parseResult = parseExcelFile(buffer, originalName);
   const fileName = Buffer.from(originalName, 'latin1').toString('utf8');
   const sampleRows = parseResult.rows.slice(0, 30);
 
   const match = await templateMatcher.findBestMatch(parseResult.headers, 'outbound');
 
-  let suggestedMapping: ParseOutboundResponse['suggestedMapping'];
-  let matchedTemplate: ParseOutboundResponse['matchedTemplate'] = null;
+  let suggestedMapping: ParseShipmentUploadResponse['suggestedMapping'];
+  let matchedTemplate: ParseShipmentUploadResponse['matchedTemplate'] = null;
   let source: 'template' | 'ai';
 
   if (match) {
@@ -111,8 +111,8 @@ export async function parseForPreview(
 }
 
 export async function processConfirmed(
-  request: ProcessOutboundRequest,
-): Promise<OutboundUploadResult> {
+  request: ProcessShipmentUploadRequest,
+): Promise<ShipmentUploadResult> {
   const session = await uploadSession.retrieve(request.sessionId);
   if (!session) {
     throw new Error('Session expired or not found');
@@ -121,8 +121,8 @@ export async function processConfirmed(
   const normalizedRows = normalizeRows(session.rows, request.columnMapping);
   const { parsedOrders } = transformParsedOrders(request.columnMapping, normalizedRows);
 
-  const batchName = await outboundBatchesService.generateBatchName(session.fileName);
-  const batch = await outboundBatchesService.create(batchName);
+  const shipmentName = await shipmentService.generateBatchName(session.fileName);
+  const shipment = await shipmentService.create(shipmentName);
 
   const allProducts = await productsService.findAllForMatching();
   const productByName = new Map(allProducts.map((p) => [p.name, p]));
@@ -132,7 +132,7 @@ export async function processConfirmed(
   const outbounds: { orderId: string; sku: string; quantity: number; productId?: string | null }[] = [];
 
   for (const order of parsedOrders) {
-    for (const item of order.outboundItems) {
+    for (const item of order.orderItems) {
       const matched = productByName.get(item.sku) || productBySku.get(item.sku);
 
       if (matched) {
@@ -149,7 +149,7 @@ export async function processConfirmed(
   }
 
   if (outbounds.length > 0) {
-    await outboundService.createOutboundsWithOrder(batch.id, outbounds);
+    await orderItemService.createOrderItemsWithOrder(shipment.id, outbounds);
   }
 
   if (request.saveAsTemplate && request.templateName) {
@@ -172,17 +172,17 @@ export async function processConfirmed(
   return {
     imported: outbounds.length,
     unmatched,
-    batchName: batch.name,
-    batchId: batch.id,
+    shipmentName: shipment.name,
+    shipmentId: shipment.id,
     totalRows: session.rows.length,
   };
 }
 
 export async function confirmUpload(dto: {
-  outboundBatchId: string;
+  shipmentId: string;
   outbounds: { orderId: string; sku: string; quantity: number; productId?: string | null }[];
 }): Promise<{ imported: number }> {
-  const { outbounds } = await outboundService.createOutboundsWithOrder(dto.outboundBatchId, dto.outbounds);
+  const { outbounds } = await orderItemService.createOrderItemsWithOrder(dto.shipmentId, dto.outbounds);
   return { imported: outbounds.length };
 }
 
@@ -206,12 +206,12 @@ export async function mapProducts(
   let itemIndex = 0;
 
   for (const order of parsedOrders) {
-    for (const item of order.outboundItems) {
+    for (const item of order.orderItems) {
       const matched = productBySku.get(item.sku) || productByName.get(item.sku);
       const productIds = matched ? [matched.id] : null;
 
       results.push({
-        outboundItemIndex: itemIndex,
+        orderItemIndex: itemIndex,
         orderId: order.orderId,
         productIds,
         sku: item.sku,
@@ -229,7 +229,7 @@ export async function mapProducts(
 export async function uploadAndSaveDirect(
   buffer: Buffer,
   originalName: string,
-): Promise<OutboundUploadResult> {
+): Promise<ShipmentUploadResult> {
   const parseResult = parseExcelFile(buffer, originalName);
   const sampleRows = parseResult.rows.slice(0, 30);
 
@@ -246,8 +246,8 @@ export async function uploadAndSaveDirect(
   const { parsedOrders } = transformParsedOrders(columnMapping, normalizedRows);
 
   const fileName = Buffer.from(originalName, 'latin1').toString('utf8');
-  const batchName = await outboundBatchesService.generateBatchName(fileName);
-  const batch = await outboundBatchesService.create(batchName);
+  const shipmentName = await shipmentService.generateBatchName(fileName);
+  const shipment = await shipmentService.create(shipmentName);
 
   const allProducts = await productsService.findAllForMatching();
   const productByName = new Map(allProducts.map((p) => [p.name, p]));
@@ -257,7 +257,7 @@ export async function uploadAndSaveDirect(
   const outbounds: { orderId: string; sku: string; quantity: number; productId?: string | null }[] = [];
 
   for (const order of parsedOrders) {
-    for (const item of order.outboundItems) {
+    for (const item of order.orderItems) {
       const matched = productByName.get(item.sku) || productBySku.get(item.sku);
 
       if (matched) {
@@ -274,14 +274,14 @@ export async function uploadAndSaveDirect(
   }
 
   if (outbounds.length > 0) {
-    await outboundService.createOutboundsWithOrder(batch.id, outbounds);
+    await orderItemService.createOrderItemsWithOrder(shipment.id, outbounds);
   }
 
   return {
     imported: outbounds.length,
     unmatched,
-    batchName: batch.name,
-    batchId: batch.id,
+    shipmentName: shipment.name,
+    shipmentId: shipment.id,
     totalRows: parseResult.rowCount,
   };
 }

@@ -2,7 +2,7 @@ import axios from 'axios';
 import {
   Product,
   Outbound,
-  OutboundUploadResult,
+  ShipmentUploadResult,
   PackingRecommendation,
   PackingResult,
   PackingGroupingOption,
@@ -13,8 +13,8 @@ import {
   ProductMappingData,
   PackingResultDetail,
   ProjectStats,
-  ParseOutboundResponse,
-  ProcessOutboundRequest,
+  ParseShipmentUploadResponse,
+  ProcessShipmentUploadRequest,
 } from '@/types';
 
 const API_BASE = '/api';
@@ -47,7 +47,7 @@ export interface ProductGroup {
   updatedAt: Date | string;
 }
 
-export interface OutboundBatch {
+export interface Shipment {
   id: string;
   name: string;
   orderCount?: number;
@@ -60,7 +60,7 @@ export interface OutboundBatch {
 export interface DashboardStats {
   totalBatches: number;
   totalBoxesUsed: number;
-  recentBatches: OutboundBatch[];
+  recentBatches: Shipment[];
 }
 
 export const api = {
@@ -114,61 +114,61 @@ export const api = {
         data: { ids },
       }),
   },
-  outbound: {
-    list: (batchId: string) => fetchApi<Outbound[]>(`/outbound-batches/${batchId}/outbounds`),
-    create: (batchId: string, outbound: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>) =>
-      fetchApi<Outbound>(`/outbound-batches/${batchId}/outbounds`, {
+  orderItems: {
+    list: (shipmentId: string) => fetchApi<Outbound[]>(`/shipments/${shipmentId}/order-items`),
+    create: (shipmentId: string, orderItem: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>) =>
+      fetchApi<Outbound>(`/shipments/${shipmentId}/order-items`, {
         method: 'POST',
-        data: outbound,
+        data: orderItem,
       }),
     createBulk: (
-      batchId: string,
-      outbounds: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[],
+      shipmentId: string,
+      orderItems: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[],
     ) =>
-      fetchApi<void>(`/outbound-batches/${batchId}/outbounds/bulk`, {
+      fetchApi<void>(`/shipments/${shipmentId}/order-items/bulk`, {
         method: 'POST',
-        data: outbounds,
+        data: orderItems,
       }),
     createBulkWithFile: (
-      batchId: string,
+      shipmentId: string,
       file: File,
-      createOutboundDtos: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[],
+      createOrderItemDtos: Omit<Outbound, 'id' | 'projectId' | 'createdAt'>[],
     ): Promise<void> => {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('createOutboundDtos', JSON.stringify(createOutboundDtos));
+      formData.append('createOrderItemDtos', JSON.stringify(createOrderItemDtos));
 
-      return apiClient.post(`/outbound-batches/${batchId}/outbounds/bulk-with-file`, formData);
+      return apiClient.post(`/shipments/${shipmentId}/order-items/bulk-with-file`, formData);
     },
-    deleteAll: (batchId: string) =>
-      fetchApi<void>(`/outbound-batches/${batchId}/outbounds`, { method: 'DELETE' }),
+    deleteAll: (shipmentId: string) =>
+      fetchApi<void>(`/shipments/${shipmentId}/order-items`, { method: 'DELETE' }),
   },
-  outboundBatches: {
-    list: () => fetchApi<OutboundBatch[]>('/outbound-batches'),
-    get: (id: string) => fetchApi<OutboundBatch>(`/outbound-batches/${id}`),
-    delete: (id: string) => fetchApi<void>(`/outbound-batches/${id}`, { method: 'DELETE' }),
-    upload: (file: File): Promise<OutboundBatch> => {
+  shipments: {
+    list: () => fetchApi<Shipment[]>('/shipments'),
+    get: (id: string) => fetchApi<Shipment>(`/shipments/${id}`),
+    delete: (id: string) => fetchApi<void>(`/shipments/${id}`, { method: 'DELETE' }),
+    upload: (file: File): Promise<Shipment> => {
       const formData = new FormData();
       formData.append('file', file);
 
       return apiClient
-        .post<ApiResponse<OutboundUploadResult>>('/upload/outbound-direct', formData)
+        .post<ApiResponse<ShipmentUploadResult>>('/upload/outbound-direct', formData)
         .then(unwrapResponse)
-        .then((res: OutboundUploadResult) => ({
-          id: res.batchId,
-          name: res.batchName,
+        .then((res: ShipmentUploadResult) => ({
+          id: res.shipmentId,
+          name: res.shipmentName,
           orderCount: res.imported,
           itemCount: 0,
           createdAt: new Date().toISOString()
         }));
     },
-    listOutbounds: (batchId: string) =>
-      fetchApi<Outbound[]>(`/outbound-batches/${batchId}/outbounds`),
-    listOutboundsPaginated: (batchId: string, page: number, limit = 50) =>
+    listOrderItems: (shipmentId: string) =>
+      fetchApi<Outbound[]>(`/shipments/${shipmentId}/order-items`),
+    listOrderItemsPaginated: (shipmentId: string, page: number, limit = 50) =>
       fetchApi<{ items: Outbound[]; totalOrders: number; page: number; limit: number }>(
-        `/outbound-batches/${batchId}/outbounds?page=${page}&limit=${limit}`,
+        `/shipments/${shipmentId}/order-items?page=${page}&limit=${limit}`,
       ),
-    configurationSummary: (batchId: string) =>
+    configurationSummary: (shipmentId: string) =>
       fetchApi<{
         totalOrders: number;
         configurations: {
@@ -184,7 +184,7 @@ export const api = {
             productName?: string;
           } | null;
         }[];
-      }>(`/outbound-batches/${batchId}/outbounds/configuration-summary`),
+      }>(`/shipments/${shipmentId}/order-items/configuration-summary`),
   },
   boxGroups: {
     list: () => fetchApi<BoxGroup[]>('/box-groups'),
@@ -198,41 +198,41 @@ export const api = {
   },
   packing: {
     calculate: (
-      batchId: string,
+      shipmentId: string,
       groupingOption: PackingGroupingOption = PackingGroupingOption.ORDER,
       boxGroupId?: string,
     ) =>
-      fetchApi<PackingRecommendation>(`/outbound-batches/${batchId}/packing/calculate`, {
+      fetchApi<PackingRecommendation>(`/shipments/${shipmentId}/packing/calculate`, {
         method: 'POST',
         data: { groupingOption, boxGroupId },
       }),
-    calculateOrder: async (batchId: string, orderId: string, groupLabel?: string) => {
-      return fetchApi<PackingResult3D>(`/outbound-batches/${batchId}/packing/calculate-order`, {
+    calculateOrder: async (shipmentId: string, orderId: string, groupLabel?: string) => {
+      return fetchApi<PackingResult3D>(`/shipments/${shipmentId}/packing/calculate-order`, {
         method: 'POST',
         data: { orderId, groupLabel },
       });
     },
-    updateBoxAssignment: (batchId: string, data: { groupIndex: number; boxIndex: number; newBoxId: string }) =>
-      fetchApi<PackingRecommendation>(`/outbound-batches/${batchId}/packing/recommendation`, {
+    updateBoxAssignment: (shipmentId: string, data: { groupIndex: number; boxIndex: number; newBoxId: string }) =>
+      fetchApi<PackingRecommendation>(`/shipments/${shipmentId}/packing/recommendation`, {
         method: 'PATCH',
         data,
       }),
-    recommendation: (batchId: string) =>
-      fetchApi<PackingRecommendation | null>(`/outbound-batches/${batchId}/packing/recommendation`),
-    history: (batchId: string) =>
-      fetchApi<PackingResult[]>(`/outbound-batches/${batchId}/packing/results`),
-    details: (batchId: string) =>
-      fetchApi<PackingResultDetail[]>(`/outbound-batches/${batchId}/packing/details`),
-    export: (batchId: string) => {
+    recommendation: (shipmentId: string) =>
+      fetchApi<PackingRecommendation | null>(`/shipments/${shipmentId}/packing/recommendation`),
+    history: (shipmentId: string) =>
+      fetchApi<PackingResult[]>(`/shipments/${shipmentId}/packing/results`),
+    details: (shipmentId: string) =>
+      fetchApi<PackingResultDetail[]>(`/shipments/${shipmentId}/packing/details`),
+    export: (shipmentId: string) => {
       return apiClient
-        .get(`/outbound-batches/${batchId}/packing/export`, {
+        .get(`/shipments/${shipmentId}/packing/export`, {
           responseType: 'blob',
         })
         .then((response) => {
           const url = window.URL.createObjectURL(response.data);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `packing_results_${batchId}.xlsx`;
+          a.download = `packing_results_${shipmentId}.xlsx`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -258,8 +258,8 @@ export const api = {
   },
   upload: {
     confirm: async (
-      outboundBatchId: string,
-      outbounds: Array<{
+      shipmentId: string,
+      orderItems: Array<{
         orderId: string;
         sku: string;
         quantity: number;
@@ -267,8 +267,8 @@ export const api = {
       }>,
     ): Promise<{ imported: number }> => {
       const response = await apiClient.post<ApiResponse<{ imported: number }>>(`/upload/confirm`, {
-        outboundBatchId,
-        outbounds,
+        shipmentId,
+        orderItems,
       });
       return unwrapResponse({ data: response.data });
     },
@@ -284,18 +284,18 @@ export const api = {
       return unwrapResponse({ data: response.data });
     },
 
-    parseOutbound: async (file: File): Promise<ParseOutboundResponse> => {
+    parseOutbound: async (file: File): Promise<ParseShipmentUploadResponse> => {
       const formData = new FormData();
       formData.append('file', file);
-      const response = await apiClient.post<ApiResponse<ParseOutboundResponse>>(
+      const response = await apiClient.post<ApiResponse<ParseShipmentUploadResponse>>(
         '/upload/parse-outbound',
         formData,
       );
       return unwrapResponse({ data: response.data });
     },
 
-    processOutbound: async (data: ProcessOutboundRequest): Promise<OutboundUploadResult> => {
-      const response = await apiClient.post<ApiResponse<OutboundUploadResult>>(
+    processOutbound: async (data: ProcessShipmentUploadRequest): Promise<ShipmentUploadResult> => {
+      const response = await apiClient.post<ApiResponse<ShipmentUploadResult>>(
         '/upload/process-outbound',
         data,
       );

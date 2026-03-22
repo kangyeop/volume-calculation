@@ -1,44 +1,44 @@
 import { db } from '@/lib/db';
-import { orders, outboundItems, products } from '@/lib/db/schema';
+import { orders, orderItems, products } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 
 type CreateOrderDto = {
-  outboundBatchId: string;
+  shipmentId: string;
   orderId: string;
   recipientName?: string;
   address?: string;
 };
 
 export async function findOrCreate(
-  outboundBatchId: string,
+  shipmentId: string,
   orderId: string,
   recipientName?: string,
   address?: string,
 ) {
   const existing = await db.query.orders.findFirst({
-    where: and(eq(orders.outboundBatchId, outboundBatchId), eq(orders.orderId, orderId)),
+    where: and(eq(orders.shipmentId, shipmentId), eq(orders.orderId, orderId)),
   });
 
   if (existing) return existing;
 
   const [created] = await db
     .insert(orders)
-    .values({ outboundBatchId, orderId, recipientName, address, status: 'PENDING' })
+    .values({ shipmentId, orderId, recipientName, address, status: 'PENDING' })
     .returning();
   return created;
 }
 
-export async function findOne(outboundBatchId: string, orderId: string) {
+export async function findOne(shipmentId: string, orderId: string) {
   return db.query.orders.findFirst({
-    where: and(eq(orders.outboundBatchId, outboundBatchId), eq(orders.orderId, orderId)),
+    where: and(eq(orders.shipmentId, shipmentId), eq(orders.orderId, orderId)),
   });
 }
 
-export async function findOneWithItems(outboundBatchId: string, orderId: string) {
+export async function findOneWithItems(shipmentId: string, orderId: string) {
   return db.query.orders.findFirst({
-    where: and(eq(orders.outboundBatchId, outboundBatchId), eq(orders.orderId, orderId)),
+    where: and(eq(orders.shipmentId, shipmentId), eq(orders.orderId, orderId)),
     with: {
-      outboundItems: {
+      orderItems: {
         with: { product: true },
       },
     },
@@ -57,20 +57,20 @@ export async function createBulk(dtos: CreateOrderDto[]) {
   return saved;
 }
 
-export async function calculateVolume(outboundBatchId: string, orderId: string): Promise<number> {
+export async function calculateVolume(shipmentId: string, orderId: string): Promise<number> {
   const items = await db
     .select({
       width: products.width,
       length: products.length,
       height: products.height,
-      quantity: outboundItems.quantity,
+      quantity: orderItems.quantity,
     })
-    .from(outboundItems)
-    .innerJoin(products, eq(outboundItems.productId, products.id))
+    .from(orderItems)
+    .innerJoin(products, eq(orderItems.productId, products.id))
     .where(
       and(
-        eq(outboundItems.outboundBatchId, outboundBatchId),
-        eq(outboundItems.orderId, orderId),
+        eq(orderItems.shipmentId, shipmentId),
+        eq(orderItems.orderId, orderId),
       ),
     );
 
@@ -80,19 +80,19 @@ export async function calculateVolume(outboundBatchId: string, orderId: string):
   }, 0);
 }
 
-export async function mapProducts(outboundBatchId: string, orderId: string) {
-  const order = await findOne(outboundBatchId, orderId);
+export async function mapProducts(shipmentId: string, orderId: string) {
+  const order = await findOne(shipmentId, orderId);
   if (!order) {
-    throw new Error(`Order with batchId "${outboundBatchId}" and orderId "${orderId}" not found`);
+    throw new Error(`Order with shipmentId "${shipmentId}" and orderId "${orderId}" not found`);
   }
 
   const items = await db
     .select()
-    .from(outboundItems)
+    .from(orderItems)
     .where(
       and(
-        eq(outboundItems.outboundBatchId, outboundBatchId),
-        eq(outboundItems.orderId, orderId),
+        eq(orderItems.shipmentId, shipmentId),
+        eq(orderItems.orderId, orderId),
       ),
     );
 
@@ -108,9 +108,9 @@ export async function mapProducts(outboundBatchId: string, orderId: string) {
 
       if (product) {
         await tx
-          .update(outboundItems)
+          .update(orderItems)
           .set({ productId: product.id })
-          .where(eq(outboundItems.id, item.id));
+          .where(eq(orderItems.id, item.id));
         mappedCount++;
       }
     }

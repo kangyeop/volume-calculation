@@ -1,0 +1,46 @@
+import { NextRequest, NextResponse } from 'next/server';
+import * as orderItemService from '@/lib/services/order-item';
+
+export async function GET(request: NextRequest, { params }: { params: Promise<{ shipmentId: string }> }) {
+  try {
+    const { shipmentId } = await params;
+    const { searchParams } = new URL(request.url);
+    const page = searchParams.get('page');
+    const limit = searchParams.get('limit');
+
+    if (page !== undefined && page !== null) {
+      const result = await orderItemService.findPaginated(
+        shipmentId,
+        parseInt(page, 10) || 1,
+        parseInt(limit ?? '50', 10),
+      );
+      return NextResponse.json(result);
+    }
+
+    const result = await orderItemService.findAll(shipmentId);
+    return NextResponse.json(result);
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to fetch order items' }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest, { params }: { params: Promise<{ shipmentId: string }> }) {
+  try {
+    const { shipmentId } = await params;
+    const body = await request.json();
+    const result = await orderItemService.create(shipmentId, body);
+    return NextResponse.json(result);
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to create order item' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ shipmentId: string }> }) {
+  try {
+    const { shipmentId } = await params;
+    await orderItemService.removeAll(shipmentId);
+    return new NextResponse(null, { status: 204 });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to delete order items' }, { status: 500 });
+  }
+}

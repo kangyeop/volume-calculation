@@ -83,13 +83,13 @@ export const MappingPreview: React.FC<MappingPreviewProps> = ({
                     const matchedProducts = getMatchedProducts(result);
                     return (
                       <tr
-                        key={result.outboundItemIndex}
+                        key={result.orderItemIndex}
                         className={`hover:bg-gray-50 transition-colors ${
-                          editingIndex === result.outboundItemIndex ? 'bg-blue-50' : ''
+                          editingIndex === result.orderItemIndex ? 'bg-blue-50' : ''
                         } ${matchedProducts.length === 0 ? 'bg-red-50' : 'bg-green-50'}`}
                       >
                         <td className="px-4 py-3">
-                          {editingIndex === result.outboundItemIndex ? (
+                          {editingIndex === result.orderItemIndex ? (
                             <div className="space-y-2">
                               <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -116,7 +116,7 @@ export const MappingPreview: React.FC<MappingPreviewProps> = ({
                                     <button
                                       key={product.id}
                                       onClick={() =>
-                                        handleProductSelect(result.outboundItemIndex, [product.id])
+                                        handleProductSelect(result.orderItemIndex, [product.id])
                                       }
                                       className="w-full px-3 py-2 text-left hover:bg-blue-50 text-sm flex items-start justify-between gap-4"
                                     >
@@ -138,7 +138,7 @@ export const MappingPreview: React.FC<MappingPreviewProps> = ({
                                 )}
                                 <button
                                   onClick={() =>
-                                    handleProductSelect(result.outboundItemIndex, null)
+                                    handleProductSelect(result.orderItemIndex, null)
                                   }
                                   className="w-full px-3 py-2 text-left hover:bg-red-50 text-sm text-red-600 border-t"
                                 >
@@ -168,10 +168,10 @@ export const MappingPreview: React.FC<MappingPreviewProps> = ({
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          {editingIndex !== result.outboundItemIndex && (
+                          {editingIndex !== result.orderItemIndex && (
                             <button
                               onClick={() => {
-                                setEditingIndex(result.outboundItemIndex);
+                                setEditingIndex(result.orderItemIndex);
                                 setSearchTerm('');
                               }}
                               disabled={isProcessing}

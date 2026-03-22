@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 
 const navItems = [
   { to: '/products', label: '상품', icon: Package },
-  { to: '/outbound', label: '출고', icon: Truck },
+  { to: '/shipments', label: '출고', icon: Truck },
   { to: '/boxes', label: '박스 관리', icon: Box },
 ];
 
