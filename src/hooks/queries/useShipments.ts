@@ -7,7 +7,7 @@ import {
 } from '@tanstack/react-query';
 import { api, type Shipment } from '@/lib/api';
 import { shipments } from './queryKeys';
-import type { Outbound } from '@/types';
+import type { Outbound, ShipmentUploadResult } from '@/types';
 
 export function useShipments() {
   return useQuery({
@@ -44,11 +44,11 @@ export function useInfiniteShipmentOrderItems(shipmentId: string) {
   });
 }
 
-export function useUploadShipment(): UseMutationResult<Shipment, Error, File> {
+export function useUploadShipment(): UseMutationResult<ShipmentUploadResult, Error, { file: File; format: 'adjustment' | 'beforeMapping' | 'afterMapping' }> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (file: File) => api.shipments.upload(file),
+    mutationFn: ({ file, format }) => api.shipments.upload(file, format),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: shipments.all.queryKey });
     },

@@ -9,11 +9,8 @@ import {
   BoxGroup,
   PackingResult3D,
   ApiResponse,
-  ProductMappingData,
   PackingResultDetail,
   ProjectStats,
-  ParseShipmentUploadResponse,
-  ProcessShipmentUploadRequest,
 } from '@/types';
 
 const API_BASE = '/api';
@@ -146,20 +143,13 @@ export const api = {
     list: () => fetchApi<Shipment[]>('/shipments'),
     get: (id: string) => fetchApi<Shipment>(`/shipments/${id}`),
     delete: (id: string) => fetchApi<void>(`/shipments/${id}`, { method: 'DELETE' }),
-    upload: (file: File): Promise<Shipment> => {
+    upload: (file: File, format: 'adjustment' | 'beforeMapping' | 'afterMapping'): Promise<ShipmentUploadResult> => {
       const formData = new FormData();
       formData.append('file', file);
-
+      formData.append('format', format);
       return apiClient
-        .post<ApiResponse<ShipmentUploadResult>>('/upload/outbound-direct', formData)
-        .then(unwrapResponse)
-        .then((res: ShipmentUploadResult) => ({
-          id: res.shipmentId,
-          name: res.shipmentName,
-          orderCount: res.imported,
-          itemCount: 0,
-          createdAt: new Date().toISOString()
-        }));
+        .post<ApiResponse<ShipmentUploadResult>>('/upload/shipment', formData)
+        .then(unwrapResponse);
     },
     listOrderItems: (shipmentId: string) =>
       fetchApi<Outbound[]>(`/shipments/${shipmentId}/order-items`),
@@ -252,52 +242,6 @@ export const api = {
       return apiClient
         .post<ApiResponse<{ imported: number }>>(`/boxes/upload?groupId=${encodeURIComponent(groupId)}`, formData)
         .then(unwrapResponse);
-    },
-  },
-  upload: {
-    confirm: async (
-      shipmentId: string,
-      orderItems: Array<{
-        orderId: string;
-        sku: string;
-        quantity: number;
-        productId?: string | null;
-      }>,
-    ): Promise<{ imported: number }> => {
-      const response = await apiClient.post<ApiResponse<{ imported: number }>>(`/upload/confirm`, {
-        shipmentId,
-        orderItems,
-      });
-      return unwrapResponse({ data: response.data });
-    },
-
-    mapProducts: async (
-      columnMapping: Record<string, string | null>,
-      rows: Record<string, unknown>[],
-    ): Promise<ProductMappingData> => {
-      const response = await apiClient.post<ApiResponse<ProductMappingData>>(
-        `/upload/map-products`,
-        { columnMapping, rows },
-      );
-      return unwrapResponse({ data: response.data });
-    },
-
-    parseOutbound: async (file: File): Promise<ParseShipmentUploadResponse> => {
-      const formData = new FormData();
-      formData.append('file', file);
-      const response = await apiClient.post<ApiResponse<ParseShipmentUploadResponse>>(
-        '/upload/parse-outbound',
-        formData,
-      );
-      return unwrapResponse({ data: response.data });
-    },
-
-    processOutbound: async (data: ProcessShipmentUploadRequest): Promise<ShipmentUploadResult> => {
-      const response = await apiClient.post<ApiResponse<ShipmentUploadResult>>(
-        '/upload/process-outbound',
-        data,
-      );
-      return unwrapResponse({ data: response.data });
     },
   },
   productUpload: {

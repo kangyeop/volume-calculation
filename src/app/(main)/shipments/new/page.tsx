@@ -5,31 +5,24 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ExcelUpload } from '@/components/ExcelUpload';
-import { MappingConfirmation } from '@/components/upload/MappingConfirmation';
-import { DataPreview } from '@/components/upload/DataPreview';
-import { CompoundRowSummary } from '@/components/upload/CompoundRowSummary';
 import { useShipmentUploadFlow } from '@/hooks/useShipmentUploadFlow';
+
+type ShipmentFormat = 'adjustment' | 'beforeMapping' | 'afterMapping';
+
+const FORMAT_OPTIONS: { value: ShipmentFormat; label: string }[] = [
+  { value: 'adjustment', label: '정산' },
+  { value: 'beforeMapping', label: '매핑 전' },
+  { value: 'afterMapping', label: '매핑 후' },
+];
 
 export default function OutboundCreate() {
   const router = useRouter();
   const flow = useShipmentUploadFlow();
-  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
-  const [templateName, setTemplateName] = useState('');
+  const [format, setFormat] = useState<ShipmentFormat>('adjustment');
 
-  const handleFileSelect = (file: File) => {
-    flow.startParse(file);
-  };
-
-  const handleConfirmMapping = async (mapping: Record<string, string | null>) => {
-    const columnMapping: Record<string, string> = {};
-    for (const [key, value] of Object.entries(mapping)) {
-      if (value) columnMapping[key] = value;
-    }
+  const handleFileSelect = async (file: File) => {
     try {
-      const result = await flow.confirmAndProcess(columnMapping, {
-        saveAsTemplate: saveAsTemplate && templateName.trim() !== '',
-        templateName: templateName.trim(),
-      });
+      const result = await flow.upload(file, format);
       if (result) {
         toast.success('업로드 완료', { description: `${result.imported}건이 등록되었습니다.` });
         router.push(`/shipments/${result.shipmentId}`);
@@ -40,123 +33,9 @@ export default function OutboundCreate() {
   };
 
   const handleCancel = () => {
-    if (flow.step === 'parsing' || flow.step === 'processing') return;
+    if (flow.step === 'uploading') return;
     flow.reset();
     router.push('/shipments');
-  };
-
-  const renderContent = () => {
-    if (flow.step === 'idle' || flow.step === 'error') {
-      return (
-        <div className="bg-white border rounded-xl shadow-sm p-6 space-y-4">
-          {flow.error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-              {flow.error}
-            </div>
-          )}
-          <ExcelUpload
-            onUpload={handleFileSelect}
-            title="클릭하거나 엑셀 파일을 여기에 드래그하세요"
-          />
-        </div>
-      );
-    }
-
-    if (flow.step === 'parsing') {
-      return (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
-          <p className="text-sm text-gray-500">파일을 분석하고 있습니다...</p>
-        </div>
-      );
-    }
-
-    if (flow.step === 'confirming' && flow.parseResult) {
-      const mappingForConfirmation = {
-        confidence: flow.parseResult.source === 'template' ? 1 : 0.8,
-        mapping: Object.fromEntries(
-          Object.entries(flow.parseResult.suggestedMapping.mapping).map(([key, val]) => [
-            key,
-            val
-              ? {
-                  columnName: val.columnName,
-                  confidence: flow.parseResult!.source === 'template' ? 1 : 0.7,
-                }
-              : null,
-          ]),
-        ),
-        unmappedColumns: flow.parseResult.suggestedMapping.unmappedColumns,
-        notes: flow.parseResult.suggestedMapping.notes,
-      };
-
-      return (
-        <div className="space-y-4">
-          {flow.parseResult.matchedTemplate && (
-            <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2 text-sm text-green-700">
-              템플릿 &ldquo;{flow.parseResult.matchedTemplate.name}&rdquo; 매칭됨 (유사도:{' '}
-              {Math.round(flow.parseResult.matchedTemplate.similarity * 100)}%)
-            </div>
-          )}
-
-          <CompoundRowSummary
-            headers={flow.parseResult.headers}
-            data={flow.parseResult.sampleRows}
-            totalRowCount={flow.parseResult.sampleRows.length}
-          />
-
-          <DataPreview
-            headers={flow.parseResult.headers}
-            data={flow.parseResult.sampleRows}
-            maxRows={3}
-          />
-
-          <MappingConfirmation
-            type="outbound"
-            sessionId={flow.parseResult.sessionId}
-            headers={flow.parseResult.headers}
-            mapping={mappingForConfirmation}
-            source={flow.parseResult.source}
-            templateName={flow.parseResult.matchedTemplate?.name}
-            onConfirm={handleConfirmMapping}
-            onCancel={handleCancel}
-          />
-
-          {!flow.parseResult.matchedTemplate && (
-            <div className="border rounded-lg p-4 space-y-3">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={saveAsTemplate}
-                  onChange={(e) => setSaveAsTemplate(e.target.checked)}
-                  className="rounded border-gray-300"
-                />
-                이 매핑을 템플릿으로 저장
-              </label>
-              {saveAsTemplate && (
-                <input
-                  type="text"
-                  value={templateName}
-                  onChange={(e) => setTemplateName(e.target.value)}
-                  placeholder="템플릿 이름 (예: 쿠팡 출고양식)"
-                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              )}
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    if (flow.step === 'processing') {
-      return (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
-          <p className="text-sm text-gray-500">데이터를 처리하고 있습니다...</p>
-        </div>
-      );
-    }
-
-    return null;
   };
 
   return (
@@ -174,7 +53,41 @@ export default function OutboundCreate() {
         </div>
       </div>
 
-      {renderContent()}
+      <div className="bg-white border rounded-xl shadow-sm p-6 space-y-4">
+        {flow.error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+            {flow.error}
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">양식 선택</label>
+          <select
+            value={format}
+            onChange={(e) => setFormat(e.target.value as ShipmentFormat)}
+            disabled={flow.step === 'uploading'}
+            className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+          >
+            {FORMAT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {flow.step === 'uploading' ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
+            <p className="text-sm text-gray-500">데이터를 처리하고 있습니다...</p>
+          </div>
+        ) : (
+          <ExcelUpload
+            onUpload={handleFileSelect}
+            title="클릭하거나 엑셀 파일을 여기에 드래그하세요"
+          />
+        )}
+      </div>
     </div>
   );
 }

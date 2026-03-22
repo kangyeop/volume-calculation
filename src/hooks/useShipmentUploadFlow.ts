@@ -1,69 +1,39 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/lib/api';
-import type { ParseShipmentUploadResponse, ShipmentUploadResult } from '@/types';
+import type { ShipmentUploadResult } from '@/types';
 
-type FlowStep = 'idle' | 'parsing' | 'confirming' | 'processing' | 'done' | 'error';
+type ShipmentFormat = 'adjustment' | 'beforeMapping' | 'afterMapping';
+type FlowStep = 'idle' | 'uploading' | 'done' | 'error';
 
 interface FlowState {
   step: FlowStep;
-  parseResult: ParseShipmentUploadResponse | null;
-  processResult: ShipmentUploadResult | null;
+  result: ShipmentUploadResult | null;
   error: string | null;
 }
 
 export function useShipmentUploadFlow() {
   const [state, setState] = useState<FlowState>({
     step: 'idle',
-    parseResult: null,
-    processResult: null,
+    result: null,
     error: null,
   });
 
-  const startParse = useCallback(async (file: File) => {
-    setState({ step: 'parsing', parseResult: null, processResult: null, error: null });
+  const upload = useCallback(async (file: File, format: ShipmentFormat) => {
+    setState({ step: 'uploading', result: null, error: null });
     try {
-      const result = await api.upload.parseOutbound(file);
-      setState({ step: 'confirming', parseResult: result, processResult: null, error: null });
+      const result = await api.shipments.upload(file, format);
+      setState({ step: 'done', result, error: null });
+      return result;
     } catch (err) {
-      const message = err instanceof Error ? err.message : '파싱 중 오류가 발생했습니다.';
-      setState((prev) => ({ ...prev, step: 'error', error: message }));
+      const message = err instanceof Error ? err.message : '업로드 중 오류가 발생했습니다.';
+      setState({ step: 'error', result: null, error: message });
+      throw err;
     }
   }, []);
 
-  const confirmAndProcess = useCallback(
-    async (
-      columnMapping: Record<string, string>,
-      options?: { saveAsTemplate?: boolean; templateName?: string },
-    ) => {
-      if (!state.parseResult) return;
-      setState((prev) => ({ ...prev, step: 'processing' }));
-      try {
-        const result = await api.upload.processOutbound({
-          sessionId: state.parseResult.sessionId,
-          columnMapping,
-          saveAsTemplate: options?.saveAsTemplate,
-          templateName: options?.templateName,
-          matchedTemplateId: state.parseResult.matchedTemplate?.id,
-        });
-        setState((prev) => ({ ...prev, step: 'done', processResult: result }));
-        return result;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : '처리 중 오류가 발생했습니다.';
-        setState((prev) => ({ ...prev, step: 'error', error: message }));
-        throw err;
-      }
-    },
-    [state.parseResult],
-  );
-
   const reset = useCallback(() => {
-    setState({ step: 'idle', parseResult: null, processResult: null, error: null });
+    setState({ step: 'idle', result: null, error: null });
   }, []);
 
-  return {
-    ...state,
-    startParse,
-    confirmAndProcess,
-    reset,
-  };
+  return { ...state, upload, reset };
 }
