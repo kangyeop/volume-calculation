@@ -20,6 +20,7 @@ export const orderStatusEnum = pgEnum('order_status', ['PENDING', 'PROCESSING', 
 export const productGroups = pgTable('product_groups', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
+  boxGroupId: uuid('box_group_id').notNull().references(() => boxGroups.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
 });
@@ -152,8 +153,12 @@ export const packingResultDetails = pgTable('packing_result_details', {
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
 });
 
-export const productGroupsRelations = relations(productGroups, ({ many }) => ({
+export const productGroupsRelations = relations(productGroups, ({ one, many }) => ({
   products: many(products),
+  boxGroup: one(boxGroups, {
+    fields: [productGroups.boxGroupId],
+    references: [boxGroups.id],
+  }),
 }));
 
 export const productsRelations = relations(products, ({ one }) => ({

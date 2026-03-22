@@ -29,6 +29,13 @@
       "when": 1774149057092,
       "tag": "0003_rich_beyonder",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1774157721246,
+      "tag": "0004_numerous_lightspeed",
+      "breakpoints": true
     }
   ]
 }
