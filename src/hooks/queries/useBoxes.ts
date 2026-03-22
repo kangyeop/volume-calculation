@@ -22,6 +22,7 @@ export function useCreateBox(): UseMutationResult<Box, Error, Omit<Box, 'id' | '
     mutationFn: (data) => api.boxes.create(data),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: boxes.all.queryKey });
+      queryClient.invalidateQueries({ queryKey: boxGroups.all.queryKey });
       if (variables.boxGroupId) {
         queryClient.invalidateQueries({ queryKey: boxGroups.detail(variables.boxGroupId).queryKey });
       }
@@ -49,6 +50,7 @@ export function useDeleteBox(): UseMutationResult<void, Error, { id: string; gro
     },
     onSettled: (_data, _err, { groupId }) => {
       queryClient.invalidateQueries({ queryKey: boxes.all.queryKey });
+      queryClient.invalidateQueries({ queryKey: boxGroups.all.queryKey });
       queryClient.invalidateQueries({ queryKey: boxGroups.detail(groupId).queryKey });
     },
   });
@@ -60,6 +62,7 @@ export function useUploadBoxes(): UseMutationResult<{ imported: number }, Error,
     mutationFn: ({ file, groupId }) => api.boxes.uploadExcel(file, groupId),
     onSuccess: (_result, { groupId }) => {
       queryClient.invalidateQueries({ queryKey: boxes.all.queryKey });
+      queryClient.invalidateQueries({ queryKey: boxGroups.all.queryKey });
       queryClient.invalidateQueries({ queryKey: boxGroups.detail(groupId).queryKey });
     },
   });
