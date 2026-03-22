@@ -12,10 +12,10 @@ import {
   index,
   pgEnum,
 } from 'drizzle-orm/pg-core';
+
 import { relations } from 'drizzle-orm';
 
 export const orderStatusEnum = pgEnum('order_status', ['PENDING', 'PROCESSING', 'COMPLETED']);
-export const uploadTypeEnum = pgEnum('upload_type', ['outbound', 'product']);
 
 export const productGroups = pgTable('product_groups', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -150,27 +150,6 @@ export const packingResultDetails = pgTable('packing_result_details', {
   placements: jsonb('placements'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
-});
-
-export const uploadTemplates = pgTable('upload_templates', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  name: varchar('name', { length: 255 }).notNull(),
-  type: uploadTypeEnum('type').notNull(),
-  headers: jsonb('headers').notNull().$type<string[]>(),
-  columnMapping: jsonb('column_mapping').notNull().$type<Record<string, string>>(),
-  rowStructure: varchar('row_structure', { length: 50 }).default('single').notNull(),
-  compoundPattern: varchar('compound_pattern', { length: 255 }),
-  usageCount: integer('usage_count').default(0).notNull(),
-  lastUsedAt: timestamp('last_used_at'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
-});
-
-export const uploadSessions = pgTable('upload_sessions', {
-  id: varchar('id', { length: 255 }).primaryKey(),
-  data: jsonb('data').notNull(),
-  expiresAt: timestamp('expires_at').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 export const productGroupsRelations = relations(productGroups, ({ many }) => ({
