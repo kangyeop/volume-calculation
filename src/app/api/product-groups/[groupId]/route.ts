@@ -14,6 +14,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ groupId: string }> }) {
+  try {
+    const { groupId } = await params;
+    const body = await request.json();
+    const result = await productGroupsService.update(groupId, body);
+    return NextResponse.json(result);
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to update product group' }, { status: 500 });
+  }
+}
+
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ groupId: string }> }) {
   try {
     const { groupId } = await params;

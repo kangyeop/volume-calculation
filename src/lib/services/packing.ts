@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { orderItems, packingResults, packingResultDetails, shipments, orders, products } from '@/lib/db/schema';
+import { orderItems, packingResults, packingResultDetails, orders, products, productGroups } from '@/lib/db/schema';
 export { exportPackingResults } from '@/lib/services/excel';
 import { eq, and } from 'drizzle-orm';
 import { calculatePacking, calculateOrderPackingUnified } from '@/lib/algorithms/packing';
@@ -14,12 +14,11 @@ import * as boxesService from '@/lib/services/boxes';
 const CHUNK_SIZE = 500;
 
 type OrderItemRow = typeof orderItems.$inferSelect & {
-  product?: typeof products.$inferSelect | null;
+  product?: (typeof products.$inferSelect & { productGroupId: string }) | null;
 };
 
 export async function calculate(
   shipmentId: string,
-  boxGroupId: string,
 ): Promise<PackingRecommendation> {
   const allItems = await db.query.orderItems.findMany({
     where: eq(orderItems.shipmentId, shipmentId),
@@ -30,10 +29,13 @@ export async function calculate(
   const productMapById = new Map(allProducts.map((p) => [p.id, p]));
   const productMapBySku = new Map(allProducts.map((p) => [p.sku, p]));
 
-  const boxes = await boxesService.findByGroupId(boxGroupId);
+  const allProductGroups = await db.select().from(productGroups);
+  const productGroupMap = new Map(allProductGroups.map((pg) => [pg.id, pg]));
 
-  if (boxes.length === 0) {
-    throw new Error('선택한 박스 그룹에 등록된 박스가 없습니다. 박스 관리 메뉴에서 박스를 먼저 등록해주세요.');
+  const boxGroupIds = [...new Set(allProductGroups.map((pg) => pg.boxGroupId))];
+  const boxesByGroupId = new Map<string, Awaited<ReturnType<typeof boxesService.findByGroupId>>>();
+  for (const bgId of boxGroupIds) {
+    boxesByGroupId.set(bgId, await boxesService.findByGroupId(bgId));
   }
 
   const groupedItems = groupOrderItems(allItems);
@@ -52,6 +54,23 @@ export async function calculate(
   let groupIdx = 0;
   for (const group of groupedItems) {
     if (group.length === 0) continue;
+
+    const firstProduct = group
+      .map((o) =>
+        (o.productId ? productMapById.get(o.productId) : undefined) ??
+        productMapBySku.get(o.sku)
+      )
+      .find((p) => p != null);
+
+    if (!firstProduct) continue;
+
+    const pg = productGroupMap.get(firstProduct.productGroupId);
+    if (!pg) continue;
+
+    const boxes = boxesByGroupId.get(pg.boxGroupId);
+    if (!boxes || boxes.length === 0) {
+      throw new Error(`상품 그룹 "${pg.name}"에 연결된 박스 그룹에 등록된 박스가 없습니다. 박스 관리 메뉴에서 박스를 먼저 등록해주세요.`);
+    }
 
     const skus: SKU[] = group
       .map((o) => {
@@ -230,11 +249,6 @@ export async function calculate(
       grandTotalAvailableVolume > 0 ? grandTotalUsedVolume / grandTotalAvailableVolume : 0,
     unpackedItems: allUnpackedItems,
   };
-
-  await db
-    .update(shipments)
-    .set({ lastBoxGroupId: boxGroupId })
-    .where(eq(shipments.id, shipmentId));
 
   return result;
 }
@@ -500,7 +514,6 @@ export async function calculateOrderPacking(
   shipmentId: string,
   orderId: string,
   groupLabel?: string,
-  boxGroupId?: string,
 ): Promise<PackingResult3D> {
   const order = await db.query.orders.findFirst({
     where: and(eq(orders.shipmentId, shipmentId), eq(orders.orderId, orderId)),
@@ -515,8 +528,17 @@ export async function calculateOrderPacking(
     throw new Error(`주문 ID ${orderId}에 대한 출고 정보가 없습니다.`);
   }
 
-  const boxes = boxGroupId
-    ? await boxesService.findByGroupId(boxGroupId)
+  const firstProduct = order.orderItems.find((item) => item.product)?.product;
+  if (!firstProduct) {
+    throw new Error(`주문 ID ${orderId}에 포장할 수 있는 유효한 상품이 없습니다.`);
+  }
+
+  const pg = await db.query.productGroups.findFirst({
+    where: eq(productGroups.id, firstProduct.productGroupId),
+  });
+
+  const boxes = pg
+    ? await boxesService.findByGroupId(pg.boxGroupId)
     : await boxesService.findAll();
 
   if (boxes.length === 0) {

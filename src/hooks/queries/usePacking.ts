@@ -27,13 +27,13 @@ export function usePackingRecommendation(batchId: string) {
 export function useCalculatePacking(): UseMutationResult<
   PackingRecommendation,
   Error,
-  { batchId: string; boxGroupId?: string }
+  { batchId: string }
 > {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ batchId, boxGroupId }) =>
-      api.packing.calculate(batchId, boxGroupId),
+    mutationFn: ({ batchId }) =>
+      api.packing.calculate(batchId),
     onSuccess: (_, { batchId }) => {
       queryClient.invalidateQueries({ queryKey: packing.history._def });
       queryClient.invalidateQueries({ queryKey: packing.recommendation(batchId).queryKey });

@@ -37,6 +37,7 @@ async function unwrapResponse<T>(response: { data: ApiResponse<T> }): Promise<T>
 export interface ProductGroup {
   id: string;
   name: string;
+  boxGroupId: string;
   productCount?: number;
   products?: Product[];
   createdAt: Date | string;
@@ -78,10 +79,15 @@ export const api = {
   productGroups: {
     list: () => fetchApi<ProductGroup[]>('/product-groups'),
     get: (id: string) => fetchApi<ProductGroup>(`/product-groups/${id}`),
-    create: (name: string) =>
+    create: (name: string, boxGroupId: string) =>
       fetchApi<ProductGroup>('/product-groups', {
         method: 'POST',
-        data: { name },
+        data: { name, boxGroupId },
+      }),
+    update: (id: string, data: { name?: string; boxGroupId?: string }) =>
+      fetchApi<ProductGroup>(`/product-groups/${id}`, {
+        method: 'PATCH',
+        data,
       }),
     delete: (id: string) => fetchApi<void>(`/product-groups/${id}`, { method: 'DELETE' }),
   },
@@ -186,13 +192,9 @@ export const api = {
     delete: (id: string) => fetchApi<void>(`/box-groups/${id}`, { method: 'DELETE' }),
   },
   packing: {
-    calculate: (
-      shipmentId: string,
-      boxGroupId?: string,
-    ) =>
+    calculate: (shipmentId: string) =>
       fetchApi<PackingRecommendation>(`/shipments/${shipmentId}/packing/calculate`, {
         method: 'POST',
-        data: { boxGroupId },
       }),
     calculateOrder: async (shipmentId: string, orderId: string, groupLabel?: string) => {
       return fetchApi<PackingResult3D>(`/shipments/${shipmentId}/packing/calculate-order`, {

@@ -22,13 +22,25 @@ export function useProductGroup(id: string) {
   });
 }
 
-export function useCreateProductGroup(): UseMutationResult<ProductGroup, Error, string> {
+export function useCreateProductGroup(): UseMutationResult<ProductGroup, Error, { name: string; boxGroupId: string }> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (name: string) => api.productGroups.create(name),
+    mutationFn: ({ name, boxGroupId }) => api.productGroups.create(name, boxGroupId),
     onSuccess: (newGroup) => {
       queryClient.setQueryData(productGroups.detail(newGroup.id).queryKey, newGroup);
+      queryClient.invalidateQueries({ queryKey: productGroups.all.queryKey });
+    },
+  });
+}
+
+export function useUpdateProductGroup(): UseMutationResult<ProductGroup, Error, { id: string; data: { name?: string; boxGroupId?: string } }> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }) => api.productGroups.update(id, data),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(productGroups.detail(updated.id).queryKey, updated);
       queryClient.invalidateQueries({ queryKey: productGroups.all.queryKey });
     },
   });

@@ -13,8 +13,17 @@ export async function findOne(id: string) {
   });
 }
 
-export async function create(name: string) {
-  const [group] = await db.insert(productGroups).values({ name }).returning();
+export async function create(name: string, boxGroupId: string) {
+  const [group] = await db.insert(productGroups).values({ name, boxGroupId }).returning();
+  return group;
+}
+
+export async function update(id: string, data: { name?: string; boxGroupId?: string }) {
+  const [group] = await db
+    .update(productGroups)
+    .set(data)
+    .where(eq(productGroups.id, id))
+    .returning();
   return group;
 }
 
