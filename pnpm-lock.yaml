@@ -50,9 +50,6 @@ importers:
       next:
         specifier: ^15.3.3
         version: 15.5.14(@babel/core@7.29.0)(@playwright/test@1.58.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      openai:
-        specifier: ^6.32.0
-        version: 6.32.0(ws@8.19.0)(zod@4.3.6)
       postgres:
         specifier: ^3.4.8
         version: 3.4.8
@@ -71,9 +68,6 @@ importers:
       xlsx:
         specifier: ^0.18.5
         version: 0.18.5
-      zod:
-        specifier: ^4.3.6
-        version: 4.3.6
     devDependencies:
       '@types/node':
         specifier: ^24.10.1
@@ -6027,9 +6021,6 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
-  zod@4.3.6:
-    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
-
 snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
@@ -10636,11 +10627,6 @@ snapshots:
     dependencies:
       mimic-fn: 2.1.0
 
-  openai@6.32.0(ws@8.19.0)(zod@4.3.6):
-    optionalDependencies:
-      ws: 8.19.0
-      zod: 4.3.6
-
   openai@6.32.0(zod@3.25.67):
     optionalDependencies:
       zod: 3.25.67
@@ -12085,5 +12071,3 @@ snapshots:
   zod@3.25.67: {}
 
   zod@3.25.76: {}
-
-  zod@4.3.6: {}

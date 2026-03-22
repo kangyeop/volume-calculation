@@ -9,7 +9,6 @@
 | 런타임 | Node.js 18+ |
 | 데이터베이스 | Supabase PostgreSQL |
 | ORM | Drizzle ORM |
-| AI | OpenAI SDK (Structured Output + Zod) |
 | 프론트엔드 | React 19, TailwindCSS, Radix UI |
 | 상태 관리 | TanStack React Query, Jotai |
 | 엑셀 처리 | ExcelJS, SheetJS (xlsx) |
@@ -46,9 +45,8 @@ volume-calculator/
 │   │       │       ├── orders/       # 주문별 상품 매핑, 부피 계산
 │   │       │       └── packing/      # 패킹 계산, 결과, 내보내기
 │   │       ├── order-items/          # 주문 아이템 개별 조작
-│   │       ├── upload/               # 출고 엑셀 업로드 파이프라인
-│   │       ├── product-upload/       # 상품 엑셀 업로드 파이프라인
-│   │       ├── upload-templates/     # 업로드 템플릿 CRUD
+│   │       ├── upload/               # 출고 엑셀 업로드
+│   │       ├── product-upload/       # 상품 엑셀 업로드
 │   │       ├── projects/             # 프로젝트 CRUD + 통계
 │   │       └── dashboard/            # 대시보드 통계
 │   │
@@ -56,10 +54,8 @@ volume-calculator/
 │   │   ├── layout/                   # 레이아웃 (GlobalLayout, Sidebar, ProjectLayout)
 │   │   ├── ui/                       # 공통 UI (table, tabs, collapsible, loading-spinner)
 │   │   ├── packing/                  # 패킹 관련 컴포넌트
-│   │   ├── upload/                   # 업로드 관련 컴포넌트
 │   │   ├── ErrorBoundary.tsx         # 에러 바운더리
 │   │   ├── ExcelUpload.tsx           # 엑셀 업로드 공통 컴포넌트
-│   │   ├── MappingPreview.tsx        # 매핑 미리보기
 │   │   ├── PackingResult.tsx         # 패킹 결과 표시
 │   │   └── Toaster.tsx               # 토스트 알림
 │   │
@@ -73,8 +69,7 @@ volume-calculator/
 │   │   │   ├── usePacking.ts
 │   │   │   ├── useProductGroups.ts
 │   │   │   ├── useProducts.ts
-│   │   │   ├── useProjects.ts
-│   │   │   └── useUpload.ts
+│   │   │   └── useProjects.ts
 │   │   ├── useShipmentFilters.ts     # 출고 필터링
 │   │   ├── useShipmentUploadFlow.ts  # 출고 업로드 플로우 관리
 │   │   ├── usePackingNormalizer.ts   # 패킹 데이터 정규화
@@ -103,23 +98,11 @@ volume-calculator/
 │   │   │   ├── shipment.ts           # 출고(Shipment) CRUD
 │   │   │   ├── order-item.ts        # 주문 아이템(OrderItem) CRUD
 │   │   │   ├── upload.ts            # 출고 업로드 핵심 로직
-│   │   │   ├── upload-session.ts    # 업로드 세션 (DB 기반)
-│   │   │   ├── upload-templates.ts  # 템플릿 매칭/저장
-│   │   │   ├── data-transformer.ts  # 엑셀 행 → DTO 변환
-│   │   │   ├── row-normalizer.ts    # 복합 행 분리
+│   │   │   ├── format-parser.ts    # 고정 양식 파서 (정산/매핑전/매핑후)
 │   │   │   └── excel.ts             # 엑셀 파싱/생성
-│   │   ├── schemas/                  # Zod 스키마 (AI Structured Output)
-│   │   │   ├── shipment-mapping.ts  # 출고 컬럼 매핑
-│   │   │   ├── product-mapping.ts   # 상품 컬럼 매핑
-│   │   │   └── product-match.ts     # 상품 매칭 결과
-│   │   └── prompts/                  # OpenAI 프롬프트 빌더
-│   │       ├── shipment.ts          # 출고 컬럼 매핑 프롬프트
-│   │       ├── product.ts           # 상품 컬럼 매핑 프롬프트
-│   │       └── matching.ts          # 상품 매칭 프롬프트
 │   │
 │   └── types/                        # TypeScript 타입 정의
-│       ├── index.ts                  # 주요 도메인 타입
-│       └── upload.ts                # 업로드 관련 타입
+│       └── index.ts                  # 주요 도메인 타입
 │
 ├── drizzle.config.ts                 # Drizzle Kit 설정
 ├── next.config.ts                    # Next.js 설정
@@ -160,10 +143,10 @@ volume-calculator/
 │  │    /api/outbound-batches, /api/upload, ...   │    │
 │  └──────┬──────────┬───────────────┬───────────┘    │
 │         │          │               │                │
-│  ┌──────▼───┐ ┌────▼─────┐ ┌──────▼──────────┐     │
-│  │ Services │ │ AI Layer │ │   Algorithms    │     │
-│  │ (CRUD)   │ │ (OpenAI) │ │   (Packing)     │     │
-│  └──────┬───┘ └──────────┘ └─────────────────┘     │
+│  ┌──────▼───┐ ┌──────▼──────────┐                    │
+│  │ Services │ │   Algorithms    │                    │
+│  │ (CRUD)   │ │   (Packing)     │                    │
+│  └──────┬───┘ └─────────────────┘                    │
 │         │                                           │
 │  ┌──────▼──────────────────────────────────────┐    │
 │  │         Drizzle ORM                         │    │
@@ -191,46 +174,9 @@ API Route Handler
        │
        ├──→ Drizzle ORM ──→ Supabase PostgreSQL
        │
-       ├──→ OpenAI SDK ──→ OpenAI API
-       │     (Structured Output + Zod Schema)
-       │
        ├──→ ExcelJS / xlsx ──→ 엑셀 파싱/생성
        │
        └──→ Supabase Client ──→ Supabase Storage
-```
-
-### AI 파이프라인
-
-```
-엑셀 파일 업로드
-       │
-       ▼
-  엑셀 파싱 (ExcelJS)
-       │
-       ▼
-  템플릿 매칭 시도 ──(hit)──→ 저장된 매핑 사용
-       │ (miss)
-       ▼
-  OpenAI Structured Output
-  (프롬프트 + Zod 스키마)
-       │
-       ▼
-  컬럼 매핑 결과 반환
-       │
-       ▼
-  사용자 확인/수정
-       │
-       ▼
-  row-normalizer (복합 행 분리)
-       │
-       ▼
-  data-transformer (DTO 변환)
-       │
-       ▼
-  상품 매칭 (OpenAI)
-       │
-       ▼
-  DB 저장 + 템플릿 저장
 ```
 
 ## 데이터베이스 스키마
@@ -288,19 +234,6 @@ API Route Handler
                                           │ shipmentId(FK) │
                                           └────────────────┘
 
-┌──────────────────┐         ┌──────────────┐
-│ UploadTemplate   │         │ UploadSession│
-│──────────────────│         │──────────────│
-│ id (PK)          │         │ id (PK)      │
-│ name             │         │ data (JSONB) │
-│ type (enum)      │         │ expiresAt    │
-│ headers (JSONB)  │         └──────────────┘
-│ columnMapping (JSONB) │
-│ rowStructure     │
-│ compoundPattern  │
-│ usageCount       │
-└──────────────────┘
-
 ┌──────────────┐         ┌──────────────┐
 │   Project    │ 1 ── N  │  Outbound    │  (레거시)
 │──────────────│         │──────────────│
@@ -318,7 +251,6 @@ API Route Handler
 | Enum | 값 | 용도 |
 |------|----|------|
 | `order_status` | `PENDING`, `PROCESSING`, `COMPLETED` | 주문 처리 상태 |
-| `upload_type` | `outbound`, `product` | 업로드 템플릿 유형 |
 
 ### 인덱스
 
@@ -365,4 +297,3 @@ React Query 설정: `staleTime: 5분`, `refetchOnWindowFocus: false`, `retry: 1`
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase 프로젝트 URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase Publishable 키 (anon 대체) |
 | `SUPABASE_SECRET_KEY` | Supabase Secret 키 (service_role 대체, 서버 전용) |
-| `OPENAI_API_KEY` | OpenAI API 키 (AI 매핑용) |
