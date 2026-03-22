@@ -7,13 +7,18 @@ interface BoxTypeCardProps {
   totalCBM: number;
   efficiency: number;
   onClick: () => void;
+  disabled?: boolean;
 }
 
-export const BoxTypeCard: React.FC<BoxTypeCardProps> = ({ box, count, totalCBM, efficiency, onClick }) => {
+export const BoxTypeCard: React.FC<BoxTypeCardProps> = ({ box, count, totalCBM, efficiency, onClick, disabled }) => {
   return (
     <div
-      onClick={onClick}
-      className="cursor-pointer border rounded-xl p-5 bg-white hover:shadow-md transition-shadow space-y-4"
+      onClick={disabled ? undefined : onClick}
+      className={`border rounded-xl p-5 bg-white transition-shadow space-y-4 ${
+        disabled
+          ? 'opacity-50 cursor-not-allowed'
+          : 'cursor-pointer hover:shadow-md'
+      }`}
     >
       <div className="flex items-center gap-2">
         <Package className="h-5 w-5 text-indigo-600" />

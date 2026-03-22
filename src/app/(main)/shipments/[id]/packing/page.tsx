@@ -291,6 +291,7 @@ export default function PackingCalculator() {
                       count={bg.count}
                       totalCBM={bg.totalCBM}
                       efficiency={bg.efficiency}
+                      disabled={isCalculating}
                       onClick={() => setDetailView({ type: 'box', boxId: bg.box.id })}
                     />
                   ))}
@@ -308,6 +309,7 @@ export default function PackingCalculator() {
                         count={bg.count}
                         totalCBM={bg.totalCBM}
                         efficiency={bg.efficiency}
+                        disabled={isCalculating}
                         onClick={() =>
                           setDetailView({ type: 'box', boxId: bg.box.id, groupId: group.id })
                         }
@@ -328,6 +330,7 @@ export default function PackingCalculator() {
                         count={bg.count}
                         totalCBM={bg.totalCBM}
                         efficiency={bg.efficiency}
+                        disabled={isCalculating}
                         onClick={() =>
                           setDetailView({ type: 'box', boxId: bg.box.id, groupId: null })
                         }
