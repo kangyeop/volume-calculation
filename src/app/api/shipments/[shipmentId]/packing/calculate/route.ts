@@ -8,7 +8,7 @@ export async function POST(
   try {
     const { shipmentId } = await params;
     const body = await request.json();
-    const result = await packingService.calculate(shipmentId, body.groupingOption, body.boxGroupId);
+    const result = await packingService.calculate(shipmentId, body.boxGroupId);
     return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to calculate packing' }, { status: 500 });

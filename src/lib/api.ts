@@ -5,7 +5,6 @@ import {
   ShipmentUploadResult,
   PackingRecommendation,
   PackingResult,
-  PackingGroupingOption,
   Box,
   BoxGroup,
   PackingResult3D,
@@ -199,12 +198,11 @@ export const api = {
   packing: {
     calculate: (
       shipmentId: string,
-      groupingOption: PackingGroupingOption = PackingGroupingOption.ORDER,
       boxGroupId?: string,
     ) =>
       fetchApi<PackingRecommendation>(`/shipments/${shipmentId}/packing/calculate`, {
         method: 'POST',
-        data: { groupingOption, boxGroupId },
+        data: { boxGroupId },
       }),
     calculateOrder: async (shipmentId: string, orderId: string, groupLabel?: string) => {
       return fetchApi<PackingResult3D>(`/shipments/${shipmentId}/packing/calculate-order`, {

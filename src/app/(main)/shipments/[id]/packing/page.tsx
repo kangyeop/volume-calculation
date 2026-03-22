@@ -18,7 +18,7 @@ import type { PackingCalculationResult } from '@/hooks/usePackingNormalizer';
 import { BoxTypeCard } from '@/components/packing/BoxTypeCard';
 import { PackingDetailPanel } from '@/components/packing/PackingDetailPanel';
 import { UnpackedItemsAlert } from '@/components/packing/UnpackedItemsAlert';
-import { PackingGroupingOption, PackingRecommendation } from '@/types';
+import type { PackingRecommendation } from '@/types';
 
 type DetailView = { type: 'box'; boxId: string; groupId?: string | null } | null;
 
@@ -162,7 +162,6 @@ export default function PackingCalculator() {
     try {
       const data = await calculatePacking.mutateAsync({
         batchId,
-        groupingOption: PackingGroupingOption.ORDER,
         boxGroupId: selectedBoxGroupId,
       });
       setFreshResult(data);

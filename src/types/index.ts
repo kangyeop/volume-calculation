@@ -111,8 +111,6 @@ export interface Project {
 
 export enum PackingGroupingOption {
   ORDER = 'ORDER',
-  RECIPIENT = 'RECIPIENT',
-  ORDER_RECIPIENT = 'ORDER_RECIPIENT',
 }
 
 export interface PackingGroup {

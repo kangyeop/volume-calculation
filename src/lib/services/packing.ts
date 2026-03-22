@@ -8,7 +8,6 @@ import type {
   PackingRecommendation,
   PackingGroup,
   PackingResult3DLegacy as PackingResult3D,
-  PackingGroupingOption,
 } from '@/types';
 import * as boxesService from '@/lib/services/boxes';
 
@@ -16,26 +15,16 @@ const CHUNK_SIZE = 500;
 
 type OrderItemRow = typeof orderItems.$inferSelect & {
   product?: typeof products.$inferSelect | null;
-  order?: typeof orders.$inferSelect | null;
 };
 
 export async function calculate(
   shipmentId: string,
-  groupingOption: PackingGroupingOption,
   boxGroupId: string,
 ): Promise<PackingRecommendation> {
   const allItems = await db.query.orderItems.findMany({
     where: eq(orderItems.shipmentId, shipmentId),
     with: { product: true },
   });
-
-  const allOrderRows = await db.query.orders.findMany({
-    where: eq(orders.shipmentId, shipmentId),
-  });
-  const orderById = new Map(allOrderRows.map((o) => [o.id, o]));
-
-  const itemsWithOrder: (OrderItemRow & { order: typeof orders.$inferSelect | undefined })[] =
-    allItems.map((o) => ({ ...o, order: orderById.get(o.orderId) }));
 
   const allProducts = await db.select().from(products);
   const productMapById = new Map(allProducts.map((p) => [p.id, p]));
@@ -47,7 +36,7 @@ export async function calculate(
     throw new Error('선택한 박스 그룹에 등록된 박스가 없습니다. 박스 관리 메뉴에서 박스를 먼저 등록해주세요.');
   }
 
-  const groupedItems = groupOrderItems(itemsWithOrder, groupingOption);
+  const groupedItems = groupOrderItems(allItems);
 
   const groups: PackingGroup[] = [];
   let grandTotalCBM = 0;
@@ -84,7 +73,7 @@ export async function calculate(
     if (skus.length === 0) continue;
 
     const recommendation = calculatePacking(skus, boxes);
-    const groupLabel = generateGroupLabel(group[0], groupingOption);
+    const groupLabel = `Order: ${group[0].orderIdentifier || group[0].orderId}`;
 
     let groupUsedVolume = 0;
     let groupAvailableVolume = 0;
@@ -145,7 +134,6 @@ export async function calculate(
           allDetailRows.push({
             shipmentId,
             orderId: groupOrderId,
-            recipientName: '',
             sku: itemInfo?.sku || product.sku,
             productName: product.name,
             quantity: packedSku.quantity,
@@ -167,7 +155,6 @@ export async function calculate(
       allDetailRows.push({
         shipmentId,
         orderId: groupOrderId,
-        recipientName: '',
         sku: itemInfo?.sku || item.skuId,
         productName: item.name,
         quantity: item.quantity,
@@ -253,57 +240,17 @@ export async function calculate(
 }
 
 function groupOrderItems(
-  items: (OrderItemRow & { order: typeof orders.$inferSelect | undefined })[],
-  option: PackingGroupingOption,
-): (OrderItemRow & { order: typeof orders.$inferSelect | undefined })[][] {
-  const groups = new Map<
-    string,
-    (OrderItemRow & { order: typeof orders.$inferSelect | undefined })[]
-  >();
+  items: OrderItemRow[],
+): OrderItemRow[][] {
+  const groups = new Map<string, OrderItemRow[]>();
 
   for (const item of items) {
-    const orderIdentifier = item.orderIdentifier || item.orderId;
-    const recipientName = item.order?.recipientName || 'Unknown Recipient';
-
-    let key = '';
-    switch (option) {
-      case 'ORDER':
-        key = `order:${orderIdentifier}`;
-        break;
-      case 'RECIPIENT':
-        key = `recipient:${recipientName}`;
-        break;
-      case 'ORDER_RECIPIENT':
-        key = `order_recipient:${orderIdentifier}_${recipientName}`;
-        break;
-      default:
-        key = 'default';
-    }
-
+    const key = item.orderIdentifier || item.orderId;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(item);
   }
 
   return Array.from(groups.values());
-}
-
-function generateGroupLabel(
-  item: OrderItemRow & { order: typeof orders.$inferSelect | undefined },
-  option: PackingGroupingOption,
-): string {
-  const orderIdentifier = item.orderIdentifier || item.orderId;
-  const recipientName = item.order?.recipientName || 'Unknown Recipient';
-
-  switch (option) {
-    case 'ORDER':
-      return `Order: ${orderIdentifier}`;
-    case 'RECIPIENT':
-      return `Recipient: ${recipientName}`;
-    case 'ORDER_RECIPIENT':
-      return `Order: ${orderIdentifier}, Recipient: ${recipientName}`;
-    default:
-      return 'Default Group';
-  }
 }
 
 export async function findAll(shipmentId: string) {
