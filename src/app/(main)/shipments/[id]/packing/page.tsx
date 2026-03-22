@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Download, RefreshCw } from 'lucide-react';
 import {
@@ -21,11 +21,11 @@ import { UnpackedItemsAlert } from '@/components/packing/UnpackedItemsAlert';
 import type { PackingRecommendation } from '@/types';
 import { PackingCalculatorSkeleton } from '@/components/skeletons';
 
-type DetailView = { type: 'box'; boxId: string; groupId?: string | null } | null;
-
 export default function PackingCalculator() {
   const params = useParams<{ id: string }>();
   const batchId = params.id;
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const { data: savedRecommendation, isLoading: isLoadingRecommendation } =
     usePackingRecommendation(batchId ?? '');
   const { data: batch } = useShipment(batchId ?? '');
@@ -38,8 +38,34 @@ export default function PackingCalculator() {
   const [freshResult, setFreshResult] = useState<
     PackingRecommendation | PackingCalculationResult | null
   >(null);
-  const [detailView, setDetailView] = useState<DetailView>(null);
   const [selectedBoxGroupId, setSelectedBoxGroupId] = useState<string>('');
+
+  const detailBoxId = searchParams.get('boxId');
+  const detailGroupId = searchParams.get('groupId');
+  const detailView = detailBoxId
+    ? { type: 'box' as const, boxId: detailBoxId, groupId: detailGroupId === 'unclassified' ? null : detailGroupId ?? undefined }
+    : null;
+
+  const setDetailView = useCallback(
+    (view: { type: 'box'; boxId: string; groupId?: string | null } | null) => {
+      const p = new URLSearchParams(searchParams.toString());
+      if (view) {
+        p.set('boxId', view.boxId);
+        if (view.groupId === null) {
+          p.set('groupId', 'unclassified');
+        } else if (view.groupId !== undefined) {
+          p.set('groupId', view.groupId);
+        } else {
+          p.delete('groupId');
+        }
+      } else {
+        p.delete('boxId');
+        p.delete('groupId');
+      }
+      router.push(`?${p.toString()}`);
+    },
+    [searchParams, router],
+  );
 
   useEffect(() => {
     if (batch?.lastBoxGroupId && !selectedBoxGroupId) {
@@ -166,7 +192,10 @@ export default function PackingCalculator() {
         boxGroupId: selectedBoxGroupId,
       });
       setFreshResult(data);
-      setDetailView(null);
+      const p = new URLSearchParams(searchParams.toString());
+      p.delete('boxId');
+      p.delete('groupId');
+      router.replace(`?${p.toString()}`);
     } catch (error: unknown) {
       const message =
         error instanceof Error
@@ -274,7 +303,7 @@ export default function PackingCalculator() {
             <PackingDetailPanel
               title={detailTitle}
               filteredBoxes={detailBoxes}
-              onBack={() => setDetailView(null)}
+              onBack={() => router.back()}
               skuDimensionsMap={skuDimensionsMap}
               availableBoxes={availableBoxes}
               onBoxOverride={handleBoxOverride}
