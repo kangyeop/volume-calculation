@@ -34,16 +34,19 @@ export function parseBeforeMapping(rows: Record<string, unknown>[]): ParsedOrder
     const compound = String(row['상품명 / 매핑수량'] ?? '').trim();
     if (!orderId || !compound) continue;
 
+    const rowQty = parseInt(String(row['총 주문수량'] ?? '1')) || 1;
+
     const lines = compound.split(/\r?\n/);
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed) continue;
       const match = /^\(?\s*(.+?)\s*\/\s*(\d+)\s*ea\s*\)?$/i.exec(trimmed);
       if (match) {
-        result.push({ orderId, sku: match[1].trim(), quantity: parseInt(match[2]) || 1 });
+        const itemQty = parseInt(match[2]) || 1;
+        result.push({ orderId, sku: match[1].trim(), quantity: itemQty * rowQty });
       } else {
         const sku = trimmed.replace(/^\(|\)$/g, '').trim();
-        if (sku) result.push({ orderId, sku, quantity: 1 });
+        if (sku) result.push({ orderId, sku, quantity: 1 * rowQty });
       }
     }
   }
