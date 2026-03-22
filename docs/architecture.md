@@ -32,7 +32,7 @@ volume-calculator/
 │   │   ├── (main)/                   # 메인 레이아웃 그룹 (사이드바 포함)
 │   │   │   ├── layout.tsx            # 사이드바 + 메인 컨텐츠 레이아웃
 │   │   │   ├── products/             # 상품 관리 페이지
-│   │   │   ├── outbound/             # 출고 관리 페이지
+│   │   │   ├── shipments/            # 출고 관리 페이지
 │   │   │   └── boxes/                # 박스 관리 페이지
 │   │   │
 │   │   └── api/                      # API Route Handlers
@@ -40,12 +40,12 @@ volume-calculator/
 │   │       ├── products/             # 상품 개별 수정/삭제
 │   │       ├── box-groups/           # 박스 그룹 CRUD
 │   │       ├── boxes/                # 박스 CRUD + 엑셀 업로드
-│   │       ├── outbound-batches/     # 출고 배치 관리
-│   │       │   └── [batchId]/
-│   │       │       ├── outbounds/    # 출고 아이템 CRUD
+│   │       ├── shipments/            # 출고(Shipment) 관리
+│   │       │   └── [shipmentId]/
+│   │       │       ├── order-items/  # 주문 아이템(OrderItem) CRUD
 │   │       │       ├── orders/       # 주문별 상품 매핑, 부피 계산
 │   │       │       └── packing/      # 패킹 계산, 결과, 내보내기
-│   │       ├── outbounds/            # 출고 아이템 개별 조작
+│   │       ├── order-items/          # 주문 아이템 개별 조작
 │   │       ├── upload/               # 출고 엑셀 업로드 파이프라인
 │   │       ├── product-upload/       # 상품 엑셀 업로드 파이프라인
 │   │       ├── upload-templates/     # 업로드 템플릿 CRUD
@@ -68,15 +68,15 @@ volume-calculator/
 │   │   │   ├── queryKeys.ts          # 쿼리 키 팩토리
 │   │   │   ├── useBoxGroups.ts
 │   │   │   ├── useBoxes.ts
-│   │   │   ├── useOutboundBatches.ts
-│   │   │   ├── useOutbounds.ts
+│   │   │   ├── useShipments.ts
+│   │   │   ├── useOrderItems.ts
 │   │   │   ├── usePacking.ts
 │   │   │   ├── useProductGroups.ts
 │   │   │   ├── useProducts.ts
 │   │   │   ├── useProjects.ts
 │   │   │   └── useUpload.ts
-│   │   ├── useOutboundFilters.ts     # 출고 필터링
-│   │   ├── useOutboundUploadFlow.ts  # 출고 업로드 플로우 관리
+│   │   ├── useShipmentFilters.ts     # 출고 필터링
+│   │   ├── useShipmentUploadFlow.ts  # 출고 업로드 플로우 관리
 │   │   ├── usePackingNormalizer.ts   # 패킹 데이터 정규화
 │   │   ├── useProductFilters.ts      # 상품 필터링
 │   │   ├── useProductUpload.ts       # 상품 업로드 플로우
@@ -100,7 +100,8 @@ volume-calculator/
 │   │   │   ├── boxes.ts
 │   │   │   ├── box-groups.ts
 │   │   │   ├── projects.ts
-│   │   │   ├── outbound-batch.ts
+│   │   │   ├── shipment.ts           # 출고(Shipment) CRUD
+│   │   │   ├── order-item.ts        # 주문 아이템(OrderItem) CRUD
 │   │   │   ├── upload.ts            # 출고 업로드 핵심 로직
 │   │   │   ├── upload-session.ts    # 업로드 세션 (DB 기반)
 │   │   │   ├── upload-templates.ts  # 템플릿 매칭/저장
@@ -108,11 +109,11 @@ volume-calculator/
 │   │   │   ├── row-normalizer.ts    # 복합 행 분리
 │   │   │   └── excel.ts             # 엑셀 파싱/생성
 │   │   ├── schemas/                  # Zod 스키마 (AI Structured Output)
-│   │   │   ├── outbound-mapping.ts  # 출고 컬럼 매핑
+│   │   │   ├── shipment-mapping.ts  # 출고 컬럼 매핑
 │   │   │   ├── product-mapping.ts   # 상품 컬럼 매핑
 │   │   │   └── product-match.ts     # 상품 매칭 결과
 │   │   └── prompts/                  # OpenAI 프롬프트 빌더
-│   │       ├── outbound.ts          # 출고 컬럼 매핑 프롬프트
+│   │       ├── shipment.ts          # 출고 컬럼 매핑 프롬프트
 │   │       ├── product.ts           # 상품 컬럼 매핑 프롬프트
 │   │       └── matching.ts          # 상품 매칭 프롬프트
 │   │
@@ -250,18 +251,18 @@ API Route Handler
                          └───────┬──────┘
                                  │ (nullable FK)
 ┌──────────────┐         ┌──────▼───────┐
-│ BoxGroup     │ 1 ── N  │ OutboundItem │
+│ BoxGroup     │ 1 ── N  │  OrderItem  │
 │──────────────│         │──────────────│
 │ id (PK)      │         │ id (PK)      │
 │ name         │         │ orderId      │
 └──────┬───────┘         │ sku          │
        │                 │ quantity     │
-┌──────▼───────┐         │ outboundBatchId (FK) │
+┌──────▼───────┐         │ shipmentId (FK) │
 │    Box       │         │ productId (FK, nullable) │
 │──────────────│         └──────┬───────┘
 │ id (PK)      │                │
 │ name         │         ┌──────▼───────┐
-│ width        │         │OutboundBatch │
+│ width        │         │  Shipment   │
 │ length       │         │──────────────│
 │ height       │         │ id (PK)      │
 │ price        │         │ name         │
@@ -279,12 +280,12 @@ API Route Handler
        │ recipient│    │ packedCount  │   │ orderId        │
        │ address  │    │ efficiency   │   │ sku            │
        │ status   │    │ totalCBM     │   │ productName    │
-       │ batchId  │    │ groupLabel   │   │ quantity       │
-       └──────────┘    │ batchId (FK) │   │ boxName        │
+       │shipmentId│    │ groupLabel   │   │ quantity       │
+       └──────────┘    │shipmentId(FK)│   │ boxName        │
                        └──────────────┘   │ boxNumber      │
                                           │ efficiency     │
                                           │ placements (JSONB) │
-                                          │ batchId (FK)   │
+                                          │ shipmentId(FK) │
                                           └────────────────┘
 
 ┌──────────────────┐         ┌──────────────┐
@@ -324,9 +325,9 @@ API Route Handler
 | 테이블 | 인덱스 | 컬럼 |
 |--------|--------|------|
 | `products` | UNIQUE | `sku` |
-| `orders` | UNIQUE | `(outbound_batch_id, order_id)` |
-| `outbound_items` | INDEX | `(outbound_batch_id, product_id)` |
-| `outbound_items` | INDEX | `(outbound_batch_id, order_id)` |
+| `orders` | UNIQUE | `(shipment_id, order_id)` |
+| `order_items` | INDEX | `(shipment_id, product_id)` |
+| `order_items` | INDEX | `(shipment_id, order_id)` |
 | `outbounds` | INDEX | `(project_id, product_id)` |
 | `outbounds` | INDEX | `(project_id, order_id)` |
 
@@ -338,10 +339,10 @@ API Route Handler
 | `/products` | 상품 그룹 목록 |
 | `/products/new` | 새 상품 그룹 생성 |
 | `/products/[id]` | 상품 그룹 상세 (상품 목록, 엑셀 업로드) |
-| `/outbound` | 출고 배치 목록, 엑셀 업로드 |
-| `/outbound/new` | 새 출고 배치 생성 |
-| `/outbound/[id]` | 출고 배치 상세 (주문/아이템 목록) |
-| `/outbound/[id]/packing` | 패킹 계산 및 결과 |
+| `/shipments` | 출고 목록, 엑셀 업로드 |
+| `/shipments/new` | 새 출고 생성 |
+| `/shipments/[id]` | 출고 상세 (주문/아이템 목록) |
+| `/shipments/[id]/packing` | 패킹 계산 및 결과 |
 | `/boxes` | 박스 그룹 목록 |
 | `/boxes/new` | 새 박스 그룹 생성 |
 | `/boxes/[id]` | 박스 그룹 상세 (박스 목록) |
