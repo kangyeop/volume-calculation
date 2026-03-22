@@ -64,8 +64,6 @@ export async function transformAndMapOrderItems(
 ): Promise<{
   parsedOrders: Array<{
     orderId: string;
-    recipientName: string;
-    address: string;
     orderItems: Array<{
       sku: string;
       quantity: number;
@@ -79,8 +77,6 @@ export async function transformAndMapOrderItems(
     string,
     {
       orderId: string;
-      recipientName: string;
-      address: string;
       orderItems: Array<{
         sku: string;
         quantity: number;
@@ -95,8 +91,6 @@ export async function transformAndMapOrderItems(
     if (!orderMap.has(orderId)) {
       orderMap.set(orderId, {
         orderId,
-        recipientName: '',
-        address: '',
         orderItems: [],
       });
     }

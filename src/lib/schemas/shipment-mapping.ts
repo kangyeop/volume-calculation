@@ -17,11 +17,6 @@ export const ShipmentMappingSchema = z.object({
         columnName: z.string(),
       })
       .nullable(),
-    recipientName: z
-      .object({
-        columnName: z.string(),
-      })
-      .nullable(),
   }),
   unmappedColumns: z.array(z.string()),
 });

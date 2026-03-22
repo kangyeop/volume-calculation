@@ -19,8 +19,6 @@ export function useUploadConfirm() {
         orderId: string;
         sku: string;
         quantity: number;
-        recipientName?: string;
-        address?: string;
         productId?: string | null;
       }>;
     }

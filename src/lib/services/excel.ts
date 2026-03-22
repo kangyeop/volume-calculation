@@ -54,11 +54,6 @@ export async function exportPackingResults(shipmentId: string): Promise<Buffer> 
 
   worksheet.columns = [
     { header: '주문번호', key: 'orderId', width: 20 },
-    { header: '수령인', key: 'recipientName', width: 15 },
-    { header: '연락처', key: 'recipientPhone', width: 15 },
-    { header: '우편번호', key: 'zipCode', width: 10 },
-    { header: '주소', key: 'address', width: 30 },
-    { header: '상세주소', key: 'detailAddress', width: 20 },
     { header: 'SKU', key: 'sku', width: 15 },
     { header: '상품명', key: 'productName', width: 25 },
     { header: '수량', key: 'quantity', width: 10 },
@@ -78,7 +73,6 @@ export async function exportPackingResults(shipmentId: string): Promise<Buffer> 
   for (const result of results) {
     const row = worksheet.addRow({
       orderId: result.orderId,
-      recipientName: result.recipientName,
       sku: result.sku,
       productName: result.productName,
       quantity: result.quantity,

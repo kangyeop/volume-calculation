@@ -22,12 +22,6 @@ Required fields to map:
 - quantity: item quantity per unit
   Pattern: Number
 
-- recipientName
-  Pattern: Person's name
-
-- address
-  Pattern: Main address
-
 Mapping Rules:
 1. Prefer columns with exact Korean field names
 2. Look for common patterns in actual data values
