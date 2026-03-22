@@ -11,7 +11,7 @@ export async function uploadShipment(
   format: ShipmentFormat,
 ): Promise<ShipmentUploadResult> {
   const parseResult = parseExcelFile(buffer, originalName);
-  const fileName = Buffer.from(originalName, 'latin1').toString('utf8');
+  const fileName = originalName;
 
   const items = parseByFormat(format, parseResult.rows);
 
