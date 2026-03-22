@@ -7,7 +7,7 @@ import type {
   SKU,
   PackingRecommendation,
   PackingGroup,
-  PackingResult3DLegacy as PackingResult3D,
+  PackingResult3D,
 } from '@/types';
 import * as boxesService from '@/lib/services/boxes';
 

@@ -7,4 +7,3 @@ export * from './useShipments';
 export * from './useBoxes';
 export * from './useBoxGroups';
 export * from './usePacking';
-export * from './useUpload';
