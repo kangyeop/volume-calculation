@@ -7,6 +7,7 @@ import { Plus, Package, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePrefetchProductGroup } from '@/hooks/usePrefetch';
 import { ListTableSkeleton } from '@/components/skeletons';
+import { PageContainer } from '@/components/layout/PageContainer';
 
 export default function ProductGroupList() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function ProductGroupList() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <PageContainer>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">상품 그룹</h1>
@@ -97,6 +98,6 @@ export default function ProductGroupList() {
           </table>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

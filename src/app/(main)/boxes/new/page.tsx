@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCreateBoxGroup } from '@/hooks/queries';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
+import { PageContainer } from '@/components/layout/PageContainer';
 
 export default function BoxGroupCreate() {
   const router = useRouter();
@@ -26,7 +27,7 @@ export default function BoxGroupCreate() {
   };
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <PageContainer>
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.push('/boxes')}
@@ -62,6 +63,6 @@ export default function BoxGroupCreate() {
           </button>
         </form>
       </div>
-    </div>
+    </PageContainer>
   );
 }

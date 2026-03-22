@@ -8,6 +8,7 @@ import { shipments } from '@/hooks/queries/queryKeys';
 import type { Shipment } from '@/lib/api';
 import { ArrowLeft, ChevronDown, ChevronRight, Calculator, Package, Layers } from 'lucide-react';
 import { ShipmentDetailSkeleton } from '@/components/skeletons';
+import { PageContainer } from '@/components/layout/PageContainer';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Table,
@@ -39,7 +40,7 @@ export default function OutboundDetail() {
   };
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.push('/shipments')}
@@ -197,6 +198,6 @@ export default function OutboundDetail() {
           데이터를 불러올 수 없습니다.
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

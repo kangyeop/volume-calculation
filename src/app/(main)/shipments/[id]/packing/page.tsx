@@ -19,6 +19,7 @@ import { PackingDetailPanel } from '@/components/packing/PackingDetailPanel';
 import { UnpackedItemsAlert } from '@/components/packing/UnpackedItemsAlert';
 import type { PackingRecommendation } from '@/types';
 import { PackingCalculatorSkeleton } from '@/components/skeletons';
+import { PageContainer } from '@/components/layout/PageContainer';
 
 export default function PackingCalculator() {
   const params = useParams<{ id: string }>();
@@ -227,7 +228,7 @@ export default function PackingCalculator() {
   };
 
   return (
-    <div className="space-y-8">
+    <PageContainer>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">패킹 계산</h1>
@@ -349,6 +350,6 @@ export default function PackingCalculator() {
           )}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

@@ -95,7 +95,7 @@ function PackingCalculatorSkeleton() {
 
 function ProductDetailSkeleton() {
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Skeleton className="h-9 w-9 rounded-full" />
         <div className="space-y-2">
@@ -138,7 +138,7 @@ function ProductDetailSkeleton() {
 
 function BoxDetailSkeleton() {
   return (
-    <div className="space-y-6 max-w-6xl">
+    <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Skeleton className="h-9 w-9 rounded-full" />
         <div className="space-y-2">

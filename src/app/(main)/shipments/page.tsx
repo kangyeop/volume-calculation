@@ -7,6 +7,7 @@ import { Plus, Truck, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePrefetchShipmentDetail } from '@/hooks/usePrefetch';
 import { ListTableSkeleton } from '@/components/skeletons';
+import { PageContainer } from '@/components/layout/PageContainer';
 
 export default function OutboundList() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function OutboundList() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">출고</h1>
@@ -95,6 +96,6 @@ export default function OutboundList() {
           </table>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

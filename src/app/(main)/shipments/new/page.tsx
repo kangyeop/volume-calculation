@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ExcelUpload } from '@/components/ExcelUpload';
+import { PageContainer } from '@/components/layout/PageContainer';
 import { useShipmentUploadFlow } from '@/hooks/useShipmentUploadFlow';
 
 type ShipmentFormat = 'adjustment' | 'beforeMapping' | 'afterMapping';
@@ -39,7 +40,7 @@ export default function OutboundCreate() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <PageContainer>
       <div className="flex items-center gap-3">
         <button
           onClick={handleCancel}
@@ -88,6 +89,6 @@ export default function OutboundCreate() {
           />
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }

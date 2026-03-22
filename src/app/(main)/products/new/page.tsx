@@ -6,6 +6,7 @@ import { useCreateProductGroup, useBoxGroups } from '@/hooks/queries';
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2 } from 'lucide-react';
+import { PageContainer } from '@/components/layout/PageContainer';
 import { api } from '@/lib/api';
 
 export default function ProductGroupCreate() {
@@ -53,7 +54,7 @@ export default function ProductGroupCreate() {
   };
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <PageContainer>
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.push('/products')}
@@ -135,6 +136,6 @@ export default function ProductGroupCreate() {
           </button>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

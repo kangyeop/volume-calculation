@@ -10,6 +10,7 @@ import { ExcelUpload } from '@/components/ExcelUpload';
 import { toast } from 'sonner';
 import { ArrowLeft, Trash2, Loader2, AlertCircle, Check, X } from 'lucide-react';
 import { ProductDetailSkeleton } from '@/components/skeletons';
+import { PageContainer } from '@/components/layout/PageContainer';
 import type { Product } from '@/types';
 import { useUpdateProduct } from '@/hooks/queries';
 
@@ -123,7 +124,7 @@ export default function ProductGroupDetail() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <PageContainer>
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.push('/products')}
@@ -318,6 +319,6 @@ export default function ProductGroupDetail() {
           </div>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

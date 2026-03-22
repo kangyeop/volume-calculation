@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, Trash2, Plus, Box as BoxIcon, Ruler, AlertCircle, Loader2 } from 'lucide-react';
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { BoxDetailSkeleton } from '@/components/skeletons';
+import { PageContainer } from '@/components/layout/PageContainer';
 
 export default function BoxGroupDetail() {
   const params = useParams<{ id: string }>();
@@ -84,7 +85,7 @@ export default function BoxGroupDetail() {
   const boxes = group.boxes ?? [];
 
   return (
-    <div className="space-y-6 max-w-6xl">
+    <PageContainer>
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.push('/boxes')}
@@ -298,6 +299,6 @@ export default function BoxGroupDetail() {
           </div>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }
