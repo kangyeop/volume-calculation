@@ -104,7 +104,7 @@ const BoxResult: React.FC<BoxResultProps> = ({ box }) => {
         </div>
         <div className="flex items-center gap-3 text-sm">
           <div className="text-gray-600">
-            {box.width} x {box.length} x {box.height} mm
+            {box.width} x {box.length} x {box.height} cm
           </div>
           <div>
             <span className="text-gray-600">CBM:</span>

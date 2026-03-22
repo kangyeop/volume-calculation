@@ -134,7 +134,7 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
                 </h3>
                 {!isUnassigned && (
                   <p className="text-sm text-muted-foreground">
-                    {boxGroup.box.width} x {boxGroup.box.length} x {boxGroup.box.height} mm
+                    {boxGroup.box.width} x {boxGroup.box.length} x {boxGroup.box.height} cm
                   </p>
                 )}
               </div>
@@ -227,7 +227,7 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
                         {maxItem && (
                           <span className="flex items-center gap-1 text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md w-fit">
                             <Maximize2 className="h-3 w-3 flex-shrink-0" />
-                            최대 아이템: {maxItem.name} ({maxItem.width}×{maxItem.length}×{maxItem.height} mm)
+                            최대 아이템: {maxItem.name} ({maxItem.width}×{maxItem.length}×{maxItem.height} cm)
                           </span>
                         )}
                         <button
@@ -301,7 +301,7 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
                             <div className="flex items-center gap-2 flex-shrink-0">
                               {skuDimensionsMap?.get(sku.skuId) && (
                                 <span className="font-mono text-xs text-gray-400">
-                                  {skuDimensionsMap.get(sku.skuId)!.width}×{skuDimensionsMap.get(sku.skuId)!.length}×{skuDimensionsMap.get(sku.skuId)!.height} mm
+                                  {skuDimensionsMap.get(sku.skuId)!.width}×{skuDimensionsMap.get(sku.skuId)!.length}×{skuDimensionsMap.get(sku.skuId)!.height} cm
                                 </span>
                               )}
                               <span className="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium text-gray-600">
