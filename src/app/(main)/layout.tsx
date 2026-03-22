@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Package, Truck, Box } from 'lucide-react';
@@ -17,8 +18,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="flex min-h-screen min-w-[1280px] bg-background">
       <aside className="w-64 border-r bg-gray-50/40 h-screen sticky top-0 flex flex-col">
-        <div className="px-6 py-5 border-b">
-          <span className="text-xl font-bold tracking-tight">dnut VC</span>
+        <div className="px-6 py-5 border-b flex items-center gap-2">
+          <Image src="/logo.png" alt="dnut" width={36} height={36} />
+          <span className="text-xl font-bold tracking-tight">VC</span>
         </div>
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
