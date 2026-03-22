@@ -5,7 +5,6 @@ import { eq, and } from 'drizzle-orm';
 import { calculatePacking, calculateOrderPackingUnified } from '@/lib/algorithms/packing';
 import type {
   SKU,
-  Box,
   PackingRecommendation,
   PackingGroup,
   PackingResult3DLegacy as PackingResult3D,
@@ -61,6 +60,7 @@ export async function calculate(
   await db.delete(packingResults).where(eq(packingResults.shipmentId, shipmentId));
   await db.delete(packingResultDetails).where(eq(packingResultDetails.shipmentId, shipmentId));
 
+  let groupIdx = 0;
   for (const group of groupedItems) {
     if (group.length === 0) continue;
 
@@ -203,15 +203,23 @@ export async function calculate(
       for (let i = 0; i < box.count; i++) {
         allResultRows.push({
           shipmentId,
-          orderId: groupLabel,
+          orderId: groupOrderId,
+          boxId: box.box.id,
           boxName: box.box.name,
+          boxWidth: String(box.box.width),
+          boxLength: String(box.box.length),
+          boxHeight: String(box.box.height),
+          boxGroupId: box.box.boxGroupId,
           packedCount: box.packedSKUs.reduce((a, s) => a + s.quantity, 0),
           efficiency: String(boxVol > 0 ? usedVol / boxVol : 0),
           totalCBM: String(boxVol / 1_000_000),
           groupLabel,
+          groupIndex: groupIdx,
         });
       }
     }
+
+    groupIdx++;
   }
 
   if (allDetailRows.length > 0) {
@@ -238,7 +246,7 @@ export async function calculate(
 
   await db
     .update(shipments)
-    .set({ packingRecommendation: result as unknown as Record<string, unknown>, lastBoxGroupId: boxGroupId })
+    .set({ lastBoxGroupId: boxGroupId })
     .where(eq(shipments.id, shipmentId));
 
   return result;
@@ -317,11 +325,134 @@ export async function findAllDetails(shipmentId: string) {
 }
 
 export async function getRecommendation(shipmentId: string): Promise<PackingRecommendation | null> {
-  const shipment = await db.query.shipments.findFirst({
-    where: eq(shipments.id, shipmentId),
-  });
-  if (!shipment?.packingRecommendation) return null;
-  return shipment.packingRecommendation as unknown as PackingRecommendation;
+  const results = await db
+    .select()
+    .from(packingResults)
+    .where(eq(packingResults.shipmentId, shipmentId))
+    .orderBy(packingResults.groupIndex);
+
+  if (results.length === 0) return null;
+
+  const details = await db
+    .select()
+    .from(packingResultDetails)
+    .where(eq(packingResultDetails.shipmentId, shipmentId));
+
+  const allProducts = await db.select().from(products);
+  const productBySku = new Map(allProducts.map((p) => [p.sku, p]));
+
+  const groupMap = new Map<string, { groupIndex: number; rows: (typeof results)[number][] }>();
+  for (const r of results) {
+    const label = r.groupLabel || 'Default Group';
+    if (!groupMap.has(label)) {
+      groupMap.set(label, { groupIndex: r.groupIndex ?? 0, rows: [] });
+    }
+    groupMap.get(label)!.rows.push(r);
+  }
+
+  const sortedGroups = [...groupMap.entries()].sort((a, b) => a[1].groupIndex - b[1].groupIndex);
+
+  const groups: PackingGroup[] = [];
+  let grandTotalCBM = 0;
+  let grandTotalUsedVolume = 0;
+  let grandTotalAvailableVolume = 0;
+  const allUnpackedItems: { skuId: string; name?: string; quantity: number; reason?: string }[] = [];
+
+  for (const [label, { rows: groupRows }] of sortedGroups) {
+    const groupOrderIds = new Set(groupRows.map((r) => r.orderId));
+    const groupDetails = details.filter((d) => groupOrderIds.has(d.orderId));
+
+    const boxMap = new Map<
+      string,
+      {
+        box: { id: string; name: string; width: number; length: number; height: number; boxGroupId: string };
+        count: number;
+        packedSKUs: Map<string, { skuId: string; name: string; quantity: number }>;
+      }
+    >();
+
+    for (const r of groupRows) {
+      const key = r.boxId || r.boxName || 'unknown';
+      if (!boxMap.has(key)) {
+        boxMap.set(key, {
+          box: {
+            id: r.boxId || '',
+            name: r.boxName || '',
+            width: Number(r.boxWidth) || 0,
+            length: Number(r.boxLength) || 0,
+            height: Number(r.boxHeight) || 0,
+            boxGroupId: r.boxGroupId || '',
+          },
+          count: 0,
+          packedSKUs: new Map(),
+        });
+      }
+      boxMap.get(key)!.count++;
+    }
+
+    for (const d of groupDetails) {
+      if (d.unpacked) continue;
+      const boxKey = groupRows.find((r) => (r.boxId || r.boxName) && r.boxName === d.boxName)?.boxId || d.boxName;
+      const entry = boxMap.get(boxKey);
+      if (!entry) continue;
+
+      const product = productBySku.get(d.sku);
+      const skuId = product?.id || d.sku;
+      if (entry.packedSKUs.has(skuId)) {
+        entry.packedSKUs.get(skuId)!.quantity += d.quantity;
+      } else {
+        entry.packedSKUs.set(skuId, { skuId, name: d.productName, quantity: d.quantity });
+      }
+    }
+
+    const unpackedItems = groupDetails
+      .filter((d) => d.unpacked)
+      .map((d) => {
+        const product = productBySku.get(d.sku);
+        return { skuId: product?.id || d.sku, name: d.productName, quantity: d.quantity, reason: d.unpackedReason || undefined };
+      });
+
+    allUnpackedItems.push(...unpackedItems);
+
+    const boxesArray = [...boxMap.values()].map((entry) => ({
+      box: entry.box,
+      count: entry.count,
+      packedSKUs: [...entry.packedSKUs.values()],
+    }));
+
+    let groupUsedVolume = 0;
+    let groupAvailableVolume = 0;
+    for (const entry of boxMap.values()) {
+      const boxVol = entry.box.width * entry.box.length * entry.box.height;
+      groupAvailableVolume += boxVol * entry.count;
+      for (const sku of entry.packedSKUs.values()) {
+        const product = productBySku.get(sku.name) || allProducts.find((p) => p.id === sku.skuId);
+        if (product) {
+          groupUsedVolume += Number(product.width) * Number(product.length) * Number(product.height) * sku.quantity;
+        }
+      }
+    }
+
+    const groupTotalCBM = groupRows.reduce((sum, r) => sum + Number(r.totalCBM), 0);
+    grandTotalCBM += groupTotalCBM;
+    grandTotalUsedVolume += groupUsedVolume;
+    grandTotalAvailableVolume += groupAvailableVolume;
+
+    groups.push({
+      groupLabel: label,
+      boxes: boxesArray,
+      unpackedItems,
+      totalCBM: groupTotalCBM,
+      totalEfficiency: groupAvailableVolume > 0 ? groupUsedVolume / groupAvailableVolume : 0,
+    });
+  }
+
+  return {
+    groups,
+    totalCBM: grandTotalCBM,
+    totalEfficiency: grandTotalAvailableVolume > 0 ? grandTotalUsedVolume / grandTotalAvailableVolume : 0,
+    unpackedItems: allUnpackedItems,
+  };
 }
 
 export async function updateBoxAssignment(
@@ -330,41 +461,91 @@ export async function updateBoxAssignment(
   boxIndex: number,
   newBoxId: string,
 ): Promise<PackingRecommendation> {
-  const shipment = await db.query.shipments.findFirst({
-    where: eq(shipments.id, shipmentId),
-  });
-  if (!shipment?.packingRecommendation) {
+  const results = await db
+    .select()
+    .from(packingResults)
+    .where(eq(packingResults.shipmentId, shipmentId))
+    .orderBy(packingResults.groupIndex);
+
+  if (results.length === 0) {
     throw new Error('패킹 추천 결과가 없습니다.');
   }
 
-  const recommendation = shipment.packingRecommendation as unknown as PackingRecommendation;
+  const groupMap = new Map<string, (typeof results)[number][]>();
+  for (const r of results) {
+    const label = r.groupLabel || 'Default Group';
+    if (!groupMap.has(label)) groupMap.set(label, []);
+    groupMap.get(label)!.push(r);
+  }
 
-  if (groupIndex < 0 || groupIndex >= recommendation.groups.length) {
+  const sortedGroupLabels = [...groupMap.entries()]
+    .sort((a, b) => (a[1][0].groupIndex ?? 0) - (b[1][0].groupIndex ?? 0))
+    .map(([label]) => label);
+
+  if (groupIndex < 0 || groupIndex >= sortedGroupLabels.length) {
     throw new Error(`유효하지 않은 그룹 인덱스입니다: ${groupIndex}`);
   }
 
-  const group = recommendation.groups[groupIndex];
-  if (boxIndex < 0 || boxIndex >= group.boxes.length) {
+  const targetGroupLabel = sortedGroupLabels[groupIndex];
+  const groupRows = groupMap.get(targetGroupLabel)!;
+
+  const boxTypes: { key: string; boxName: string | null }[] = [];
+  const seen = new Set<string>();
+  for (const r of groupRows) {
+    const key = r.boxId || r.boxName || 'unknown';
+    if (!seen.has(key)) {
+      seen.add(key);
+      boxTypes.push({ key, boxName: r.boxName });
+    }
+  }
+
+  if (boxIndex < 0 || boxIndex >= boxTypes.length) {
     throw new Error(`유효하지 않은 박스 인덱스입니다: ${boxIndex}`);
   }
 
+  const oldBoxType = boxTypes[boxIndex];
   const newBox = await boxesService.findOne(newBoxId);
   if (!newBox) throw new Error(`Box ${newBoxId} not found`);
 
-  group.boxes[boxIndex].box = {
-    id: newBox.id,
-    name: newBox.name,
-    width: newBox.width,
-    length: newBox.length,
-    height: newBox.height,
-    boxGroupId: newBox.boxGroupId,
-  };
+  const newBoxVol = Number(newBox.width) * Number(newBox.length) * Number(newBox.height);
 
   await db
-    .update(shipments)
-    .set({ packingRecommendation: recommendation as unknown as Record<string, unknown> })
-    .where(eq(shipments.id, shipmentId));
+    .update(packingResults)
+    .set({
+      boxId: newBox.id,
+      boxName: newBox.name,
+      boxWidth: String(newBox.width),
+      boxLength: String(newBox.length),
+      boxHeight: String(newBox.height),
+      boxGroupId: newBox.boxGroupId,
+      totalCBM: String(newBoxVol / 1_000_000),
+    })
+    .where(
+      and(
+        eq(packingResults.shipmentId, shipmentId),
+        eq(packingResults.groupLabel, targetGroupLabel),
+        oldBoxType.boxName ? eq(packingResults.boxName, oldBoxType.boxName) : undefined,
+      ),
+    );
 
+  if (oldBoxType.boxName) {
+    const groupOrderIds = [...new Set(groupRows.map((r) => r.orderId).filter(Boolean))];
+    for (const oid of groupOrderIds) {
+      await db
+        .update(packingResultDetails)
+        .set({ boxName: newBox.name })
+        .where(
+          and(
+            eq(packingResultDetails.shipmentId, shipmentId),
+            eq(packingResultDetails.orderId, oid!),
+            eq(packingResultDetails.boxName, oldBoxType.boxName!),
+          ),
+        );
+    }
+  }
+
+  const recommendation = await getRecommendation(shipmentId);
+  if (!recommendation) throw new Error('패킹 추천 결과를 재구성할 수 없습니다.');
   return recommendation;
 }
 
