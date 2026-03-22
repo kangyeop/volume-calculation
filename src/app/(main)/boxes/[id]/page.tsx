@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useBoxGroup, useCreateBox, useDeleteBox, useUploadBoxes } from '@/hooks/queries';
 import { toast } from 'sonner';
-import { ArrowLeft, Trash2, Plus, Box as BoxIcon, Ruler, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Box as BoxIcon, Ruler, AlertCircle, Loader2 } from 'lucide-react';
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { BoxDetailSkeleton } from '@/components/skeletons';
 
@@ -214,7 +214,13 @@ export default function BoxGroupDetail() {
           </div>
         </div>
 
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 relative">
+          {deleteBox.isPending && (
+            <div className="absolute inset-x-0 top-0 z-10 flex items-center gap-2 bg-white/80 backdrop-blur-sm border rounded-lg px-4 py-2 text-sm text-gray-500">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              삭제 중...
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {boxes.map((box) => (
               <div

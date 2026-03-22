@@ -3,7 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useShipments, useDeleteShipment } from '@/hooks/queries';
-import { Plus, Truck, Trash2 } from 'lucide-react';
+import { Plus, Truck, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePrefetchShipmentDetail } from '@/hooks/usePrefetch';
 import { ListTableSkeleton } from '@/components/skeletons';
@@ -51,7 +51,13 @@ export default function OutboundList() {
           <p className="text-sm mt-1">새 출고를 등록해보세요.</p>
         </div>
       ) : (
-        <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white border rounded-xl shadow-sm overflow-hidden relative">
+          {deleteBatch.isPending && (
+            <div className="absolute inset-x-0 top-0 z-10 flex items-center gap-2 bg-white/80 backdrop-blur-sm border-b px-4 py-2 text-sm text-gray-500">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              삭제 중...
+            </div>
+          )}
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b">
               <tr>
