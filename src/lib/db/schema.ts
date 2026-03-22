@@ -68,8 +68,6 @@ export const shipments = pgTable('shipments', {
 export const orders = pgTable('orders', {
   id: uuid('id').defaultRandom().primaryKey(),
   orderId: varchar('order_id', { length: 255 }).notNull(),
-  recipientName: varchar('recipient_name', { length: 255 }),
-  address: text('address'),
   status: orderStatusEnum('status').default('PENDING').notNull(),
   shipmentId: uuid('shipment_id').notNull().references(() => shipments.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -139,7 +137,6 @@ export const packingResultDetails = pgTable('packing_result_details', {
   id: uuid('id').defaultRandom().primaryKey(),
   shipmentId: uuid('shipment_id').notNull().references(() => shipments.id),
   orderId: varchar('order_id', { length: 255 }).notNull(),
-  recipientName: varchar('recipient_name', { length: 255 }),
   sku: varchar('sku', { length: 255 }).notNull(),
   productName: varchar('product_name', { length: 255 }).notNull(),
   quantity: integer('quantity').notNull(),

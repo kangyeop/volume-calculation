@@ -5,15 +5,11 @@ import { eq, and, inArray } from 'drizzle-orm';
 type CreateOrderDto = {
   shipmentId: string;
   orderId: string;
-  recipientName?: string;
-  address?: string;
 };
 
 export async function findOrCreate(
   shipmentId: string,
   orderId: string,
-  recipientName?: string,
-  address?: string,
 ) {
   const existing = await db.query.orders.findFirst({
     where: and(eq(orders.shipmentId, shipmentId), eq(orders.orderId, orderId)),
@@ -23,7 +19,7 @@ export async function findOrCreate(
 
   const [created] = await db
     .insert(orders)
-    .values({ shipmentId, orderId, recipientName, address, status: 'PENDING' })
+    .values({ shipmentId, orderId, status: 'PENDING' })
     .returning();
   return created;
 }
