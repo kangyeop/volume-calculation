@@ -2,6 +2,133 @@ import { SKU, Box, PackingCalculationResult, PackedBox3D, PackingResult3D } from
 
 const EFFICIENCY_THRESHOLD = 0.9;
 
+interface ExpandedItem {
+  skuId: string;
+  width: number;
+  length: number;
+  height: number;
+  volume: number;
+}
+
+function getOrientations(w: number, l: number, h: number): [number, number, number][] {
+  const all: [number, number, number][] = [
+    [w, l, h], [w, h, l],
+    [l, w, h], [l, h, w],
+    [h, w, l], [h, l, w],
+  ];
+  const seen = new Set<string>();
+  return all
+    .filter(([a, b, c]) => {
+      const key = `${a},${b},${c}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => a[2] - b[2]);
+}
+
+function expandItems(skus: SKU[]): ExpandedItem[] {
+  const items: ExpandedItem[] = [];
+  for (const sku of skus) {
+    for (let i = 0; i < sku.quantity; i++) {
+      items.push({
+        skuId: sku.id,
+        width: sku.width,
+        length: sku.length,
+        height: sku.height,
+        volume: sku.width * sku.length * sku.height,
+      });
+    }
+  }
+  return items.sort((a, b) => b.volume - a.volume);
+}
+
+function canItemFitInBox(item: ExpandedItem, box: Box): boolean {
+  const itemDims = [item.width, item.length, item.height].sort((a, b) => a - b);
+  const boxDims = [box.width, box.length, box.height].sort((a, b) => a - b);
+  return itemDims[0] <= boxDims[0] && itemDims[1] <= boxDims[1] && itemDims[2] <= boxDims[2];
+}
+
+function tryPackInOrientation(
+  items: ExpandedItem[],
+  boxW: number,
+  boxL: number,
+  boxH: number,
+): boolean {
+  let layerY = 0;
+  let layerHeight = 0;
+  let rowZ = 0;
+  let rowDepth = 0;
+  let currentX = 0;
+
+  for (const item of items) {
+    const orientations = getOrientations(item.width, item.length, item.height);
+    let placed = false;
+
+    for (const [w, l, h] of orientations) {
+      if (currentX + w <= boxW && rowZ + l <= boxL && layerY + h <= boxH) {
+        currentX += w;
+        rowDepth = Math.max(rowDepth, l);
+        layerHeight = Math.max(layerHeight, h);
+        placed = true;
+        break;
+      }
+    }
+
+    if (!placed) {
+      rowZ += rowDepth;
+      currentX = 0;
+      rowDepth = 0;
+
+      for (const [w, l, h] of orientations) {
+        if (w <= boxW && rowZ + l <= boxL && layerY + h <= boxH) {
+          currentX = w;
+          rowDepth = l;
+          layerHeight = Math.max(layerHeight, h);
+          placed = true;
+          break;
+        }
+      }
+    }
+
+    if (!placed) {
+      layerY += layerHeight;
+      layerHeight = 0;
+      rowZ = 0;
+      currentX = 0;
+      rowDepth = 0;
+
+      for (const [w, l, h] of orientations) {
+        if (w <= boxW && l <= boxL && layerY + h <= boxH) {
+          currentX = w;
+          rowDepth = l;
+          layerHeight = h;
+          placed = true;
+          break;
+        }
+      }
+    }
+
+    if (!placed) return false;
+  }
+
+  return true;
+}
+
+function tryPackWithLayers(items: ExpandedItem[], box: Box): boolean {
+  const dims = [box.width, box.length, box.height];
+  const boxOrientations: [number, number, number][] = [
+    [dims[0], dims[1], dims[2]],
+    [dims[0], dims[2], dims[1]],
+    [dims[1], dims[2], dims[0]],
+  ];
+
+  for (const [bw, bl, bh] of boxOrientations) {
+    if (tryPackInOrientation(items, bw, bl, bh)) return true;
+  }
+  return false;
+}
+
 export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationResult {
   if (!boxes || boxes.length === 0) {
     const unassignedBox: Box = { id: 'unassigned', name: '미지정', width: 0, length: 0, height: 0, boxGroupId: '' };
@@ -23,26 +150,8 @@ export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationR
     return volA - volB;
   });
 
-  const skuDetailsMap = new Map<string, SKU>();
-  for (const sku of skus) {
-    skuDetailsMap.set(sku.id, sku);
-  }
-
-  const doesItemFit = (skuId: string, box: Box): boolean => {
-    const sku = skuDetailsMap.get(skuId);
-    if (!sku) return false;
-    const itemDims = [sku.width, sku.length, sku.height].sort((a, b) => a - b);
-    const boxDims = [box.width, box.length, box.height].sort((a, b) => a - b);
-    return itemDims[0] <= boxDims[0] && itemDims[1] <= boxDims[1] && itemDims[2] <= boxDims[2];
-  };
-
-  let itemsToPack: { skuId: string; volume: number; quantity: number }[] = skus
-    .map((sku) => ({
-      skuId: sku.id,
-      volume: sku.width * sku.length * sku.height,
-      quantity: sku.quantity,
-    }))
-    .sort((a, b) => b.volume - a.volume);
+  const expandedItems = expandItems(skus);
+  const totalItemVolume = expandedItems.reduce((sum, item) => sum + item.volume, 0);
 
   const recommendedBoxes: PackingCalculationResult['boxes'] = [];
   const unpackedItems: PackingCalculationResult['unpackedItems'] = [];
@@ -50,57 +159,46 @@ export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationR
   let totalUsedVolume = 0;
   let totalAvailableVolume = 0;
 
-  while (itemsToPack.length > 0) {
-    const currentTotalVolume = itemsToPack.reduce((sum, item) => sum + item.volume * item.quantity, 0);
-    let selectedSingleBox: Box | null = null;
+  let selectedBox: Box | null = null;
+  for (const box of sortedBoxes) {
+    const boxVolume = box.width * box.length * box.height;
+    if (totalItemVolume > boxVolume * EFFICIENCY_THRESHOLD) continue;
+    if (!expandedItems.every((item) => canItemFitInBox(item, box))) continue;
 
-    for (const box of sortedBoxes) {
-      const boxVolume = box.width * box.length * box.height;
-      const effectiveCapacity = boxVolume * EFFICIENCY_THRESHOLD;
-
-      if (currentTotalVolume <= effectiveCapacity) {
-        const allFitPhysically = itemsToPack.every((item) => doesItemFit(item.skuId, box));
-        if (allFitPhysically) {
-          selectedSingleBox = box;
-          break;
-        }
-      }
+    if (tryPackWithLayers(expandedItems, box)) {
+      selectedBox = box;
+      break;
     }
+  }
 
-    if (selectedSingleBox) {
-      const boxVol = selectedSingleBox.width * selectedSingleBox.length * selectedSingleBox.height;
-      totalCBM += boxVol / 1_000_000;
-      totalUsedVolume += currentTotalVolume;
-      totalAvailableVolume += boxVol;
+  if (selectedBox) {
+    const boxVol = selectedBox.width * selectedBox.length * selectedBox.height;
+    totalCBM += boxVol / 1_000_000;
+    totalUsedVolume += totalItemVolume;
+    totalAvailableVolume += boxVol;
 
-      recommendedBoxes.push({
-        box: selectedSingleBox,
-        count: 1,
-        packedSKUs: itemsToPack.map((item) => ({ skuId: item.skuId, quantity: item.quantity })),
-      });
+    recommendedBoxes.push({
+      box: selectedBox,
+      count: 1,
+      packedSKUs: skus.map((sku) => ({ skuId: sku.id, quantity: sku.quantity })),
+    });
+  } else {
+    const unassignedBox: Box = {
+      id: 'unassigned',
+      name: '미지정',
+      width: 0,
+      length: 0,
+      height: 0,
+      boxGroupId: '',
+    };
 
-      itemsToPack = [];
-    } else {
-      const totalVolume = itemsToPack.reduce((sum, item) => sum + item.volume * item.quantity, 0);
-      const unassignedBox: Box = {
-        id: 'unassigned',
-        name: '미지정',
-        width: 0,
-        length: 0,
-        height: 0,
-        boxGroupId: '',
-      };
+    totalUsedVolume += totalItemVolume;
 
-      totalUsedVolume += totalVolume;
-
-      recommendedBoxes.push({
-        box: unassignedBox,
-        count: 1,
-        packedSKUs: itemsToPack.map((item) => ({ skuId: item.skuId, quantity: item.quantity })),
-      });
-
-      itemsToPack = [];
-    }
+    recommendedBoxes.push({
+      box: unassignedBox,
+      count: 1,
+      packedSKUs: skus.map((sku) => ({ skuId: sku.id, quantity: sku.quantity })),
+    });
   }
 
   return {
