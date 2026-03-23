@@ -1,6 +1,7 @@
 import axios from 'axios';
 import {
   Product,
+  ProductWithGroup,
   Outbound,
   ShipmentUploadResult,
   PackingRecommendation,
@@ -94,6 +95,7 @@ export const api = {
   },
   products: {
     list: (projectId: string) => fetchApi<Product[]>(`/projects/${projectId}/products`),
+    listAll: () => fetchApi<ProductWithGroup[]>('/products'),
     listByGroup: (groupId: string) => fetchApi<Product[]>(`/product-groups/${groupId}/products`),
     createBulk: (
       projectId: string,

@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { products } from '@/lib/db/schema';
+import { products, productGroups } from '@/lib/db/schema';
 import { eq, and, inArray, desc } from 'drizzle-orm';
 
 type CreateProductDto = {
@@ -22,6 +22,31 @@ export async function findAll(productGroupId: string) {
 export async function findAllForMatching() {
   const rows = await db.select().from(products).orderBy(desc(products.createdAt));
   return rows.map(parseProduct);
+}
+
+export async function findAllWithGroup() {
+  const rows = await db
+    .select({
+      id: products.id,
+      sku: products.sku,
+      name: products.name,
+      width: products.width,
+      length: products.length,
+      height: products.height,
+      productGroupId: products.productGroupId,
+      productGroupName: productGroups.name,
+      createdAt: products.createdAt,
+      updatedAt: products.updatedAt,
+    })
+    .from(products)
+    .leftJoin(productGroups, eq(products.productGroupId, productGroups.id))
+    .orderBy(desc(products.createdAt));
+  return rows.map((row) => ({
+    ...row,
+    width: Number(row.width),
+    length: Number(row.length),
+    height: Number(row.height),
+  }));
 }
 
 export async function findOne(id: string) {

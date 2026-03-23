@@ -22,6 +22,13 @@ export function useProducts(projectId: string) {
   });
 }
 
+export function useAllProducts() {
+  return useQuery({
+    ...products.listAll,
+    queryFn: () => api.products.listAll(),
+  });
+}
+
 export function useCreateProducts(
   projectId: string,
 ): UseMutationResult<void, Error, Omit<Product, 'id' | 'projectId' | 'createdAt' | 'updatedAt'>[]> {

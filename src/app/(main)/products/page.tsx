@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import { usePrefetchProductGroup } from '@/hooks/usePrefetch';
 import { ListTableSkeleton } from '@/components/skeletons';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { ProductSearchTab } from '@/components/products/ProductSearchTab';
 
 export default function ProductGroupList() {
   const router = useRouter();
@@ -26,16 +28,12 @@ export default function ProductGroupList() {
     }
   };
 
-  if (isLoading) {
-    return <ListTableSkeleton />;
-  }
-
   return (
     <PageContainer>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">상품 그룹</h1>
-          <p className="text-muted-foreground mt-1">상품 그룹을 관리합니다.</p>
+          <h1 className="text-3xl font-bold tracking-tight">상품 관리</h1>
+          <p className="text-muted-foreground mt-1">상품 그룹과 개별 상품을 관리합니다.</p>
         </div>
         <button
           onClick={() => router.push('/products/new')}
@@ -45,59 +43,74 @@ export default function ProductGroupList() {
         </button>
       </div>
 
-      {groups.length === 0 ? (
-        <div className="py-16 text-center border-2 border-dashed rounded-xl text-gray-400">
-          <Package className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-          <p className="font-medium text-gray-500">등록된 상품 그룹이 없습니다.</p>
-          <p className="text-sm mt-1">새 상품 그룹을 만들어보세요.</p>
-        </div>
-      ) : (
-        <div className="bg-white border rounded-xl shadow-sm overflow-hidden relative">
-          {deleteGroup.isPending && (
-            <div className="absolute inset-x-0 top-0 z-10 flex items-center gap-2 bg-white/80 backdrop-blur-sm border-b px-4 py-2 text-sm text-gray-500">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              삭제 중...
+      <Tabs defaultValue="groups">
+        <TabsList>
+          <TabsTrigger value="groups">상품 그룹</TabsTrigger>
+          <TabsTrigger value="search">상품 검색</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="groups">
+          {isLoading ? (
+            <ListTableSkeleton />
+          ) : groups.length === 0 ? (
+            <div className="py-16 text-center border-2 border-dashed rounded-xl text-gray-400">
+              <Package className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+              <p className="font-medium text-gray-500">등록된 상품 그룹이 없습니다.</p>
+              <p className="text-sm mt-1">새 상품 그룹을 만들어보세요.</p>
+            </div>
+          ) : (
+            <div className="bg-white border rounded-xl shadow-sm overflow-hidden relative">
+              {deleteGroup.isPending && (
+                <div className="absolute inset-x-0 top-0 z-10 flex items-center gap-2 bg-white/80 backdrop-blur-sm border-b px-4 py-2 text-sm text-gray-500">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  삭제 중...
+                </div>
+              )}
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">그룹명</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-600">상품 수</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-600">생성일</th>
+                    <th className="px-4 py-3 w-12"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {groups.map((group) => (
+                    <tr
+                      key={group.id}
+                      onClick={() => router.push(`/products/${group.id}`)}
+                      onMouseEnter={() => prefetch(group.id)}
+                      className="hover:bg-gray-50 cursor-pointer transition-colors"
+                    >
+                      <td className="px-4 py-3 font-medium text-gray-900">{group.name}</td>
+                      <td className="px-4 py-3 text-right text-gray-600">
+                        {group.productCount ?? '-'}
+                      </td>
+                      <td className="px-4 py-3 text-right text-gray-500">
+                        {new Date(group.createdAt).toLocaleDateString('ko-KR')}
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={(e) => handleDelete(e, group.id)}
+                          disabled={deleteGroup.isPending}
+                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">그룹명</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-600">상품 수</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-600">생성일</th>
-                <th className="px-4 py-3 w-12"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {groups.map((group) => (
-                <tr
-                  key={group.id}
-                  onClick={() => router.push(`/products/${group.id}`)}
-                  onMouseEnter={() => prefetch(group.id)}
-                  className="hover:bg-gray-50 cursor-pointer transition-colors"
-                >
-                  <td className="px-4 py-3 font-medium text-gray-900">{group.name}</td>
-                  <td className="px-4 py-3 text-right text-gray-600">
-                    {group.productCount ?? '-'}
-                  </td>
-                  <td className="px-4 py-3 text-right text-gray-500">
-                    {new Date(group.createdAt).toLocaleDateString('ko-KR')}
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={(e) => handleDelete(e, group.id)}
-                      disabled={deleteGroup.isPending}
-                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+        </TabsContent>
+
+        <TabsContent value="search">
+          <ProductSearchTab />
+        </TabsContent>
+      </Tabs>
     </PageContainer>
   );
 }

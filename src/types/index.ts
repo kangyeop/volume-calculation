@@ -58,6 +58,19 @@ export interface Product {
   updatedAt: string;
 }
 
+export interface ProductWithGroup {
+  id: string;
+  sku: string;
+  name: string;
+  width: number;
+  length: number;
+  height: number;
+  productGroupId: string;
+  productGroupName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Order {
   id: string;
   orderId: string;
