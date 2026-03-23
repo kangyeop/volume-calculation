@@ -8,6 +8,7 @@ import { ArrowLeft, Trash2, Plus, Box as BoxIcon, Ruler, AlertCircle, Loader2 } 
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { BoxDetailSkeleton } from '@/components/skeletons';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 export default function BoxGroupDetail() {
   const params = useParams<{ id: string }>();
@@ -59,8 +60,12 @@ export default function BoxGroupDetail() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!groupId || !confirm('이 박스를 삭제하시겠습니까?')) return;
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
+  const handleDeleteConfirm = async () => {
+    if (!groupId || !deleteTarget) return;
+    const id = deleteTarget;
+    setDeleteTarget(null);
     try {
       await deleteBox.mutateAsync({ id, groupId });
       toast.success('삭제 완료', { description: '박스가 삭제되었습니다.' });
@@ -241,7 +246,7 @@ export default function BoxGroupDetail() {
                     </div>
                   </div>
                   <button
-                    onClick={() => handleDelete(box.id)}
+                    onClick={() => setDeleteTarget(box.id)}
                     disabled={deleteBox.isPending}
                     className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
                     title="Delete Box"
@@ -299,6 +304,15 @@ export default function BoxGroupDetail() {
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="박스 삭제"
+        description="이 박스를 삭제하시겠습니까?"
+        confirmLabel="삭제"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </PageContainer>
   );
 }

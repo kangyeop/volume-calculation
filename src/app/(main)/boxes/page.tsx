@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBoxGroups, useDeleteBoxGroup } from '@/hooks/queries';
 import { Plus, Package, Trash2, Loader2 } from 'lucide-react';
@@ -8,17 +8,24 @@ import { toast } from 'sonner';
 import { usePrefetchBoxGroup } from '@/hooks/usePrefetch';
 import { ListTableSkeleton } from '@/components/skeletons';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 export default function BoxGroupList() {
   const router = useRouter();
   const { data: groups = [], isLoading } = useBoxGroups();
   const deleteGroup = useDeleteBoxGroup();
   const prefetch = usePrefetchBoxGroup();
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
+  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!window.confirm('박스 그룹을 삭제하시겠습니까? 그룹 내 모든 박스도 함께 삭제됩니다.'))
-      return;
+    setDeleteTarget(id);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    const id = deleteTarget;
+    setDeleteTarget(null);
     try {
       await deleteGroup.mutateAsync(id);
       toast.success('삭제 완료', { description: '박스 그룹이 삭제되었습니다.' });
@@ -86,7 +93,7 @@ export default function BoxGroupList() {
                   </td>
                   <td className="px-4 py-3">
                     <button
-                      onClick={(e) => handleDelete(e, group.id)}
+                      onClick={(e) => handleDeleteClick(e, group.id)}
                       disabled={deleteGroup.isPending}
                       className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
                     >
@@ -99,6 +106,15 @@ export default function BoxGroupList() {
           </table>
         </div>
       )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="박스 그룹 삭제"
+        description="박스 그룹을 삭제하시겠습니까? 그룹 내 모든 박스도 함께 삭제됩니다."
+        confirmLabel="삭제"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </PageContainer>
   );
 }
