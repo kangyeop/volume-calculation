@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Package, Layers, ChevronDown, ChevronRight, Maximize2, X } from 'lucide-react';
 import type { NormalizedBoxGroup } from '@/hooks/usePackingNormalizer';
 import type { Box } from '@/types';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface GroupedShipment {
   items: NormalizedBoxGroup['shipments'][0];
@@ -31,6 +32,13 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
   const [expandedLabels, setExpandedLabels] = useState<Set<string>>(new Set());
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [pendingOverride, setPendingOverride] = useState<{
+    groupIndices: number[];
+    boxIndices: number[];
+    newBoxId: string;
+    newBoxName: string;
+    isBulk: boolean;
+  } | null>(null);
 
   const toggleLabels = (key: string) => {
     setExpandedLabels((prev) => {
@@ -106,7 +114,7 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
   const clearSelection = useCallback(() => setSelectedKeys(new Set()), []);
 
   const handleBulkChange = useCallback(
-    (newBoxId: string) => {
+    (newBoxId: string, newBoxName: string) => {
       if (!onBoxOverride) return;
       const allGroupIndices: number[] = [];
       const allBoxIndices: number[] = [];
@@ -120,11 +128,25 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
           allBoxIndices.push(...grouped.boxIndices);
         }
       }
-      onBoxOverride(allGroupIndices, allBoxIndices, newBoxId);
-      clearSelection();
+      setPendingOverride({
+        groupIndices: allGroupIndices,
+        boxIndices: allBoxIndices,
+        newBoxId,
+        newBoxName,
+        isBulk: true,
+      });
     },
-    [onBoxOverride, selectedKeys, groupedByBox, clearSelection],
+    [onBoxOverride, selectedKeys, groupedByBox],
   );
+
+  const confirmOverride = useCallback(() => {
+    if (!pendingOverride || !onBoxOverride) return;
+    onBoxOverride(pendingOverride.groupIndices, pendingOverride.boxIndices, pendingOverride.newBoxId);
+    if (pendingOverride.isBulk) clearSelection();
+    setPendingOverride(null);
+  }, [pendingOverride, onBoxOverride, clearSelection]);
+
+  const cancelOverride = useCallback(() => setPendingOverride(null), []);
 
   const hasSelection = selectedKeys.size > 0;
   const isAllSelected = allVisibleKeys.length > 0 && selectedKeys.size === allVisibleKeys.length;
@@ -356,8 +378,17 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
                             }`}
                             defaultValue={isUnassigned ? '' : boxGroup.box.id}
                             onChange={(e) => {
-                              if (e.target.value) {
-                                onBoxOverride(grouped.groupIndices, grouped.boxIndices, e.target.value);
+                              const val = e.target.value;
+                              if (val) {
+                                const box = availableBoxes?.find((b) => b.id === val);
+                                setPendingOverride({
+                                  groupIndices: grouped.groupIndices,
+                                  boxIndices: grouped.boxIndices,
+                                  newBoxId: val,
+                                  newBoxName: box?.name ?? val,
+                                  isBulk: false,
+                                });
+                                e.target.value = isUnassigned ? '' : boxGroup.box.id;
                               }
                             }}
                           >
@@ -414,6 +445,19 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
         );
       })}
 
+      <ConfirmDialog
+        open={!!pendingOverride}
+        title="박스 변경"
+        description={
+          pendingOverride
+            ? `선택한 ${pendingOverride.isBulk ? `${selectedKeys.size}개 구성을` : '구성을'} "${pendingOverride.newBoxName}" 박스로 변경하시겠습니까?`
+            : ''
+        }
+        confirmLabel="변경"
+        onConfirm={confirmOverride}
+        onCancel={cancelOverride}
+      />
+
       {onBoxOverride && hasSelection && availableBoxes && availableBoxes.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t shadow-lg">
           <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
@@ -425,7 +469,8 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
                 defaultValue=""
                 onChange={(e) => {
                   if (e.target.value) {
-                    handleBulkChange(e.target.value);
+                    const box = availableBoxes?.find((b) => b.id === e.target.value);
+                    handleBulkChange(e.target.value, box?.name ?? e.target.value);
                     e.target.value = '';
                   }
                 }}

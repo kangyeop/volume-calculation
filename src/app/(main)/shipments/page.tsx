@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useShipments, useDeleteShipment } from '@/hooks/queries';
 import { Plus, Truck, Trash2, Loader2 } from 'lucide-react';
@@ -8,16 +8,24 @@ import { toast } from 'sonner';
 import { usePrefetchShipmentDetail } from '@/hooks/usePrefetch';
 import { ListTableSkeleton } from '@/components/skeletons';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 export default function OutboundList() {
   const router = useRouter();
   const { data: batches = [], isLoading } = useShipments();
   const deleteBatch = useDeleteShipment();
   const prefetch = usePrefetchShipmentDetail();
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
+  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!window.confirm('출고 배치를 삭제하시겠습니까?')) return;
+    setDeleteTarget(id);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    const id = deleteTarget;
+    setDeleteTarget(null);
     try {
       await deleteBatch.mutateAsync(id);
       toast.success('삭제 완료', { description: '출고 배치가 삭제되었습니다.' });
@@ -83,7 +91,7 @@ export default function OutboundList() {
                   </td>
                   <td className="px-4 py-3">
                     <button
-                      onClick={(e) => handleDelete(e, batch.id)}
+                      onClick={(e) => handleDeleteClick(e, batch.id)}
                       disabled={deleteBatch.isPending}
                       className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
                     >
@@ -96,6 +104,15 @@ export default function OutboundList() {
           </table>
         </div>
       )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="출고 배치 삭제"
+        description="출고 배치를 삭제하시겠습니까?"
+        confirmLabel="삭제"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </PageContainer>
   );
 }

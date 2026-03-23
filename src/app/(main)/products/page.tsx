@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProductGroups, useDeleteProductGroup } from '@/hooks/queries';
 import { Plus, Package, Trash2, Loader2 } from 'lucide-react';
@@ -10,16 +10,24 @@ import { ListTableSkeleton } from '@/components/skeletons';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ProductSearchTab } from '@/components/products/ProductSearchTab';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 export default function ProductGroupList() {
   const router = useRouter();
   const { data: groups = [], isLoading } = useProductGroups();
   const deleteGroup = useDeleteProductGroup();
   const prefetch = usePrefetchProductGroup();
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
+  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!window.confirm('상품 그룹을 삭제하시겠습니까?')) return;
+    setDeleteTarget(id);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    const id = deleteTarget;
+    setDeleteTarget(null);
     try {
       await deleteGroup.mutateAsync(id);
       toast.success('삭제 완료', { description: '상품 그룹이 삭제되었습니다.' });
@@ -92,7 +100,7 @@ export default function ProductGroupList() {
                       </td>
                       <td className="px-4 py-3">
                         <button
-                          onClick={(e) => handleDelete(e, group.id)}
+                          onClick={(e) => handleDeleteClick(e, group.id)}
                           disabled={deleteGroup.isPending}
                           className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
                         >
@@ -111,6 +119,15 @@ export default function ProductGroupList() {
           <ProductSearchTab />
         </TabsContent>
       </Tabs>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="상품 그룹 삭제"
+        description="상품 그룹을 삭제하시겠습니까?"
+        confirmLabel="삭제"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </PageContainer>
   );
 }

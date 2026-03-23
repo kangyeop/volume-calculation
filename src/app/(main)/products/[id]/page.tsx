@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, Trash2, Loader2, AlertCircle, Check, X } from 'lucide-react';
 import { ProductDetailSkeleton } from '@/components/skeletons';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import type { Product } from '@/types';
 import { useUpdateProduct } from '@/hooks/queries';
 
@@ -53,8 +54,11 @@ export default function ProductGroupDetail() {
     }
   };
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   const handleDeleteSelected = async () => {
     if (!groupId || selectedIds.size === 0) return;
+    setShowDeleteConfirm(false);
     setIsDeleting(true);
     try {
       await api.products.deleteBulkByGroup(groupId, Array.from(selectedIds));
@@ -201,7 +205,7 @@ export default function ProductGroupDetail() {
               총 {productList.length}개 상품
             </span>
             <button
-              onClick={handleDeleteSelected}
+              onClick={() => setShowDeleteConfirm(true)}
               disabled={selectedIds.size === 0 || isDeleting}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
@@ -319,6 +323,15 @@ export default function ProductGroupDetail() {
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="상품 삭제"
+        description={`선택한 ${selectedIds.size}개 상품을 삭제하시겠습니까?`}
+        confirmLabel="삭제"
+        variant="danger"
+        onConfirm={handleDeleteSelected}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </PageContainer>
   );
 }
