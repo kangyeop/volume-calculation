@@ -13,6 +13,7 @@ export const productGroups = createQueryKeys('productGroups', {
 
 export const products = createQueryKeys('products', {
   all: (projectId: string) => [projectId],
+  listAll: null,
   byGroup: (groupId: string) => [groupId, 'group'],
 });
 

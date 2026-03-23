@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { orderItems, packingResults, packingResultDetails, orders, products, productGroups } from '@/lib/db/schema';
+import { orderItems, packingResults, packingResultDetails, orders, products, productGroups, shipments } from '@/lib/db/schema';
 export { exportPackingResults } from '@/lib/services/excel';
 import { eq, and } from 'drizzle-orm';
 import { calculatePacking, calculateOrderPackingUnified } from '@/lib/algorithms/packing';
@@ -13,6 +13,16 @@ import * as boxesService from '@/lib/services/boxes';
 
 const CHUNK_SIZE = 500;
 
+async function assertNotConfirmed(shipmentId: string) {
+  const shipment = await db.query.shipments.findFirst({
+    where: eq(shipments.id, shipmentId),
+    columns: { status: true },
+  });
+  if (shipment?.status === 'CONFIRMED') {
+    throw new Error('SHIPMENT_CONFIRMED');
+  }
+}
+
 type OrderItemRow = typeof orderItems.$inferSelect & {
   product?: (typeof products.$inferSelect & { productGroupId: string }) | null;
 };
@@ -20,6 +30,7 @@ type OrderItemRow = typeof orderItems.$inferSelect & {
 export async function calculate(
   shipmentId: string,
 ): Promise<PackingRecommendation> {
+  await assertNotConfirmed(shipmentId);
   const allItems = await db.query.orderItems.findMany({
     where: eq(orderItems.shipmentId, shipmentId),
     with: { product: true },
@@ -421,6 +432,7 @@ export async function updateBoxAssignment(
   items: { groupIndex: number; boxIndex: number }[],
   newBoxId: string,
 ): Promise<PackingRecommendation> {
+  await assertNotConfirmed(shipmentId);
   const results = await db
     .select()
     .from(packingResults)

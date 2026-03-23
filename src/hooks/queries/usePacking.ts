@@ -87,3 +87,27 @@ export function usePackingDetails(batchId: string) {
     enabled: !!batchId,
   });
 }
+
+export function useConfirmShipment(): UseMutationResult<{ success: boolean }, Error, { batchId: string }> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ batchId }) => api.shipments.confirm(batchId),
+    onSuccess: (_, { batchId }) => {
+      queryClient.invalidateQueries({ queryKey: ['shipments'] });
+      queryClient.invalidateQueries({ queryKey: packing.recommendation(batchId).queryKey });
+    },
+  });
+}
+
+export function useUnconfirmShipment(): UseMutationResult<{ success: boolean }, Error, { batchId: string }> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ batchId }) => api.shipments.unconfirm(batchId),
+    onSuccess: (_, { batchId }) => {
+      queryClient.invalidateQueries({ queryKey: ['shipments'] });
+      queryClient.invalidateQueries({ queryKey: packing.recommendation(batchId).queryKey });
+    },
+  });
+}

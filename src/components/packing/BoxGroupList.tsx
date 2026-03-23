@@ -1,9 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Package, Layers, ChevronDown, ChevronRight, Maximize2 } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Package, Layers, ChevronDown, ChevronRight, Maximize2, X } from 'lucide-react';
 import type { NormalizedBoxGroup } from '@/hooks/usePackingNormalizer';
 import type { Box } from '@/types';
+
+interface GroupedShipment {
+  items: NormalizedBoxGroup['shipments'][0];
+  totalCount: number;
+  labels: string[];
+  groupIndices: number[];
+  boxIndices: number[];
+}
 
 interface BoxGroupListProps {
   normalizedBoxes: NormalizedBoxGroup[];
@@ -22,6 +30,7 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
 }) => {
   const [expandedLabels, setExpandedLabels] = useState<Set<string>>(new Set());
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
 
   const toggleLabels = (key: string) => {
     setExpandedLabels((prev) => {
@@ -36,8 +45,93 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
     ? normalizedBoxes.filter((b) => b.box.id === activeFilter)
     : normalizedBoxes;
 
+  const groupedByBox = useMemo(() => {
+    return filteredBoxes.map((boxGroup) => {
+      const grouped = new Map<string, GroupedShipment>();
+      for (const shipment of boxGroup.shipments) {
+        const skuKey = shipment.packedSKUs
+          .map((sku) => `${sku.skuId}:${sku.quantity}`)
+          .sort()
+          .join('|');
+
+        if (!grouped.has(skuKey)) {
+          grouped.set(skuKey, {
+            items: shipment,
+            totalCount: shipment.count,
+            labels: [shipment.groupLabel],
+            groupIndices: [shipment.groupIndex ?? 0],
+            boxIndices: [shipment.boxIndex ?? 0],
+          });
+        } else {
+          const existing = grouped.get(skuKey)!;
+          existing.totalCount += shipment.count;
+          existing.labels.push(shipment.groupLabel);
+          existing.groupIndices.push(shipment.groupIndex ?? 0);
+          existing.boxIndices.push(shipment.boxIndex ?? 0);
+        }
+      }
+      return grouped;
+    });
+  }, [filteredBoxes]);
+
+  const allVisibleKeys = useMemo(() => {
+    const keys: string[] = [];
+    groupedByBox.forEach((grouped, idx) => {
+      for (const skuKey of grouped.keys()) {
+        keys.push(`${idx}::${skuKey}`);
+      }
+    });
+    return keys;
+  }, [groupedByBox]);
+
+  useEffect(() => {
+    setSelectedKeys(new Set());
+  }, [activeFilter]);
+
+  const toggleSelection = useCallback((key: string) => {
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedKeys((prev) =>
+      prev.size === allVisibleKeys.length ? new Set() : new Set(allVisibleKeys),
+    );
+  }, [allVisibleKeys]);
+
+  const clearSelection = useCallback(() => setSelectedKeys(new Set()), []);
+
+  const handleBulkChange = useCallback(
+    (newBoxId: string) => {
+      if (!onBoxOverride) return;
+      const allGroupIndices: number[] = [];
+      const allBoxIndices: number[] = [];
+      for (const key of selectedKeys) {
+        const sepIdx = key.indexOf('::');
+        const idxStr = key.substring(0, sepIdx);
+        const skuKey = key.substring(sepIdx + 2);
+        const grouped = groupedByBox[Number(idxStr)]?.get(skuKey);
+        if (grouped) {
+          allGroupIndices.push(...grouped.groupIndices);
+          allBoxIndices.push(...grouped.boxIndices);
+        }
+      }
+      onBoxOverride(allGroupIndices, allBoxIndices, newBoxId);
+      clearSelection();
+    },
+    [onBoxOverride, selectedKeys, groupedByBox, clearSelection],
+  );
+
+  const hasSelection = selectedKeys.size > 0;
+  const isAllSelected = allVisibleKeys.length > 0 && selectedKeys.size === allVisibleKeys.length;
+  const isIndeterminate = hasSelection && !isAllSelected;
+
   return (
-    <div className="space-y-6" data-testid="packing-results">
+    <div className={`space-y-6 ${hasSelection ? 'pb-20' : ''}`} data-testid="packing-results">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
         <h2 className="text-2xl font-bold flex items-center gap-2">
           <Layers className="h-6 w-6" />
@@ -72,42 +166,26 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
         )}
       </div>
 
+      {onBoxOverride && allVisibleKeys.length > 0 && (
+        <div className="flex items-center gap-2 px-1">
+          <input
+            type="checkbox"
+            checked={isAllSelected}
+            ref={(el) => {
+              if (el) el.indeterminate = isIndeterminate;
+            }}
+            onChange={toggleSelectAll}
+            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+          />
+          <span className="text-sm text-gray-600">
+            {hasSelection ? `${selectedKeys.size}개 선택됨` : '전체 선택'}
+          </span>
+        </div>
+      )}
+
       {filteredBoxes.map((boxGroup, idx) => {
         const isUnassigned = boxGroup.box.id === 'unassigned';
-
-        const groupedShipments = new Map<
-          string,
-          {
-            items: (typeof boxGroup.shipments)[0];
-            totalCount: number;
-            labels: string[];
-            groupIndices: number[];
-            boxIndices: number[];
-          }
-        >();
-
-        for (const shipment of boxGroup.shipments) {
-          const skuKey = shipment.packedSKUs
-            .map((sku) => `${sku.skuId}:${sku.quantity}`)
-            .sort()
-            .join('|');
-
-          if (!groupedShipments.has(skuKey)) {
-            groupedShipments.set(skuKey, {
-              items: shipment,
-              totalCount: shipment.count,
-              labels: [shipment.groupLabel],
-              groupIndices: [shipment.groupIndex ?? 0],
-              boxIndices: [shipment.boxIndex ?? 0],
-            });
-          } else {
-            const existing = groupedShipments.get(skuKey)!;
-            existing.totalCount += shipment.count;
-            existing.labels.push(shipment.groupLabel);
-            existing.groupIndices.push(shipment.groupIndex ?? 0);
-            existing.boxIndices.push(shipment.boxIndex ?? 0);
-          }
-        }
+        const groupedShipments = groupedByBox[idx];
 
         return (
           <div
@@ -168,6 +246,8 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
 
             <div className="space-y-4">
               {Array.from(groupedShipments.entries()).map(([skuKey, grouped], gIdx) => {
+                const selectionKey = `${idx}::${skuKey}`;
+                const isSelected = selectedKeys.has(selectionKey);
                 const labelKey = `${idx}-${gIdx}-${skuKey}`;
                 const isExpanded = expandedLabels.has(labelKey);
                 const sortedSKUs = [...grouped.items.packedSKUs].sort((a, b) =>
@@ -203,56 +283,68 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
                 return (
                   <div
                     key={gIdx}
-                    className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+                    className={`bg-white rounded-lg border overflow-hidden transition-colors ${
+                      isSelected ? 'border-indigo-400 ring-1 ring-indigo-400' : 'border-gray-200'
+                    }`}
                   >
                     <div className="bg-gray-50 px-4 py-2 border-b flex justify-between items-start gap-2">
-                      <div className="flex flex-col gap-1.5 min-w-0">
-                        {grouped.labels.length > 1 && (
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-gray-700">
-                              Configuration × {grouped.totalCount}
-                            </span>
-                            {occupancyPct !== null && (
-                              <span className="text-xs font-mono font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
-                                {occupancyPct.toFixed(1)}%
+                      <div className="flex items-start gap-3 min-w-0">
+                        {onBoxOverride && (
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelection(selectionKey)}
+                            className="h-4 w-4 mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer flex-shrink-0"
+                          />
+                        )}
+                        <div className="flex flex-col gap-1.5 min-w-0">
+                          {grouped.labels.length > 1 && (
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-gray-700">
+                                Configuration × {grouped.totalCount}
                               </span>
-                            )}
-                          </div>
-                        )}
-                        {grouped.labels.length <= 1 && occupancyPct !== null && (
-                          <span className="text-xs font-mono font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded w-fit">
-                            {occupancyPct.toFixed(1)}%
-                          </span>
-                        )}
-                        {maxItem && (
-                          <span className="flex items-center gap-1 text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md w-fit">
-                            <Maximize2 className="h-3 w-3 flex-shrink-0" />
-                            최대 아이템: {maxItem.name} ({maxItem.width}×{maxItem.length}×{maxItem.height} cm)
-                          </span>
-                        )}
-                        <button
-                          onClick={() => toggleLabels(labelKey)}
-                          className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium"
-                        >
-                          {isExpanded ? (
-                            <ChevronDown className="h-3.5 w-3.5 flex-shrink-0" />
-                          ) : (
-                            <ChevronRight className="h-3.5 w-3.5 flex-shrink-0" />
+                              {occupancyPct !== null && (
+                                <span className="text-xs font-mono font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
+                                  {occupancyPct.toFixed(1)}%
+                                </span>
+                              )}
+                            </div>
                           )}
-                          {grouped.labels.length}개 주문
-                        </button>
-                        {isExpanded && (
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {grouped.labels.map((l, i) => (
-                              <span
-                                key={i}
-                                className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-medium"
-                              >
-                                {l}
-                              </span>
-                            ))}
-                          </div>
-                        )}
+                          {grouped.labels.length <= 1 && occupancyPct !== null && (
+                            <span className="text-xs font-mono font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded w-fit">
+                              {occupancyPct.toFixed(1)}%
+                            </span>
+                          )}
+                          {maxItem && (
+                            <span className="flex items-center gap-1 text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md w-fit">
+                              <Maximize2 className="h-3 w-3 flex-shrink-0" />
+                              최대 아이템: {maxItem.name} ({maxItem.width}×{maxItem.length}×{maxItem.height} cm)
+                            </span>
+                          )}
+                          <button
+                            onClick={() => toggleLabels(labelKey)}
+                            className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                          >
+                            {isExpanded ? (
+                              <ChevronDown className="h-3.5 w-3.5 flex-shrink-0" />
+                            ) : (
+                              <ChevronRight className="h-3.5 w-3.5 flex-shrink-0" />
+                            )}
+                            {grouped.labels.length}개 주문
+                          </button>
+                          {isExpanded && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {grouped.labels.map((l, i) => (
+                                <span
+                                  key={i}
+                                  className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-medium"
+                                >
+                                  {l}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {availableBoxes && availableBoxes.length > 0 && onBoxOverride && (
@@ -321,6 +413,42 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
           </div>
         );
       })}
+
+      {onBoxOverride && hasSelection && availableBoxes && availableBoxes.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t shadow-lg">
+          <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
+            <span className="text-sm font-medium text-gray-700">
+              {selectedKeys.size}개 구성 선택됨
+            </span>
+            <div className="flex items-center gap-3">
+              <select
+                defaultValue=""
+                onChange={(e) => {
+                  if (e.target.value) {
+                    handleBulkChange(e.target.value);
+                    e.target.value = '';
+                  }
+                }}
+                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none"
+              >
+                <option value="">박스 일괄 변경...</option>
+                {availableBoxes.map((box) => (
+                  <option key={box.id} value={box.id}>
+                    {box.name} ({box.width}×{box.length}×{box.height})
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={clearSelection}
+                className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 rounded hover:bg-gray-100 transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
+                선택 해제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
