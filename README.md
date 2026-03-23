@@ -1,36 +1,48 @@
 # dnut VC
 
-이 저장소를 빠르게 파악하려면 먼저 [docs/README.md](docs/README.md)를 보는 것을 권장합니다.
+출고 박스 패킹 최적화 시스템. 상품 부피와 박스 규격을 기반으로 최적의 패킹 조합을 계산합니다.
 
-핵심 문서:
+## 기술 스택
 
-- [문서 인덱스](docs/README.md)
-- [프로젝트 개요](docs/01-프로젝트-개요.md)
-- [구조와 실행 흐름](docs/02-구조와-실행-흐름.md)
-- [현재 스펙](docs/03-현재-스펙.md)
+- **프레임워크**: Next.js 15 (App Router)
+- **프론트엔드**: React 19, TailwindCSS, Radix UI
+- **상태 관리**: TanStack React Query, Jotai
+- **데이터베이스**: Supabase PostgreSQL (Drizzle ORM)
+- **파일 저장소**: Supabase Storage
+- **엑셀 처리**: ExcelJS, SheetJS
 
 ## 실행
 
 ```bash
 pnpm install
-docker compose up -d
 pnpm dev
 ```
 
-개별 실행:
+## 주요 명령어
 
 ```bash
-pnpm dev:server
-pnpm dev:web
+pnpm dev              # 개발 서버
+pnpm build            # 프로덕션 빌드
+pnpm lint             # ESLint
+pnpm type-check       # 타입 체크
+pnpm db:generate      # Drizzle 마이그레이션 생성
+pnpm db:migrate       # 마이그레이션 적용
+pnpm db:studio        # Drizzle Studio (DB GUI)
 ```
 
-## 주요 기술 스택
+## 환경 변수
 
-- 모노레포: `pnpm` + `turbo`
-- 백엔드: NestJS + TypeORM + MySQL
-- 프론트엔드: React + Vite + TanStack Query
-- 공통 타입: `packages/types`
+`.env.local`에 설정:
 
-## 참고
+| 변수 | 용도 |
+|------|------|
+| `DATABASE_URL` | PostgreSQL 연결 |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 프로젝트 URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase 클라이언트 키 |
+| `SUPABASE_SECRET_KEY` | Supabase 서버 키 |
 
-- 기존 상세 분석 문서는 루트에 남겨두고, 실제 프로젝트 파악용 최신 정리본은 `docs/` 아래에 둡니다.
+## 문서
+
+- [시스템 아키텍처](docs/architecture.md)
+- [DB 스키마](docs/db-schema.md)
+- [도메인별 문서](docs/domain/)
