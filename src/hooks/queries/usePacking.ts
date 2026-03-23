@@ -61,13 +61,13 @@ export function useCalculateOrderPacking(): UseMutationResult<
 export function useUpdateBoxAssignment(): UseMutationResult<
   PackingRecommendation,
   Error,
-  { batchId: string; groupIndex: number; boxIndex: number; newBoxId: string }
+  { batchId: string; items: { groupIndex: number; boxIndex: number }[]; newBoxId: string }
 > {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ batchId, groupIndex, boxIndex, newBoxId }) =>
-      api.packing.updateBoxAssignment(batchId, { groupIndex, boxIndex, newBoxId }),
+    mutationFn: ({ batchId, items, newBoxId }) =>
+      api.packing.updateBoxAssignment(batchId, { items, newBoxId }),
     onSuccess: (_, { batchId }) => {
       queryClient.invalidateQueries({ queryKey: packing.recommendation(batchId).queryKey });
     },

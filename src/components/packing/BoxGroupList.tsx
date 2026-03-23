@@ -10,7 +10,7 @@ interface BoxGroupListProps {
   showFilter?: boolean;
   skuDimensionsMap?: Map<string, { width: number; length: number; height: number; name: string }>;
   availableBoxes?: Box[];
-  onBoxOverride?: (groupIndex: number, boxIndex: number, newBoxId: string) => void;
+  onBoxOverride?: (groupIndices: number[], boxIndices: number[], newBoxId: string) => void;
 }
 
 export const BoxGroupList: React.FC<BoxGroupListProps> = ({
@@ -265,9 +265,7 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
                             defaultValue={isUnassigned ? '' : boxGroup.box.id}
                             onChange={(e) => {
                               if (e.target.value) {
-                                for (let i = 0; i < grouped.groupIndices.length; i++) {
-                                  onBoxOverride(grouped.groupIndices[i], grouped.boxIndices[i], e.target.value);
-                                }
+                                onBoxOverride(grouped.groupIndices, grouped.boxIndices, e.target.value);
                               }
                             }}
                           >

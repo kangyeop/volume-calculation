@@ -23,8 +23,7 @@ export async function PATCH(
     const body = await request.json();
     const result = await packingService.updateBoxAssignment(
       shipmentId,
-      body.groupIndex,
-      body.boxIndex,
+      body.items,
       body.newBoxId,
     );
     return NextResponse.json(result);

@@ -200,13 +200,12 @@ export default function PackingCalculator() {
     return boxGroupList.flatMap((g) => g.boxes ?? []);
   }, [boxGroupList]);
 
-  const handleBoxOverride = async (groupIndex: number, boxIndex: number, newBoxId: string) => {
+  const handleBoxOverride = async (groupIndices: number[], boxIndices: number[], newBoxId: string) => {
     if (!batchId) return;
     try {
       const updated = await updateBoxAssignment.mutateAsync({
         batchId,
-        groupIndex,
-        boxIndex,
+        items: groupIndices.map((gi, i) => ({ groupIndex: gi, boxIndex: boxIndices[i] })),
         newBoxId,
       });
       setFreshResult(updated);

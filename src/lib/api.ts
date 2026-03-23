@@ -202,7 +202,7 @@ export const api = {
         data: { orderId, groupLabel },
       });
     },
-    updateBoxAssignment: (shipmentId: string, data: { groupIndex: number; boxIndex: number; newBoxId: string }) =>
+    updateBoxAssignment: (shipmentId: string, data: { items: { groupIndex: number; boxIndex: number }[]; newBoxId: string }) =>
       fetchApi<PackingRecommendation>(`/shipments/${shipmentId}/packing/recommendation`, {
         method: 'PATCH',
         data,

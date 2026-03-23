@@ -418,8 +418,7 @@ export async function getRecommendation(shipmentId: string): Promise<PackingReco
 
 export async function updateBoxAssignment(
   shipmentId: string,
-  groupIndex: number,
-  boxIndex: number,
+  items: { groupIndex: number; boxIndex: number }[],
   newBoxId: string,
 ): Promise<PackingRecommendation> {
   const results = await db
@@ -443,65 +442,70 @@ export async function updateBoxAssignment(
     .sort((a, b) => (a[1][0].groupIndex ?? 0) - (b[1][0].groupIndex ?? 0))
     .map(([label]) => label);
 
-  if (groupIndex < 0 || groupIndex >= sortedGroupLabels.length) {
-    throw new Error(`유효하지 않은 그룹 인덱스입니다: ${groupIndex}`);
-  }
-
-  const targetGroupLabel = sortedGroupLabels[groupIndex];
-  const groupRows = groupMap.get(targetGroupLabel)!;
-
-  const boxTypes: { key: string; boxName: string | null }[] = [];
-  const seen = new Set<string>();
-  for (const r of groupRows) {
-    const key = r.boxId || r.boxName || 'unknown';
-    if (!seen.has(key)) {
-      seen.add(key);
-      boxTypes.push({ key, boxName: r.boxName });
-    }
-  }
-
-  if (boxIndex < 0 || boxIndex >= boxTypes.length) {
-    throw new Error(`유효하지 않은 박스 인덱스입니다: ${boxIndex}`);
-  }
-
-  const oldBoxType = boxTypes[boxIndex];
   const newBox = await boxesService.findOne(newBoxId);
   if (!newBox) throw new Error(`Box ${newBoxId} not found`);
 
   const newBoxVol = Number(newBox.width) * Number(newBox.length) * Number(newBox.height);
 
-  await db
-    .update(packingResults)
-    .set({
-      boxId: newBox.id,
-      boxName: newBox.name,
-      boxWidth: String(newBox.width),
-      boxLength: String(newBox.length),
-      boxHeight: String(newBox.height),
-      boxGroupId: newBox.boxGroupId,
-      totalCBM: String(newBoxVol / 1_000_000),
-    })
-    .where(
-      and(
-        eq(packingResults.shipmentId, shipmentId),
-        eq(packingResults.groupLabel, targetGroupLabel),
-        oldBoxType.boxName ? eq(packingResults.boxName, oldBoxType.boxName) : undefined,
-      ),
-    );
+  for (const item of items) {
+    const { groupIndex, boxIndex } = item;
 
-  if (oldBoxType.boxName) {
-    const groupOrderIds = [...new Set(groupRows.map((r) => r.orderId).filter(Boolean))];
-    for (const oid of groupOrderIds) {
-      await db
-        .update(packingResultDetails)
-        .set({ boxName: newBox.name })
-        .where(
-          and(
-            eq(packingResultDetails.shipmentId, shipmentId),
-            eq(packingResultDetails.orderId, oid!),
-            eq(packingResultDetails.boxName, oldBoxType.boxName!),
-          ),
-        );
+    if (groupIndex < 0 || groupIndex >= sortedGroupLabels.length) {
+      throw new Error(`유효하지 않은 그룹 인덱스입니다: ${groupIndex}`);
+    }
+
+    const targetGroupLabel = sortedGroupLabels[groupIndex];
+    const groupRows = groupMap.get(targetGroupLabel)!;
+
+    const boxTypes: { key: string; boxName: string | null }[] = [];
+    const seen = new Set<string>();
+    for (const r of groupRows) {
+      const key = r.boxId || r.boxName || 'unknown';
+      if (!seen.has(key)) {
+        seen.add(key);
+        boxTypes.push({ key, boxName: r.boxName });
+      }
+    }
+
+    if (boxIndex < 0 || boxIndex >= boxTypes.length) {
+      throw new Error(`유효하지 않은 박스 인덱스입니다: ${boxIndex}`);
+    }
+
+    const oldBoxType = boxTypes[boxIndex];
+
+    await db
+      .update(packingResults)
+      .set({
+        boxId: newBox.id,
+        boxName: newBox.name,
+        boxWidth: String(newBox.width),
+        boxLength: String(newBox.length),
+        boxHeight: String(newBox.height),
+        boxGroupId: newBox.boxGroupId,
+        totalCBM: String(newBoxVol / 1_000_000),
+      })
+      .where(
+        and(
+          eq(packingResults.shipmentId, shipmentId),
+          eq(packingResults.groupLabel, targetGroupLabel),
+          oldBoxType.boxName ? eq(packingResults.boxName, oldBoxType.boxName) : undefined,
+        ),
+      );
+
+    if (oldBoxType.boxName) {
+      const groupOrderIds = [...new Set(groupRows.map((r) => r.orderId).filter(Boolean))];
+      for (const oid of groupOrderIds) {
+        await db
+          .update(packingResultDetails)
+          .set({ boxName: newBox.name })
+          .where(
+            and(
+              eq(packingResultDetails.shipmentId, shipmentId),
+              eq(packingResultDetails.orderId, oid!),
+              eq(packingResultDetails.boxName, oldBoxType.boxName!),
+            ),
+          );
+      }
     }
   }
 

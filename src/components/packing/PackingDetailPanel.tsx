@@ -10,7 +10,7 @@ interface PackingDetailPanelProps {
   onBack: () => void;
   skuDimensionsMap?: Map<string, { width: number; length: number; height: number; name: string }>;
   availableBoxes?: Box[];
-  onBoxOverride?: (groupIndex: number, boxIndex: number, newBoxId: string) => void;
+  onBoxOverride?: (groupIndices: number[], boxIndices: number[], newBoxId: string) => void;
 }
 
 export const PackingDetailPanel: React.FC<PackingDetailPanelProps> = ({
