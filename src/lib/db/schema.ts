@@ -16,6 +16,7 @@ import {
 import { relations } from 'drizzle-orm';
 
 export const orderStatusEnum = pgEnum('order_status', ['PENDING', 'PROCESSING', 'COMPLETED']);
+export const shipmentStatusEnum = pgEnum('shipment_status', ['PACKING', 'CONFIRMED']);
 
 export const productGroups = pgTable('product_groups', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -61,6 +62,7 @@ export const boxes = pgTable('boxes', {
 export const shipments = pgTable('shipments', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
+  status: shipmentStatusEnum('status').default('PACKING').notNull(),
   lastBoxGroupId: uuid('last_box_group_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),

@@ -84,6 +84,8 @@
 | GET | `/api/outbound-batches/{batchId}/packing/recommendation` | 저장된 추천 결과 조회 |
 | PATCH | `/api/outbound-batches/{batchId}/packing/recommendation` | 박스 배정 변경 |
 | GET | `/api/outbound-batches/{batchId}/packing/export` | 엑셀 내보내기 |
+| POST | `/api/shipments/{shipmentId}/confirm` | 패킹 확정 |
+| DELETE | `/api/shipments/{shipmentId}/confirm` | 확정 해제 |
 
 ## 비즈니스 로직
 
@@ -116,6 +118,13 @@
 ### 결과 저장
 
 재계산 시 기존 결과를 삭제 후 새로 생성한다 (누적 히스토리 아님). 추천 결과는 outboundBatches.packingRecommendation (JSONB)에 저장된다.
+
+### 패킹 확정
+
+패킹 결과가 존재하는 출고건에 대해 확정(`CONFIRMED`) 상태로 전환할 수 있다. 확정된 출고건은 재계산, 박스 변경이 불가능하며 Excel 내보내기만 허용된다. 확정 해제로 `PACKING` 상태로 되돌릴 수 있다.
+
+- `POST /api/shipments/{shipmentId}/confirm` — 확정
+- `DELETE /api/shipments/{shipmentId}/confirm` — 확정 해제
 
 ### 제한사항
 

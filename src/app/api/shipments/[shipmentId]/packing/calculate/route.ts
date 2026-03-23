@@ -10,6 +10,9 @@ export async function POST(
     const result = await packingService.calculate(shipmentId);
     return NextResponse.json(result);
   } catch (error) {
+    if (error instanceof Error && error.message === 'SHIPMENT_CONFIRMED') {
+      return NextResponse.json({ error: '확정된 출고건은 재계산할 수 없습니다.' }, { status: 409 });
+    }
     return NextResponse.json({ error: 'Failed to calculate packing' }, { status: 500 });
   }
 }

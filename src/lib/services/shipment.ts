@@ -7,6 +7,7 @@ export async function findAll() {
     .select({
       id: shipments.id,
       name: shipments.name,
+      status: shipments.status,
       createdAt: shipments.createdAt,
       updatedAt: shipments.updatedAt,
     })
@@ -44,6 +45,24 @@ export async function generateBatchName(filename: string): Promise<string> {
 export async function create(name: string) {
   const [batch] = await db.insert(shipments).values({ name }).returning();
   return batch;
+}
+
+export async function confirm(id: string) {
+  const [shipment] = await db
+    .update(shipments)
+    .set({ status: 'CONFIRMED' })
+    .where(eq(shipments.id, id))
+    .returning();
+  return shipment;
+}
+
+export async function unconfirm(id: string) {
+  const [shipment] = await db
+    .update(shipments)
+    .set({ status: 'PACKING' })
+    .where(eq(shipments.id, id))
+    .returning();
+  return shipment;
 }
 
 export async function remove(id: string): Promise<void> {

@@ -47,6 +47,7 @@ export interface ProductGroup {
 export interface Shipment {
   id: string;
   name: string;
+  status?: string;
   orderCount?: number;
   itemCount?: number;
   lastBoxGroupId?: string | null;
@@ -149,6 +150,8 @@ export const api = {
     list: () => fetchApi<Shipment[]>('/shipments'),
     get: (id: string) => fetchApi<Shipment>(`/shipments/${id}`),
     delete: (id: string) => fetchApi<void>(`/shipments/${id}`, { method: 'DELETE' }),
+    confirm: (id: string) => fetchApi<{ success: boolean }>(`/shipments/${id}/confirm`, { method: 'POST' }),
+    unconfirm: (id: string) => fetchApi<{ success: boolean }>(`/shipments/${id}/confirm`, { method: 'DELETE' }),
     upload: (file: File, format: 'adjustment' | 'beforeMapping' | 'afterMapping'): Promise<ShipmentUploadResult> => {
       const formData = new FormData();
       formData.append('file', file);

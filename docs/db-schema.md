@@ -54,6 +54,7 @@ erDiagram
         uuid id PK
         varchar name
         uuid lastBoxGroupId "nullable"
+        shipment_status status "default PACKING"
         timestamp createdAt
         timestamp updatedAt
     }
@@ -146,6 +147,7 @@ erDiagram
 | Enum | 값 | 용도 |
 |------|----|------|
 | `order_status` | `PENDING`, `PROCESSING`, `COMPLETED` | 주문 처리 상태 |
+| `shipment_status` | `PACKING`, `CONFIRMED` | 출고건 패킹 상태 |
 
 ## 인덱스
 

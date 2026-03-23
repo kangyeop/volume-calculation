@@ -36,6 +36,13 @@
       "when": 1774157721246,
       "tag": "0004_numerous_lightspeed",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1774262715902,
+      "tag": "0005_clean_swordsman",
+      "breakpoints": true
     }
   ]
 }

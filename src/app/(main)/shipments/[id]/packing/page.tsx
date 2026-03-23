@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Download, RefreshCw } from 'lucide-react';
+import { Download, RefreshCw, Lock, LockOpen, Check } from 'lucide-react';
 import {
   useCalculatePacking,
   useExportPacking,
@@ -11,6 +11,9 @@ import {
   useUpdateBoxAssignment,
   useProductGroups,
   useBoxGroups,
+  useConfirmShipment,
+  useUnconfirmShipment,
+  useShipment,
 } from '@/hooks/queries';
 import { usePackingNormalizer } from '@/hooks/usePackingNormalizer';
 import type { PackingCalculationResult } from '@/hooks/usePackingNormalizer';
@@ -33,6 +36,10 @@ export default function PackingCalculator() {
   const updateBoxAssignment = useUpdateBoxAssignment();
   const { data: productGroups = [] } = useProductGroups();
   const { data: boxGroupList = [] } = useBoxGroups();
+  const { data: shipment } = useShipment(batchId ?? '');
+  const confirmShipment = useConfirmShipment();
+  const unconfirmShipment = useUnconfirmShipment();
+  const isConfirmed = shipment?.status === 'CONFIRMED';
 
   const [freshResult, setFreshResult] = useState<
     PackingRecommendation | PackingCalculationResult | null
@@ -226,6 +233,26 @@ export default function PackingCalculator() {
     }
   };
 
+  const handleConfirm = async () => {
+    if (!batchId) return;
+    try {
+      await confirmShipment.mutateAsync({ batchId });
+      toast.success('패킹이 확정되었습니다.');
+    } catch {
+      toast.error('확정 실패');
+    }
+  };
+
+  const handleUnconfirm = async () => {
+    if (!batchId) return;
+    try {
+      await unconfirmShipment.mutateAsync({ batchId });
+      toast.success('확정이 해제되었습니다.');
+    } catch {
+      toast.error('확정 해제 실패');
+    }
+  };
+
   return (
     <PageContainer>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -235,14 +262,23 @@ export default function PackingCalculator() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleCalculate}
-            disabled={isCalculating}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
-          >
-            <RefreshCw className={`h-4 w-4 ${isCalculating ? 'animate-spin' : ''}`} />
-            {isCalculating ? '계산 중...' : result ? '재계산' : '계산 시작'}
-          </button>
+          {isConfirmed && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-800 text-sm font-medium rounded-lg">
+              <Lock className="h-3.5 w-3.5" />
+              확정됨
+            </span>
+          )}
+
+          {!isConfirmed && (
+            <button
+              onClick={handleCalculate}
+              disabled={isCalculating}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
+            >
+              <RefreshCw className={`h-4 w-4 ${isCalculating ? 'animate-spin' : ''}`} />
+              {isCalculating ? '계산 중...' : result ? '재계산' : '계산 시작'}
+            </button>
+          )}
 
           {result && (
             <button
@@ -252,6 +288,28 @@ export default function PackingCalculator() {
             >
               <Download className="h-4 w-4" />
               {exportPacking.isPending ? '다운로드 중...' : 'Excel 내보내기'}
+            </button>
+          )}
+
+          {result && !isConfirmed && (
+            <button
+              onClick={handleConfirm}
+              disabled={confirmShipment.isPending}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              <Check className="h-4 w-4" />
+              {confirmShipment.isPending ? '확정 중...' : '확정'}
+            </button>
+          )}
+
+          {isConfirmed && (
+            <button
+              onClick={handleUnconfirm}
+              disabled={unconfirmShipment.isPending}
+              className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            >
+              <LockOpen className="h-4 w-4" />
+              {unconfirmShipment.isPending ? '해제 중...' : '확정 해제'}
             </button>
           )}
         </div>
@@ -281,7 +339,7 @@ export default function PackingCalculator() {
               onBack={() => router.back()}
               skuDimensionsMap={skuDimensionsMap}
               availableBoxes={availableBoxes}
-              onBoxOverride={handleBoxOverride}
+              onBoxOverride={isConfirmed ? undefined : handleBoxOverride}
             />
           ) : (
             <>
