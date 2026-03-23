@@ -255,10 +255,14 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        {isUnassigned && availableBoxes && availableBoxes.length > 0 && onBoxOverride && (
+                        {availableBoxes && availableBoxes.length > 0 && onBoxOverride && (
                           <select
-                            className="border border-amber-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none"
-                            defaultValue=""
+                            className={`border rounded px-2 py-1 text-xs bg-white focus:ring-2 outline-none ${
+                              isUnassigned
+                                ? 'border-amber-300 focus:ring-amber-400 focus:border-amber-400'
+                                : 'border-gray-300 focus:ring-indigo-400 focus:border-indigo-400'
+                            }`}
+                            defaultValue={isUnassigned ? '' : boxGroup.box.id}
                             onChange={(e) => {
                               if (e.target.value) {
                                 for (let i = 0; i < grouped.groupIndices.length; i++) {
@@ -267,7 +271,7 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
                               }
                             }}
                           >
-                            <option value="">박스 선택...</option>
+                            {isUnassigned && <option value="">박스 선택...</option>}
                             {availableBoxes.map((box) => (
                               <option key={box.id} value={box.id}>
                                 {box.name} ({box.width}×{box.length}×{box.height})
