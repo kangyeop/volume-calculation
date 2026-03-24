@@ -64,8 +64,10 @@
 
 | Method | Endpoint | 설명 |
 |--------|----------|------|
+| GET | `/api/products` | 전체 상품 목록 |
 | GET | `/api/product-groups/{groupId}/products` | 그룹 내 상품 목록 |
 | POST | `/api/product-groups/{groupId}/products` | 상품 생성 |
+| POST | `/api/product-groups/{groupId}/products/bulk` | 상품 벌크 생성 |
 | DELETE | `/api/product-groups/{groupId}/products` | 상품 일괄 삭제 (body: ids) |
 | PATCH | `/api/products/{id}` | 상품 치수 수정 |
 | DELETE | `/api/products/{id}` | 상품 개별 삭제 |
@@ -75,7 +77,6 @@
 | Method | Endpoint | 설명 |
 |--------|----------|------|
 | POST | `/api/product-upload/parse?groupId={id}` | 엑셀 파싱 (고정 컬럼) |
-| POST | `/api/product-upload/confirm` | 상품 일괄 등록 |
 
 ## 비즈니스 로직
 

@@ -11,26 +11,30 @@
 | id | UUID (PK) | |
 | boxId | varchar(255) | 박스 ID (nullable) |
 | boxName | varchar(255) | 박스 이름 (nullable) |
+| boxWidth | numeric(10,2) | 박스 가로 (nullable) |
+| boxLength | numeric(10,2) | 박스 세로 (nullable) |
+| boxHeight | numeric(10,2) | 박스 높이 (nullable) |
+| boxGroupId | varchar(255) | 박스 그룹 ID (nullable) |
 | packedCount | integer | 담긴 아이템 수 |
 | efficiency | numeric(10,4) | 부피 활용률 |
 | totalCBM | numeric(10,4) | CBM (m³) |
 | groupLabel | varchar(255) | 그룹 식별자 (nullable) |
+| groupIndex | integer | 그룹 순서 인덱스 (nullable) |
 | orderId | varchar(255) | 주문번호 (nullable) |
 | boxNumber | integer | 그룹 내 박스 순번 (nullable) |
-| outboundBatchId | UUID (FK → outboundBatches) | CASCADE DELETE |
+| shipmentId | UUID (FK → shipments) | |
 | createdAt | timestamp | |
 | updatedAt | timestamp | |
 
-**관계:** OutboundBatch 1 : N PackingResult
+**관계:** Shipment 1 : N PackingResult
 
 ### PackingResultDetail
 
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
 | id | UUID (PK) | |
-| outboundBatchId | UUID (FK → outboundBatches) | CASCADE DELETE |
+| shipmentId | UUID (FK → shipments) | |
 | orderId | varchar(255) | 주문번호 |
-| recipientName | varchar(255) | 수령인 (nullable) |
 | sku | varchar(255) | 상품 SKU |
 | productName | varchar(255) | 상품명 |
 | quantity | integer | 수량 |
@@ -45,13 +49,13 @@
 | createdAt | timestamp | |
 | updatedAt | timestamp | |
 
-**관계:** OutboundBatch 1 : N PackingResultDetail
+**관계:** Shipment 1 : N PackingResultDetail
 
 ## 페이지
 
 | 경로 | 기능 |
 |------|------|
-| `/outbound/[id]/packing` | 패킹 계산 및 결과 조회 |
+| `/shipments/[id]/packing` | 패킹 계산 및 결과 조회 |
 
 ### 패킹 페이지 주요 기능
 
@@ -67,25 +71,27 @@
 
 | Method | Endpoint | 설명 |
 |--------|----------|------|
-| POST | `/api/outbound-batches/{batchId}/packing/calculate` | 그룹핑 옵션 기반 패킹 계산 |
-| POST | `/api/outbound-batches/{batchId}/packing/calculate-order` | 주문 단위 3D 패킹 계산 |
+| POST | `/api/shipments/{shipmentId}/packing/calculate` | 그룹핑 옵션 기반 패킹 계산 |
+| POST | `/api/shipments/{shipmentId}/packing/calculate-order` | 주문 단위 3D 패킹 계산 |
 
 ### 패킹 결과
 
 | Method | Endpoint | 설명 |
 |--------|----------|------|
-| GET | `/api/outbound-batches/{batchId}/packing/results` | 패킹 결과 목록 |
-| GET | `/api/outbound-batches/{batchId}/packing/details` | 패킹 상세 결과 |
+| GET | `/api/shipments/{shipmentId}/packing/results` | 패킹 결과 목록 |
+| GET | `/api/shipments/{shipmentId}/packing/details` | 패킹 상세 결과 |
 
 ### 추천/내보내기
 
 | Method | Endpoint | 설명 |
 |--------|----------|------|
-| GET | `/api/outbound-batches/{batchId}/packing/recommendation` | 저장된 추천 결과 조회 |
-| PATCH | `/api/outbound-batches/{batchId}/packing/recommendation` | 박스 배정 변경 |
-| GET | `/api/outbound-batches/{batchId}/packing/export` | 엑셀 내보내기 |
+| GET | `/api/shipments/{shipmentId}/packing/recommendation` | 저장된 추천 결과 조회 |
+| PATCH | `/api/shipments/{shipmentId}/packing/recommendation` | 박스 배정 변경 |
+| GET | `/api/shipments/{shipmentId}/packing/export` | 엑셀 내보내기 |
 | POST | `/api/shipments/{shipmentId}/confirm` | 패킹 확정 |
 | DELETE | `/api/shipments/{shipmentId}/confirm` | 확정 해제 |
+
+(패킹 확정/해제 API는 Shipment 도메인에서 관리)
 
 ## 비즈니스 로직
 
@@ -119,7 +125,7 @@
 
 ### 결과 저장
 
-재계산 시 기존 결과를 삭제 후 새로 생성한다 (누적 히스토리 아님). 추천 결과는 outboundBatches.packingRecommendation (JSONB)에 저장된다.
+재계산 시 기존 결과를 삭제 후 새로 생성한다 (누적 히스토리 아님).
 
 ### 패킹 확정
 
@@ -139,7 +145,7 @@
 
 | 연관 도메인 | 관계 |
 |-------------|------|
-| **Outbound** | 출고 배치의 아이템을 패킹 대상으로 사용, 추천 결과를 배치에 저장 |
+| **Shipment** | 출고 건의 아이템을 패킹 대상으로 사용, 추천 결과를 출고 건에 저장 |
 | **Product** | 상품 치수(W×L×H)를 부피 계산에 사용. 상품의 상품 그룹을 통해 박스 그룹을 자동 결정 |
 | **Box** | 상품 그룹에 연결된 박스 그룹에서 사용 가능한 박스 목록을 가져와 패킹에 사용 |
 
@@ -153,5 +159,5 @@
 | `src/hooks/queries/usePacking.ts` | React Query 훅 (계산, 결과 조회, 추천, 내보내기) |
 | `src/hooks/usePackingNormalizer.ts` | 추천 결과 정규화 훅 |
 | `src/types/index.ts` | 패킹 관련 타입 정의 |
-| `src/app/(main)/outbound/[id]/packing/page.tsx` | 패킹 UI 페이지 |
-| `src/app/api/outbound-batches/[batchId]/packing/` | 패킹 API 라우트 |
+| `src/app/(main)/shipments/[id]/packing/page.tsx` | 패킹 UI 페이지 |
+| `src/app/api/shipments/[shipmentId]/packing/` | 패킹 API 라우트 |

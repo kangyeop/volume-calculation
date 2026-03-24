@@ -229,6 +229,8 @@ Shipment 삭제 시 트랜잭션으로 순서대로 삭제:
 |------|------|
 | `src/lib/db/schema.ts` | DB 스키마 (shipments, orders, orderItems) |
 | `src/lib/services/shipment.ts` | Shipment CRUD, 출고명 생성, cascade 삭제 |
+| `src/lib/services/shipments.ts` | Shipment 목록 조회 서비스 |
+| `src/lib/services/orders.ts` | Order 서비스 |
 | `src/lib/services/order-item.ts` | OrderItem CRUD, 벌크 생성, 구성 요약, Order 자동 생성 |
 | `src/lib/services/packing.ts` | 패킹 계산, 결과 저장, 그룹핑 |
 | `src/lib/services/upload.ts` | 엑셀 업로드 파이프라인 |

@@ -45,6 +45,7 @@ volume-calculator/
 │   │       ├── boxes/                # 박스 CRUD + 엑셀 업로드
 │   │       ├── shipments/            # 출고(Shipment) 관리
 │   │       │   └── [shipmentId]/
+│   │       │       ├── confirm/      # 패킹 확정/해제
 │   │       │       ├── order-items/  # 주문 아이템(OrderItem) CRUD
 │   │       │       ├── orders/       # 주문별 상품 매핑, 부피 계산
 │   │       │       └── packing/      # 패킹 계산, 결과, 내보내기
@@ -58,13 +59,16 @@ volume-calculator/
 │   │   ├── layout/                   # 레이아웃 (GlobalLayout, Sidebar, ProjectLayout)
 │   │   ├── ui/                       # 공통 UI (table, tabs, collapsible, loading-spinner)
 │   │   ├── packing/                  # 패킹 관련 컴포넌트
+│   │   ├── products/                 # 상품 관련 컴포넌트
 │   │   ├── ErrorBoundary.tsx         # 에러 바운더리
 │   │   ├── ExcelUpload.tsx           # 엑셀 업로드 공통 컴포넌트
 │   │   ├── PackingResult.tsx         # 패킹 결과 표시
+│   │   ├── skeletons.tsx             # 로딩 스켈레톤
 │   │   └── Toaster.tsx               # 토스트 알림
 │   │
 │   ├── hooks/                        # 커스텀 React 훅
 │   │   ├── queries/                  # React Query 훅 (서버 상태)
+│   │   │   ├── index.ts              # 쿼리 훅 배럴 export
 │   │   │   ├── queryKeys.ts          # 쿼리 키 팩토리
 │   │   │   ├── useBoxGroups.ts
 │   │   │   ├── useBoxes.ts
@@ -77,6 +81,7 @@ volume-calculator/
 │   │   ├── useShipmentFilters.ts     # 출고 필터링
 │   │   ├── useShipmentUploadFlow.ts  # 출고 업로드 플로우 관리
 │   │   ├── usePackingNormalizer.ts   # 패킹 데이터 정규화
+│   │   ├── usePrefetch.ts            # 데이터 프리페치
 │   │   ├── useProductFilters.ts      # 상품 필터링
 │   │   ├── useProductUpload.ts       # 상품 업로드 플로우
 │   │   ├── useUploadState.ts         # 업로드 상태 관리
@@ -98,11 +103,16 @@ volume-calculator/
 │   │   ├── services/                 # 비즈니스 로직 서비스
 │   │   │   ├── products.ts
 │   │   │   ├── product-groups.ts
+│   │   │   ├── product-upload.ts    # 상품 엑셀 업로드
 │   │   │   ├── boxes.ts
 │   │   │   ├── box-groups.ts
 │   │   │   ├── projects.ts
 │   │   │   ├── shipment.ts           # 출고(Shipment) CRUD
+│   │   │   ├── shipments.ts          # Shipment 목록 조회
+│   │   │   ├── orders.ts             # Order 서비스
 │   │   │   ├── order-item.ts        # 주문 아이템(OrderItem) CRUD
+│   │   │   ├── dashboard.ts          # 대시보드 통계
+│   │   │   ├── file-storage.ts       # 파일 저장소 (Supabase Storage)
 │   │   │   ├── upload.ts            # 출고 업로드 핵심 로직
 │   │   │   ├── format-parser.ts    # 고정 양식 파서 (정산/매핑전/매핑후)
 │   │   │   └── excel.ts             # 엑셀 파싱/생성
@@ -149,7 +159,7 @@ volume-calculator/
 │  ┌───────────────────▼─────────────────────────┐    │
 │  │         API Route Handlers                  │    │
 │  │    /api/product-groups, /api/boxes,          │    │
-│  │    /api/outbound-batches, /api/upload, ...   │    │
+│  │    /api/shipments, /api/upload, ...          │    │
 │  └──────┬──────────┬───────────────┬───────────┘    │
 │         │          │               │                │
 │  ┌──────▼───┐ ┌──────▼──────────┐                    │
