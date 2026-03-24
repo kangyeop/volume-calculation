@@ -14,6 +14,7 @@
 | 엑셀 처리 | ExcelJS, SheetJS (xlsx) |
 | HTTP 클라이언트 | Axios |
 | 파일 저장소 | Supabase Storage |
+| 인증 | Supabase Auth + @supabase/ssr |
 | 아이콘 | Lucide React |
 | 토스트 | Sonner |
 
@@ -27,6 +28,9 @@ volume-calculator/
 │   │   ├── page.tsx                  # 랜딩 페이지
 │   │   ├── providers.tsx             # QueryClient, ErrorBoundary, Toaster
 │   │   ├── globals.css               # TailwindCSS 전역 스타일
+│   │   │
+│   │   ├── login/                    # 로그인 페이지
+│   │   ├── auth/callback/            # OAuth 콜백 라우트
 │   │   │
 │   │   ├── (main)/                   # 메인 레이아웃 그룹 (사이드바 포함)
 │   │   │   ├── layout.tsx            # 사이드바 + 메인 컨텐츠 레이아웃
@@ -86,7 +90,9 @@ volume-calculator/
 │   │   ├── db/
 │   │   │   └── schema.ts            # Drizzle ORM 스키마 정의
 │   │   ├── supabase/
-│   │   │   └── server.ts            # Supabase Admin 클라이언트
+│   │   │   ├── client.ts            # Supabase 브라우저 클라이언트 (쿠키 기반)
+│   │   │   ├── server.ts            # Supabase 서버 클라이언트 + Admin 클라이언트
+│   │   │   └── middleware.ts        # 미들웨어 세션 갱신 헬퍼
 │   │   ├── algorithms/
 │   │   │   └── packing.ts           # 패킹 알고리즘
 │   │   ├── services/                 # 비즈니스 로직 서비스
@@ -137,6 +143,9 @@ volume-calculator/
                        │ HTTP
 ┌──────────────────────┼──────────────────────────────┐
 │              Next.js 15 Server                      │
+│  ┌─────────────────────────────────────────────┐    │
+│  │      Middleware (세션 갱신 + 라우트 보호)     │    │
+│  └──────────────────┬──────────────────────────┘    │
 │  ┌───────────────────▼─────────────────────────┐    │
 │  │         API Route Handlers                  │    │
 │  │    /api/product-groups, /api/boxes,          │    │
@@ -183,6 +192,8 @@ API Route Handler
 
 | 경로 | 기능 |
 |------|------|
+| `/login` | 로그인 페이지 |
+| `/auth/callback` | OAuth 콜백 |
 | `/` | 랜딩 페이지 |
 | `/products` | 상품 그룹 목록 |
 | `/products/new` | 새 상품 그룹 생성 |

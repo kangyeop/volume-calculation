@@ -2,9 +2,11 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Package, Truck, Box } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { Package, Truck, Box, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { createSupabaseBrowser } from '@/lib/supabase/client';
 
 const navItems = [
   { to: '/products', label: '상품', icon: Package },
@@ -14,6 +16,22 @@ const navItems = [
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowser();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserEmail(user?.email ?? null);
+    });
+  }, []);
+
+  async function handleLogout() {
+    const supabase = createSupabaseBrowser();
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  }
 
   return (
     <div className="flex min-h-screen min-w-[1280px] bg-background">
@@ -40,6 +58,19 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             );
           })}
         </nav>
+        <div className="border-t p-4">
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate text-sm text-muted-foreground">
+              {userEmail ?? ''}
+            </span>
+            <button
+              onClick={handleLogout}
+              className="rounded-lg p-2 text-muted-foreground hover:bg-gray-100 hover:text-foreground transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       </aside>
       <main className="flex-1 overflow-auto">
         <div className="p-8">{children}</div>
