@@ -106,7 +106,7 @@ export const api = {
         method: 'POST',
         data: products,
       }),
-    update: (id: string, data: Partial<Pick<Product, 'width' | 'length' | 'height' | 'name'>>) =>
+    update: (id: string, data: Partial<Pick<Product, 'width' | 'length' | 'height' | 'name' | 'barcode' | 'aircapType'>>) =>
       fetchApi<Product>(`/products/${id}`, { method: 'PATCH', data }),
     delete: (id: string) => fetchApi<void>(`/products/${id}`, { method: 'DELETE' }),
     deleteBulk: (projectId: string, ids: string[]) =>
