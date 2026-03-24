@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Download, RefreshCw, Lock, LockOpen, Check } from 'lucide-react';
+import { Download, RefreshCw, Lock, LockOpen, Check, Pencil, X, Save } from 'lucide-react';
 import {
   useCalculatePacking,
   useExportPacking,
@@ -14,6 +14,7 @@ import {
   useConfirmShipment,
   useUnconfirmShipment,
   useShipment,
+  useUpdateShipmentNote,
 } from '@/hooks/queries';
 import { usePackingNormalizer } from '@/hooks/usePackingNormalizer';
 import type { PackingCalculationResult } from '@/hooks/usePackingNormalizer';
@@ -39,7 +40,11 @@ export default function PackingCalculator() {
   const { data: shipment } = useShipment(batchId ?? '');
   const confirmShipment = useConfirmShipment();
   const unconfirmShipment = useUnconfirmShipment();
+  const updateNote = useUpdateShipmentNote();
   const isConfirmed = shipment?.status === 'CONFIRMED';
+
+  const [isEditingNote, setIsEditingNote] = useState(false);
+  const [noteValue, setNoteValue] = useState('');
 
   const [boxSortStrategy, setBoxSortStrategy] = useState<BoxSortStrategy>('volume');
   const [freshResult, setFreshResult] = useState<
@@ -255,6 +260,26 @@ export default function PackingCalculator() {
     }
   };
 
+  const handleStartEditNote = () => {
+    setNoteValue(shipment?.note ?? '');
+    setIsEditingNote(true);
+  };
+
+  const handleSaveNote = async () => {
+    if (!batchId) return;
+    try {
+      await updateNote.mutateAsync({ id: batchId, note: noteValue.trim() || null });
+      setIsEditingNote(false);
+      toast.success('비고가 저장되었습니다.');
+    } catch {
+      toast.error('비고 저장 실패');
+    }
+  };
+
+  const handleCancelEditNote = () => {
+    setIsEditingNote(false);
+  };
+
   return (
     <PageContainer>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -326,6 +351,51 @@ export default function PackingCalculator() {
             </button>
           )}
         </div>
+      </div>
+
+      <div className="flex items-start gap-2 text-sm">
+        <span className="text-muted-foreground font-medium shrink-0 pt-1">비고</span>
+        {isEditingNote ? (
+          <div className="flex items-center gap-2 flex-1">
+            <input
+              type="text"
+              value={noteValue}
+              onChange={(e) => setNoteValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveNote();
+                if (e.key === 'Escape') handleCancelEditNote();
+              }}
+              autoFocus
+              className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+              placeholder="비고를 입력하세요"
+            />
+            <button
+              onClick={handleSaveNote}
+              disabled={updateNote.isPending}
+              className="p-1 text-green-600 hover:text-green-700 disabled:opacity-50"
+            >
+              <Save className="h-4 w-4" />
+            </button>
+            <button
+              onClick={handleCancelEditNote}
+              className="p-1 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            <span className={shipment?.note ? 'text-foreground' : 'text-muted-foreground italic'}>
+              {shipment?.note || '없음'}
+            </span>
+            <button
+              onClick={handleStartEditNote}
+              className="p-1 text-gray-400 hover:text-gray-600"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
       </div>
 
       {isLoadingRecommendation && !result && (

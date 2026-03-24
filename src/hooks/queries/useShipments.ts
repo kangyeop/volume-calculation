@@ -79,6 +79,18 @@ export function useDeleteShipment(): UseMutationResult<void, Error, string> {
   });
 }
 
+export function useUpdateShipmentNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, note }: { id: string; note: string | null }) => api.shipments.updateNote(id, note),
+    onSuccess: (_, { id }: { id: string; note: string | null }) => {
+      queryClient.invalidateQueries({ queryKey: shipments.all.queryKey });
+      queryClient.invalidateQueries({ queryKey: shipments.detail(id).queryKey });
+    },
+  });
+}
+
 export function useConfigurationSummary(shipmentId: string) {
   return useQuery({
     ...shipments.configurationSummary(shipmentId),
