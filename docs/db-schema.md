@@ -53,8 +53,9 @@ erDiagram
     Shipment {
         uuid id PK
         varchar name
-        uuid lastBoxGroupId "nullable"
         shipment_status status "default PACKING"
+        text note "nullable"
+        uuid lastBoxGroupId "nullable"
         timestamp createdAt
         timestamp updatedAt
     }

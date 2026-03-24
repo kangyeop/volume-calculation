@@ -14,6 +14,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ shipmentId: string }> }) {
+  try {
+    const { shipmentId } = await params;
+    const body = await request.json();
+    const { note } = body;
+    if (note !== undefined && note !== null && typeof note !== 'string') {
+      return NextResponse.json({ error: 'Invalid note value' }, { status: 400 });
+    }
+    const result = await shipmentService.updateNote(shipmentId, note ?? null);
+    return NextResponse.json(result);
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to update shipment' }, { status: 500 });
+  }
+}
+
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ shipmentId: string }> }) {
   try {
     const { shipmentId } = await params;

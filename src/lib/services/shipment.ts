@@ -8,6 +8,7 @@ export async function findAll() {
       id: shipments.id,
       name: shipments.name,
       status: shipments.status,
+      note: shipments.note,
       createdAt: shipments.createdAt,
       updatedAt: shipments.updatedAt,
     })
@@ -60,6 +61,15 @@ export async function unconfirm(id: string) {
   const [shipment] = await db
     .update(shipments)
     .set({ status: 'PACKING' })
+    .where(eq(shipments.id, id))
+    .returning();
+  return shipment;
+}
+
+export async function updateNote(id: string, note: string | null) {
+  const [shipment] = await db
+    .update(shipments)
+    .set({ note })
     .where(eq(shipments.id, id))
     .returning();
   return shipment;
