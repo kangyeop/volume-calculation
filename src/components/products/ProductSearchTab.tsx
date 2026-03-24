@@ -99,6 +99,8 @@ export function ProductSearchTab() {
                 <SortableHeader column="sku" label="SKU" onSort={handleSort} icon={<SortIcon column="sku" />} />
                 <SortableHeader column="name" label="상품명" onSort={handleSort} icon={<SortIcon column="name" />} />
                 <th className="px-4 py-3 text-right font-medium text-gray-600">크기 (W×L×H)</th>
+                <th className="px-4 py-3 text-center font-medium text-gray-600">바코드</th>
+                <th className="px-4 py-3 font-medium text-gray-600">에어캡</th>
                 <SortableHeader column="productGroupName" label="그룹" onSort={handleSort} icon={<SortIcon column="productGroupName" />} />
                 <SortableHeader column="createdAt" label="생성일" onSort={handleSort} icon={<SortIcon column="createdAt" />} className="text-right" />
               </tr>
@@ -110,6 +112,15 @@ export function ProductSearchTab() {
                   <td className="px-4 py-3 font-medium text-gray-900">{product.name}</td>
                   <td className="px-4 py-3 text-right text-gray-600 font-mono text-xs">
                     {product.width}×{product.length}×{product.height}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <input type="checkbox" checked={product.barcode} disabled className="rounded border-gray-300" />
+                  </td>
+                  <td className="px-4 py-3 text-gray-500 text-xs">
+                    {product.aircapType === 'INDIVIDUAL' && '개별'}
+                    {product.aircapType === 'PER_ORDER' && '건당'}
+                    {product.aircapType === 'BOTH' && '개별+건당'}
+                    {!product.aircapType && '-'}
                   </td>
                   <td className="px-4 py-3 text-gray-500">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-700">

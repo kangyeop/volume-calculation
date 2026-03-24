@@ -1,6 +1,12 @@
 import { useCreateProducts } from '@/hooks/queries';
 import { useUploadState } from './useUploadState';
-import { Product } from '@/types';
+import { Product, AircapType } from '@/types';
+
+const AIRCAP_MAP: Record<string, AircapType> = {
+  '개별': 'INDIVIDUAL',
+  '건당': 'PER_ORDER',
+  '개별+건당': 'BOTH',
+};
 
 export const useProductUpload = (projectId: string) => {
   const createProducts = useCreateProducts(projectId);
@@ -71,12 +77,19 @@ export const useProductUpload = (projectId: string) => {
           `Row ${rowNum} (${productName}): Missing or invalid dimensions - ${missingFields.join(', ')}`,
         );
       } else {
+        const barcodeRaw = String(item['바코드'] || '').trim().toLowerCase();
+        const barcode = barcodeRaw === 'true' || barcodeRaw === 'o' || barcodeRaw === 'yes' || barcodeRaw === '1';
+        const aircapRaw = String(item['에어캡'] || '').trim();
+        const aircapType = AIRCAP_MAP[aircapRaw] ?? null;
+
         validData.push({
           sku: productName,
           name: productName,
           width,
           length,
           height,
+          barcode,
+          aircapType,
           productGroupId: '',
         });
       }
