@@ -1,6 +1,7 @@
 import { SKU, Box, BoxSortStrategy, PackingCalculationResult, PackedBox3D, PackingResult3D } from '@/types';
 
 const EFFICIENCY_THRESHOLD = 0.9;
+const BOX_MARGIN = 2;
 
 interface ExpandedItem {
   skuId: string;
@@ -163,9 +164,17 @@ export function calculatePacking(skus: SKU[], boxes: Box[], strategy: BoxSortStr
   for (const box of sortedBoxes) {
     const boxVolume = box.width * box.length * box.height;
     if (totalItemVolume > boxVolume * EFFICIENCY_THRESHOLD) continue;
-    if (!expandedItems.every((item) => canItemFitInBox(item, box))) continue;
 
-    if (tryPackWithLayers(expandedItems, box)) {
+    const effectiveBox: Box = {
+      ...box,
+      width: box.width - BOX_MARGIN,
+      length: box.length - BOX_MARGIN,
+      height: box.height - BOX_MARGIN,
+    };
+
+    if (!expandedItems.every((item) => canItemFitInBox(item, effectiveBox))) continue;
+
+    if (tryPackWithLayers(expandedItems, effectiveBox)) {
       selectedBox = box;
       break;
     }
