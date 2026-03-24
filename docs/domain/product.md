@@ -25,6 +25,8 @@
 | width | numeric(10,2) | 가로 (cm) |
 | length | numeric(10,2) | 세로 (cm) |
 | height | numeric(10,2) | 높이 (cm) |
+| barcode | boolean (default false) | 바코드 여부 |
+| aircapType | aircap_type enum (nullable) | 에어캡 유형 (INDIVIDUAL/PER_ORDER/BOTH) |
 | productGroupId | UUID (FK → productGroups) | CASCADE DELETE |
 | createdAt | timestamp | |
 | updatedAt | timestamp | |
@@ -85,6 +87,8 @@
 |-------------|----------|------|
 | 상품명 | sku | 상품 고유 식별자 |
 | 체적정보 | width, length, height | 결합 치수 (예: `10x20x30`) |
+| 바코드 | barcode | 바코드 여부 (O/true/1 → true, 그 외 → false) |
+| 에어캡 | aircapType | 에어캡 유형 (개별/건당/개별+건당) |
 
 **치수 파싱 규칙:**
 - `"10x20x30"` → width=10, length=20, height=30

@@ -45,6 +45,8 @@ export interface ProductGroup {
   products?: Product[];
 }
 
+export type AircapType = 'INDIVIDUAL' | 'PER_ORDER' | 'BOTH';
+
 export interface Product {
   id: string;
   sku: string;
@@ -52,6 +54,8 @@ export interface Product {
   width: number;
   length: number;
   height: number;
+  barcode: boolean;
+  aircapType: AircapType | null;
   productGroupId: string;
   productGroup?: ProductGroup;
   createdAt: string;
@@ -65,6 +69,8 @@ export interface ProductWithGroup {
   width: number;
   length: number;
   height: number;
+  barcode: boolean;
+  aircapType: AircapType | null;
   productGroupId: string;
   productGroupName: string | null;
   createdAt: string;
