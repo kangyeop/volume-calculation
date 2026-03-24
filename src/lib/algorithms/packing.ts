@@ -11,20 +11,8 @@ interface ExpandedItem {
 }
 
 function getOrientations(w: number, l: number, h: number): [number, number, number][] {
-  const all: [number, number, number][] = [
-    [w, l, h], [w, h, l],
-    [l, w, h], [l, h, w],
-    [h, w, l], [h, l, w],
-  ];
-  const seen = new Set<string>();
-  return all
-    .filter(([a, b, c]) => {
-      const key = `${a},${b},${c}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .sort((a, b) => a[2] - b[2]);
+  if (w === l) return [[w, l, h]];
+  return [[w, l, h], [l, w, h]];
 }
 
 function expandItems(skus: SKU[]): ExpandedItem[] {
@@ -44,9 +32,12 @@ function expandItems(skus: SKU[]): ExpandedItem[] {
 }
 
 function canItemFitInBox(item: ExpandedItem, box: Box): boolean {
-  const itemDims = [item.width, item.length, item.height].sort((a, b) => a - b);
-  const boxDims = [box.width, box.length, box.height].sort((a, b) => a - b);
-  return itemDims[0] <= boxDims[0] && itemDims[1] <= boxDims[1] && itemDims[2] <= boxDims[2];
+  if (item.height > box.height) return false;
+  const itemMin = Math.min(item.width, item.length);
+  const itemMax = Math.max(item.width, item.length);
+  const boxMin = Math.min(box.width, box.length);
+  const boxMax = Math.max(box.width, box.length);
+  return itemMin <= boxMin && itemMax <= boxMax;
 }
 
 function tryPackInOrientation(
