@@ -84,7 +84,14 @@ export default function OutboundList() {
                   onMouseEnter={() => prefetch(batch.id)}
                   className="hover:bg-gray-50 cursor-pointer transition-colors"
                 >
-                  <td className="px-4 py-3 font-medium text-gray-900">{batch.name}</td>
+                  <td className="px-4 py-3 font-medium text-gray-900">
+                    {batch.name}
+                    {batch.status === 'CONFIRMED' && (
+                      <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                        확정
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-right text-gray-600">{batch.orderCount ?? '-'}</td>
                   <td className="px-4 py-3 text-right text-gray-500">
                     {new Date(batch.createdAt).toLocaleDateString('ko-KR')}
