@@ -1,13 +1,16 @@
 import { db } from '@/lib/db';
 import { products, productGroups } from '@/lib/db/schema';
 import { eq, and, inArray, desc } from 'drizzle-orm';
+import type { AircapType } from '@/types';
 
-type CreateProductDto = {
+export type CreateProductDto = {
   sku: string;
   name: string;
   width: number;
   length: number;
   height: number;
+  barcode?: boolean;
+  aircapType?: AircapType | null;
 };
 
 export async function findAll(productGroupId: string) {
@@ -33,6 +36,8 @@ export async function findAllWithGroup() {
       width: products.width,
       length: products.length,
       height: products.height,
+      barcode: products.barcode,
+      aircapType: products.aircapType,
       productGroupId: products.productGroupId,
       productGroupName: productGroups.name,
       createdAt: products.createdAt,
@@ -68,11 +73,13 @@ export async function create(productGroupId: string, dto: CreateProductDto) {
 }
 
 export async function update(id: string, dto: Partial<CreateProductDto>) {
-  const { width, length, height, ...rest } = dto;
+  const { width, length, height, barcode, aircapType, ...rest } = dto;
   const values: Partial<typeof products.$inferInsert> = { ...rest };
   if (width !== undefined) values.width = String(width);
   if (length !== undefined) values.length = String(length);
   if (height !== undefined) values.height = String(height);
+  if (barcode !== undefined) values.barcode = barcode;
+  if (aircapType !== undefined) values.aircapType = aircapType;
   const [row] = await db.update(products).set(values).where(eq(products.id, id)).returning();
   return parseProduct(row);
 }
@@ -90,6 +97,8 @@ export async function createBulk(productGroupId: string, dtos: CreateProductDto[
     width: String(dto.width),
     length: String(dto.length),
     height: String(dto.height),
+    barcode: dto.barcode ?? false,
+    aircapType: dto.aircapType ?? null,
   }));
   const rows = await db
     .insert(products)
@@ -101,6 +110,8 @@ export async function createBulk(productGroupId: string, dtos: CreateProductDto[
         width: products.width,
         length: products.length,
         height: products.height,
+        barcode: products.barcode,
+        aircapType: products.aircapType,
       },
     })
     .returning();

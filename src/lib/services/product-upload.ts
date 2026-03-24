@@ -1,15 +1,17 @@
 import { parseExcelFile } from '@/lib/services/excel';
 import * as productsService from '@/lib/services/products';
+import type { CreateProductDto } from '@/lib/services/products';
+import type { AircapType } from '@/types';
 
 const COLUMN_SKU = '상품명';
 const COLUMN_DIMENSIONS = '체적정보';
+const COLUMN_BARCODE = '바코드';
+const COLUMN_AIRCAP = '에어캡';
 
-type CreateProductDto = {
-  sku: string;
-  name: string;
-  width: number;
-  length: number;
-  height: number;
+const AIRCAP_MAP: Record<string, AircapType> = {
+  '개별': 'INDIVIDUAL',
+  '건당': 'PER_ORDER',
+  '개별+건당': 'BOTH',
 };
 
 interface ParseProductResult {
@@ -52,10 +54,18 @@ export function parseFile(
       continue;
     }
 
+    const barcodeRaw = String(row[COLUMN_BARCODE] || '').trim().toLowerCase();
+    const barcode = barcodeRaw === 'true' || barcodeRaw === 'o' || barcodeRaw === 'yes' || barcodeRaw === '1';
+
+    const aircapRaw = String(row[COLUMN_AIRCAP] || '').trim();
+    const aircapType = AIRCAP_MAP[aircapRaw] ?? null;
+
     products.push({
       sku,
       name: sku,
       ...dims,
+      barcode,
+      aircapType,
     });
   }
 
