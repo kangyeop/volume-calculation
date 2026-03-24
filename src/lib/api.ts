@@ -197,9 +197,10 @@ export const api = {
     delete: (id: string) => fetchApi<void>(`/box-groups/${id}`, { method: 'DELETE' }),
   },
   packing: {
-    calculate: (shipmentId: string) =>
+    calculate: (shipmentId: string, strategy?: string) =>
       fetchApi<PackingRecommendation>(`/shipments/${shipmentId}/packing/calculate`, {
         method: 'POST',
+        data: { strategy },
       }),
     calculateOrder: async (shipmentId: string, orderId: string, groupLabel?: string) => {
       return fetchApi<PackingResult3D>(`/shipments/${shipmentId}/packing/calculate-order`, {

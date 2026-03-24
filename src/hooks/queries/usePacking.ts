@@ -6,7 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { packing } from './queryKeys';
-import type { PackingRecommendation, PackingResult3D } from '@/types';
+import type { BoxSortStrategy, PackingRecommendation, PackingResult3D } from '@/types';
 
 export function usePackingHistory(batchId: string) {
   return useQuery({
@@ -27,13 +27,13 @@ export function usePackingRecommendation(batchId: string) {
 export function useCalculatePacking(): UseMutationResult<
   PackingRecommendation,
   Error,
-  { batchId: string }
+  { batchId: string; strategy?: BoxSortStrategy }
 > {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ batchId }) =>
-      api.packing.calculate(batchId),
+    mutationFn: ({ batchId, strategy }) =>
+      api.packing.calculate(batchId, strategy),
     onSuccess: (_, { batchId }) => {
       queryClient.invalidateQueries({ queryKey: packing.history._def });
       queryClient.invalidateQueries({ queryKey: packing.recommendation(batchId).queryKey });

@@ -122,6 +122,8 @@ export interface Project {
   updatedAt: Date | string;
 }
 
+export type BoxSortStrategy = 'volume' | 'longest-side';
+
 export enum PackingGroupingOption {
   ORDER = 'ORDER',
 }

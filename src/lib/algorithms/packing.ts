@@ -1,4 +1,4 @@
-import { SKU, Box, PackingCalculationResult, PackedBox3D, PackingResult3D } from '@/types';
+import { SKU, Box, BoxSortStrategy, PackingCalculationResult, PackedBox3D, PackingResult3D } from '@/types';
 
 const EFFICIENCY_THRESHOLD = 0.9;
 
@@ -120,7 +120,20 @@ function tryPackWithLayers(items: ExpandedItem[], box: Box): boolean {
   return false;
 }
 
-export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationResult {
+function sortBoxes(boxes: Box[], strategy: BoxSortStrategy): Box[] {
+  return [...boxes].sort((a, b) => {
+    if (strategy === 'longest-side') {
+      const maxA = Math.max(a.width, a.length, a.height);
+      const maxB = Math.max(b.width, b.length, b.height);
+      if (maxA !== maxB) return maxA - maxB;
+    }
+    const volA = a.width * a.length * a.height;
+    const volB = b.width * b.length * b.height;
+    return volA - volB;
+  });
+}
+
+export function calculatePacking(skus: SKU[], boxes: Box[], strategy: BoxSortStrategy = 'volume'): PackingCalculationResult {
   if (!boxes || boxes.length === 0) {
     const unassignedBox: Box = { id: 'unassigned', name: '미지정', width: 0, length: 0, height: 0, boxGroupId: '' };
     return {
@@ -135,11 +148,7 @@ export function calculatePacking(skus: SKU[], boxes: Box[]): PackingCalculationR
     };
   }
 
-  const sortedBoxes = [...boxes].sort((a, b) => {
-    const volA = a.width * a.length * a.height;
-    const volB = b.width * b.length * b.height;
-    return volA - volB;
-  });
+  const sortedBoxes = sortBoxes(boxes, strategy);
 
   const expandedItems = expandItems(skus);
   const totalItemVolume = expandedItems.reduce((sum, item) => sum + item.volume, 0);
@@ -205,8 +214,9 @@ export function calculateOrderPackingUnified(
   items: SKU[],
   boxes: Box[],
   groupLabel?: string,
+  strategy: BoxSortStrategy = 'volume',
 ): PackingResult3D {
-  const result = calculatePacking(items, boxes);
+  const result = calculatePacking(items, boxes, strategy);
 
   const skuDetailsMap = new Map<string, SKU>();
   for (const sku of items) {

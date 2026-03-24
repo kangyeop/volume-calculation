@@ -5,6 +5,7 @@ import { eq, and } from 'drizzle-orm';
 import { calculatePacking, calculateOrderPackingUnified } from '@/lib/algorithms/packing';
 import type {
   SKU,
+  BoxSortStrategy,
   PackingRecommendation,
   PackingGroup,
   PackingResult3D,
@@ -29,6 +30,7 @@ type OrderItemRow = typeof orderItems.$inferSelect & {
 
 export async function calculate(
   shipmentId: string,
+  strategy: BoxSortStrategy = 'volume',
 ): Promise<PackingRecommendation> {
   await assertNotConfirmed(shipmentId);
   const allItems = await db.query.orderItems.findMany({
@@ -102,7 +104,7 @@ export async function calculate(
 
     if (skus.length === 0) continue;
 
-    const recommendation = calculatePacking(skus, boxes);
+    const recommendation = calculatePacking(skus, boxes, strategy);
     const groupLabel = `Order: ${group[0].orderIdentifier || group[0].orderId}`;
 
     let groupUsedVolume = 0;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as packingService from '@/lib/services/packing';
+import type { BoxSortStrategy } from '@/types';
 
 export async function POST(
   request: NextRequest,
@@ -7,7 +8,9 @@ export async function POST(
 ) {
   try {
     const { shipmentId } = await params;
-    const result = await packingService.calculate(shipmentId);
+    const body = await request.json().catch(() => ({}));
+    const strategy: BoxSortStrategy = body.strategy === 'longest-side' ? 'longest-side' : 'volume';
+    const result = await packingService.calculate(shipmentId, strategy);
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof Error && error.message === 'SHIPMENT_CONFIRMED') {

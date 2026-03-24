@@ -20,7 +20,7 @@ import type { PackingCalculationResult } from '@/hooks/usePackingNormalizer';
 import { BoxTypeCard } from '@/components/packing/BoxTypeCard';
 import { PackingDetailPanel } from '@/components/packing/PackingDetailPanel';
 import { UnpackedItemsAlert } from '@/components/packing/UnpackedItemsAlert';
-import type { PackingRecommendation } from '@/types';
+import type { BoxSortStrategy, PackingRecommendation } from '@/types';
 import { PackingCalculatorSkeleton } from '@/components/skeletons';
 import { PageContainer } from '@/components/layout/PageContainer';
 
@@ -41,6 +41,7 @@ export default function PackingCalculator() {
   const unconfirmShipment = useUnconfirmShipment();
   const isConfirmed = shipment?.status === 'CONFIRMED';
 
+  const [boxSortStrategy, setBoxSortStrategy] = useState<BoxSortStrategy>('volume');
   const [freshResult, setFreshResult] = useState<
     PackingRecommendation | PackingCalculationResult | null
   >(null);
@@ -188,6 +189,7 @@ export default function PackingCalculator() {
     try {
       const data = await calculatePacking.mutateAsync({
         batchId,
+        strategy: boxSortStrategy,
       });
       setFreshResult(data);
       const p = new URLSearchParams(searchParams.toString());
@@ -270,14 +272,25 @@ export default function PackingCalculator() {
           )}
 
           {!isConfirmed && (
-            <button
-              onClick={handleCalculate}
-              disabled={isCalculating}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
-            >
-              <RefreshCw className={`h-4 w-4 ${isCalculating ? 'animate-spin' : ''}`} />
-              {isCalculating ? '계산 중...' : result ? '재계산' : '계산 시작'}
-            </button>
+            <>
+              <select
+                value={boxSortStrategy}
+                onChange={(e) => setBoxSortStrategy(e.target.value as BoxSortStrategy)}
+                disabled={isCalculating}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white disabled:opacity-50"
+              >
+                <option value="volume">부피 기준</option>
+                <option value="longest-side">최장변 기준</option>
+              </select>
+              <button
+                onClick={handleCalculate}
+                disabled={isCalculating}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              >
+                <RefreshCw className={`h-4 w-4 ${isCalculating ? 'animate-spin' : ''}`} />
+                {isCalculating ? '계산 중...' : result ? '재계산' : '계산 시작'}
+              </button>
+            </>
           )}
 
           {result && (
