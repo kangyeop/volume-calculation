@@ -36,13 +36,14 @@ volume-calculator/
 │   │   │   ├── layout.tsx            # 사이드바 + 메인 컨텐츠 레이아웃
 │   │   │   ├── products/             # 상품 관리 페이지
 │   │   │   ├── shipments/            # 출고 관리 페이지
-│   │   │   └── boxes/                # 박스 관리 페이지
+│   │   │   ├── boxes/                # 박스 독립 목록 페이지
+│   │   │   └── box-groups/           # 박스 그룹 관리 페이지
 │   │   │
 │   │   └── api/                      # API Route Handlers
 │   │       ├── product-groups/       # 상품 그룹 CRUD
 │   │       ├── products/             # 상품 개별 수정/삭제
-│   │       ├── box-groups/           # 박스 그룹 CRUD
-│   │       ├── boxes/                # 박스 CRUD + 엑셀 업로드
+│   │       ├── box-groups/           # 박스 그룹 CRUD + 박스 배정
+│   │       ├── boxes/                # 박스 독립 CRUD + 엑셀 업로드 + 미배정 조회
 │   │       ├── shipments/            # 출고(Shipment) 관리
 │   │       │   └── [shipmentId]/
 │   │       │       ├── confirm/      # 패킹 확정/해제
@@ -212,9 +213,10 @@ API Route Handler
 | `/shipments/new` | 새 출고 생성 |
 | `/shipments/[id]` | 출고 상세 (주문/아이템 목록) |
 | `/shipments/[id]/packing` | 패킹 계산 및 결과 |
-| `/boxes` | 박스 그룹 목록 |
-| `/boxes/new` | 새 박스 그룹 생성 |
-| `/boxes/[id]` | 박스 그룹 상세 (박스 목록) |
+| `/boxes` | 박스 독립 목록 (미배정 박스 포함) |
+| `/box-groups` | 박스 그룹 목록 |
+| `/box-groups/new` | 새 박스 그룹 생성 |
+| `/box-groups/[id]` | 박스 그룹 상세 (박스 선택·배정) |
 
 ## 상태 관리
 

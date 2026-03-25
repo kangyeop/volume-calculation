@@ -28,7 +28,7 @@ erDiagram
         timestamp updatedAt
     }
 
-    BoxGroup ||--o{ Box : "has many"
+    BoxGroup |o--o{ Box : "has many (optional)"
     BoxGroup {
         uuid id PK
         varchar name
@@ -43,7 +43,7 @@ erDiagram
         numeric length
         numeric height
         numeric price "nullable"
-        uuid boxGroupId FK
+        uuid boxGroupId FK "nullable"
         timestamp createdAt
         timestamp updatedAt
     }
@@ -170,7 +170,7 @@ erDiagram
 |------|------|------|----------|
 | `ProductGroup` | `Product` | 1:N | CASCADE |
 | `BoxGroup` | `ProductGroup` | 1:N | - |
-| `BoxGroup` | `Box` | 1:N | CASCADE |
+| `BoxGroup` | `Box` | 0..1:N | SET NULL |
 | `Shipment` | `Order` | 1:N | - |
 | `Shipment` | `OrderItem` | 1:N | - |
 | `Shipment` | `PackingResult` | 1:N | - |
