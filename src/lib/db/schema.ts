@@ -53,7 +53,7 @@ export const boxGroups = pgTable('box_groups', {
 export const boxes = pgTable('boxes', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
-  boxGroupId: uuid('box_group_id').notNull().references(() => boxGroups.id, { onDelete: 'cascade' }),
+  boxGroupId: uuid('box_group_id').references(() => boxGroups.id, { onDelete: 'set null' }),
   width: numeric('width', { precision: 10, scale: 2 }).notNull(),
   length: numeric('length', { precision: 10, scale: 2 }).notNull(),
   height: numeric('height', { precision: 10, scale: 2 }).notNull(),
