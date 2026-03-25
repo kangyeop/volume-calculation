@@ -106,6 +106,7 @@ export default function BoxList() {
                 <th className="px-4 py-3 text-right font-medium text-gray-600">크기 (cm)</th>
                 <th className="px-4 py-3 text-right font-medium text-gray-600">CBM</th>
                 <th className="px-4 py-3 text-right font-medium text-gray-600">가격</th>
+                <th className="px-4 py-3 text-right font-medium text-gray-600">재고</th>
                 <th className="px-4 py-3 text-right font-medium text-gray-600">소속 그룹</th>
                 <th className="px-4 py-3 w-12"></th>
               </tr>
@@ -126,6 +127,9 @@ export default function BoxList() {
                   </td>
                   <td className="px-4 py-3 text-right text-gray-600">
                     {box.price != null ? `₩${box.price.toLocaleString()}` : '-'}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono text-gray-600">
+                    {box.stock}
                   </td>
                   <td className="px-4 py-3 text-right">
                     {box.boxGroupId ? (

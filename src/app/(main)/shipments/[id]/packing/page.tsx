@@ -436,6 +436,7 @@ export default function PackingCalculator() {
                       count={bg.count}
                       totalCBM={bg.totalCBM}
                       efficiency={bg.efficiency}
+                      stock={availableBoxes.find((b) => b.id === bg.box.id)?.stock}
                       disabled={isCalculating}
                       onClick={() => setDetailView({ type: 'box', boxId: bg.box.id })}
                     />

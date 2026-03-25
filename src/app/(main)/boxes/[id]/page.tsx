@@ -25,6 +25,7 @@ export default function BoxDetail() {
     length: '',
     height: '',
     price: '',
+    stock: '',
   });
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -37,6 +38,7 @@ export default function BoxDetail() {
         length: String(box.length),
         height: String(box.height),
         price: box.price != null ? String(box.price) : '',
+        stock: String(box.stock),
       });
     }
   }, [box]);
@@ -54,6 +56,7 @@ export default function BoxDetail() {
           length: Number(formData.length),
           height: Number(formData.height),
           price: formData.price ? Number(formData.price) : undefined,
+          stock: Number(formData.stock),
         },
       });
       toast.success('박스 수정 완료');
@@ -181,6 +184,21 @@ export default function BoxDetail() {
                   placeholder="0"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                재고
+              </label>
+              <input
+                type="number"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                value={formData.stock}
+                onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                min="0"
+                step="1"
+                placeholder="0"
+              />
             </div>
 
             <div className="flex gap-3">

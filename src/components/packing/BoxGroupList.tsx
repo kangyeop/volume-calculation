@@ -263,6 +263,21 @@ export const BoxGroupList: React.FC<BoxGroupListProps> = ({
                     {(boxGroup.efficiency * 100).toFixed(1)}%
                   </p>
                 </div>
+                {(() => {
+                  const matchedBox = availableBoxes?.find((b) => b.id === boxGroup.box.id);
+                  if (matchedBox?.stock === undefined) return null;
+                  const isLow = matchedBox.stock < boxGroup.count;
+                  return (
+                    <div className="text-right">
+                      <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
+                        재고
+                      </p>
+                      <p className={`font-mono font-bold ${isLow ? 'text-red-600' : 'text-green-700'}`}>
+                        {matchedBox.stock}
+                      </p>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
