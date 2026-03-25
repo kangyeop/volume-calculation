@@ -339,7 +339,7 @@ export async function getRecommendation(shipmentId: string): Promise<PackingReco
     const boxMap = new Map<
       string,
       {
-        box: { id: string; name: string; width: number; length: number; height: number; boxGroupId: string };
+        box: { id: string; name: string; width: number; length: number; height: number; boxGroupId: string | null };
         count: number;
         packedSKUs: Map<string, { skuId: string; name: string; quantity: number }>;
       }
@@ -458,6 +458,9 @@ export async function updateBoxAssignment(
 
   const newBox = await boxesService.findOne(newBoxId);
   if (!newBox) throw new Error(`Box ${newBoxId} not found`);
+  if (!newBox.boxGroupId) {
+    throw new Error('미할당 박스로는 교체할 수 없습니다');
+  }
 
   const newBoxVol = Number(newBox.width) * Number(newBox.length) * Number(newBox.height);
 

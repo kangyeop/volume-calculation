@@ -192,12 +192,17 @@ export const api = {
   boxGroups: {
     list: () => fetchApi<BoxGroup[]>('/box-groups'),
     get: (id: string) => fetchApi<BoxGroup>(`/box-groups/${id}`),
-    create: (name: string) =>
+    create: (name: string, boxIds?: string[]) =>
       fetchApi<BoxGroup>('/box-groups', {
         method: 'POST',
-        data: { name },
+        data: { name, boxIds },
       }),
     delete: (id: string) => fetchApi<void>(`/box-groups/${id}`, { method: 'DELETE' }),
+    updateBoxes: (id: string, boxIds: string[]) =>
+      fetchApi<BoxGroup>(`/box-groups/${id}`, {
+        method: 'PATCH',
+        data: { boxIds },
+      }),
   },
   packing: {
     calculate: (shipmentId: string, strategy?: string) =>
@@ -241,17 +246,22 @@ export const api = {
   },
   boxes: {
     list: () => fetchApi<Box[]>('/boxes'),
-    create: (data: Omit<Box, 'id' | 'boxGroup'>) =>
+    listUnassigned: () => fetchApi<Box[]>('/boxes?unassigned=true'),
+    create: (data: Omit<Box, 'id' | 'boxGroup' | 'boxGroupId'> & { boxGroupId?: string | null }) =>
       fetchApi<Box>('/boxes', {
         method: 'POST',
         data,
       }),
+    get: (id: string) => fetchApi<Box>(`/boxes/${id}`),
+    update: (id: string, data: Partial<Omit<Box, 'id' | 'boxGroup'>>) =>
+      fetchApi<Box>(`/boxes/${id}`, { method: 'PATCH', data }),
     delete: (id: string) => fetchApi<void>(`/boxes/${id}`, { method: 'DELETE' }),
-    uploadExcel: (file: File, groupId: string): Promise<{ imported: number }> => {
+    uploadExcel: (file: File, groupId?: string): Promise<{ imported: number }> => {
       const formData = new FormData();
       formData.append('file', file);
+      const url = groupId ? `/boxes/upload?groupId=${encodeURIComponent(groupId)}` : '/boxes/upload';
       return apiClient
-        .post<ApiResponse<{ imported: number }>>(`/boxes/upload?groupId=${encodeURIComponent(groupId)}`, formData)
+        .post<ApiResponse<{ imported: number }>>(url, formData)
         .then(unwrapResponse);
     },
   },
