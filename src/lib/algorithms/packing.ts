@@ -136,7 +136,7 @@ function sortBoxes(boxes: Box[], strategy: BoxSortStrategy): Box[] {
 
 export function calculatePacking(skus: SKU[], boxes: Box[], strategy: BoxSortStrategy = 'volume'): PackingCalculationResult {
   if (!boxes || boxes.length === 0) {
-    const unassignedBox: Box = { id: 'unassigned', name: '미지정', width: 0, length: 0, height: 0, boxGroupId: null };
+    const unassignedBox: Box = { id: 'unassigned', name: '미지정', width: 0, length: 0, height: 0, stock: 0, boxGroupId: null };
     return {
       boxes: [{
         box: unassignedBox,
@@ -198,6 +198,7 @@ export function calculatePacking(skus: SKU[], boxes: Box[], strategy: BoxSortStr
       width: 0,
       length: 0,
       height: 0,
+      stock: 0,
       boxGroupId: null,
     };
 

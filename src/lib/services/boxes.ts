@@ -9,6 +9,7 @@ type CreateBoxDto = {
   length: number;
   height: number;
   price?: number;
+  stock?: number;
 };
 
 const COLUMN_MAP: Record<string, string> = {
@@ -17,6 +18,7 @@ const COLUMN_MAP: Record<string, string> = {
   '세로': 'length',
   '높이': 'height',
   '가격': 'price',
+  '재고': 'stock',
 };
 
 export async function findAll() {
@@ -57,14 +59,16 @@ export async function create(dto: CreateBoxDto) {
       length: String(dto.length),
       height: String(dto.height),
       price: dto.price !== undefined ? String(dto.price) : undefined,
+      stock: dto.stock ?? 0,
     })
     .returning();
   return parseBox(row);
 }
 
 export async function update(id: string, dto: Partial<CreateBoxDto>) {
-  const { width, length, height, price, ...rest } = dto;
+  const { width, length, height, price, stock, ...rest } = dto;
   const values: Partial<typeof boxes.$inferInsert> = { ...rest };
+  if (stock !== undefined) values.stock = stock;
   if (width !== undefined) values.width = String(width);
   if (length !== undefined) values.length = String(length);
   if (height !== undefined) values.height = String(height);

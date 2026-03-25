@@ -1,0 +1,1 @@
+ALTER TABLE "boxes" ADD COLUMN "stock" integer DEFAULT 0 NOT NULL;

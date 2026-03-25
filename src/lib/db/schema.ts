@@ -58,6 +58,7 @@ export const boxes = pgTable('boxes', {
   length: numeric('length', { precision: 10, scale: 2 }).notNull(),
   height: numeric('height', { precision: 10, scale: 2 }).notNull(),
   price: numeric('price', { precision: 10, scale: 2 }),
+  stock: integer('stock').notNull().default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
 });

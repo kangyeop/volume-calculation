@@ -14,6 +14,7 @@ export interface Box extends Dimensions {
   id: string;
   name: string;
   price?: number;
+  stock: number;
   boxGroupId: string | null;
   boxGroup?: BoxGroup;
 }

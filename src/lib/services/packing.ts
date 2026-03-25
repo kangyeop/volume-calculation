@@ -339,7 +339,7 @@ export async function getRecommendation(shipmentId: string): Promise<PackingReco
     const boxMap = new Map<
       string,
       {
-        box: { id: string; name: string; width: number; length: number; height: number; boxGroupId: string | null };
+        box: { id: string; name: string; width: number; length: number; height: number; stock: number; boxGroupId: string | null };
         count: number;
         packedSKUs: Map<string, { skuId: string; name: string; quantity: number }>;
       }
@@ -355,6 +355,7 @@ export async function getRecommendation(shipmentId: string): Promise<PackingReco
             width: Number(r.boxWidth) || 0,
             length: Number(r.boxLength) || 0,
             height: Number(r.boxHeight) || 0,
+            stock: 0,
             boxGroupId: r.boxGroupId || '',
           },
           count: 0,
