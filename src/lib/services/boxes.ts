@@ -1,10 +1,10 @@
 import { db } from '@/lib/db';
 import { boxes } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, isNull, inArray } from 'drizzle-orm';
 
 type CreateBoxDto = {
   name: string;
-  boxGroupId: string;
+  boxGroupId?: string;
   width: number;
   length: number;
   height: number;
@@ -38,11 +38,21 @@ export async function findByGroupId(groupId: string) {
   return rows.map(parseBox);
 }
 
+export async function findUnassigned() {
+  const rows = await db
+    .select()
+    .from(boxes)
+    .where(isNull(boxes.boxGroupId))
+    .orderBy(desc(boxes.createdAt));
+  return rows.map(parseBox);
+}
+
 export async function create(dto: CreateBoxDto) {
   const [row] = await db
     .insert(boxes)
     .values({
       ...dto,
+      boxGroupId: dto.boxGroupId ?? null,
       width: String(dto.width),
       length: String(dto.length),
       height: String(dto.height),
@@ -69,7 +79,7 @@ export async function remove(id: string) {
 }
 
 export async function uploadBoxes(
-  groupId: string,
+  groupId: string | null,
   parsedData: { headers: string[]; rows: Record<string, unknown>[] },
 ) {
   const { headers, rows } = parsedData;
@@ -95,6 +105,14 @@ export async function uploadBoxes(
 
   const created = await db.insert(boxes).values(values).returning();
   return { imported: created.length };
+}
+
+export async function assignToGroup(boxIds: string[], groupId: string) {
+  await db.update(boxes).set({ boxGroupId: groupId }).where(inArray(boxes.id, boxIds));
+}
+
+export async function unassignFromGroup(boxIds: string[]) {
+  await db.update(boxes).set({ boxGroupId: null }).where(inArray(boxes.id, boxIds));
 }
 
 function parseBox(row: typeof boxes.$inferSelect) {

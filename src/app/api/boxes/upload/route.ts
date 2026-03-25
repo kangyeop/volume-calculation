@@ -7,10 +7,6 @@ export async function POST(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const groupId = searchParams.get('groupId');
 
-    if (!groupId) {
-      return NextResponse.json({ error: 'groupId is required' }, { status: 400 });
-    }
-
     const formData = await request.formData();
     const file = formData.get('file') as File;
 
