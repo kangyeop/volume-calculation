@@ -22,7 +22,10 @@ const COLUMN_MAP: Record<string, string> = {
 };
 
 export async function findAll() {
-  const rows = await db.select().from(boxes).orderBy(desc(boxes.createdAt));
+  const rows = await db.query.boxes.findMany({
+    orderBy: [desc(boxes.createdAt)],
+    with: { boxGroup: true },
+  });
   return rows.map(parseBox);
 }
 
@@ -41,11 +44,11 @@ export async function findByGroupId(groupId: string) {
 }
 
 export async function findUnassigned() {
-  const rows = await db
-    .select()
-    .from(boxes)
-    .where(isNull(boxes.boxGroupId))
-    .orderBy(desc(boxes.createdAt));
+  const rows = await db.query.boxes.findMany({
+    where: isNull(boxes.boxGroupId),
+    orderBy: [desc(boxes.createdAt)],
+    with: { boxGroup: true },
+  });
   return rows.map(parseBox);
 }
 
