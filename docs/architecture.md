@@ -73,6 +73,7 @@ volume-calculator/
 │   │   │   ├── queryKeys.ts          # 쿼리 키 팩토리
 │   │   │   ├── useBoxGroups.ts
 │   │   │   ├── useBoxes.ts
+│   │   │   ├── useBoxStockHistories.ts
 │   │   │   ├── useShipments.ts
 │   │   │   ├── useOrderItems.ts
 │   │   │   ├── usePacking.ts
@@ -106,6 +107,7 @@ volume-calculator/
 │   │   │   ├── product-groups.ts
 │   │   │   ├── product-upload.ts    # 상품 엑셀 업로드
 │   │   │   ├── boxes.ts
+│   │   │   ├── box-stock-histories.ts
 │   │   │   ├── box-groups.ts
 │   │   │   ├── projects.ts
 │   │   │   ├── shipment.ts           # 출고(Shipment) CRUD

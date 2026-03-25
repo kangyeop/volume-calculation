@@ -5,5 +5,6 @@ export * from './useProducts';
 export * from './useOrderItems';
 export * from './useShipments';
 export * from './useBoxes';
+export * from './useBoxStockHistories';
 export * from './useBoxGroups';
 export * from './usePacking';

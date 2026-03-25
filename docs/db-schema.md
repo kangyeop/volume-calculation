@@ -29,6 +29,17 @@ erDiagram
     }
 
     BoxGroup |o--o{ Box : "has many (optional)"
+    Box ||--o{ BoxStockHistory : "has many"
+    BoxStockHistory {
+        uuid id PK
+        uuid boxId FK
+        stock_change_type type
+        integer quantity "signed delta"
+        integer resultStock
+        text note "nullable"
+        timestamp createdAt
+    }
+
     BoxGroup {
         uuid id PK
         varchar name
@@ -153,6 +164,7 @@ erDiagram
 | `order_status` | `PENDING`, `PROCESSING`, `COMPLETED` | 주문 처리 상태 |
 | `shipment_status` | `PACKING`, `CONFIRMED` | 출고건 패킹 상태 |
 | `aircap_type` | `INDIVIDUAL`, `PER_ORDER`, `BOTH` | 에어캡 유형 (개별/건당/개별+건당) |
+| `stock_change_type` | `INBOUND`, `OUTBOUND`, `INITIAL`, `ADJUSTMENT` | 재고 변동 유형 (입고/출고/초기등록/수정) |
 
 ## 인덱스
 
@@ -164,6 +176,7 @@ erDiagram
 | `order_items` | INDEX | `(shipment_id, order_id)` |
 | `outbounds` | INDEX | `(project_id, product_id)` |
 | `outbounds` | INDEX | `(project_id, order_id)` |
+| `box_stock_histories` | INDEX | `(box_id)` |
 
 ## 관계 요약
 
@@ -178,4 +191,5 @@ erDiagram
 | `Shipment` | `PackingResultDetail` | 1:N | - |
 | `Product` | `OrderItem` | 1:N | SET NULL |
 | `Project` | `Outbound` | 1:N | - |
+| `Box` | `BoxStockHistory` | 1:N | CASCADE |
 | `Product` | `Outbound` | 1:N | SET NULL |

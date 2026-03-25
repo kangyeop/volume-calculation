@@ -18,6 +18,7 @@ import { relations } from 'drizzle-orm';
 export const orderStatusEnum = pgEnum('order_status', ['PENDING', 'PROCESSING', 'COMPLETED']);
 export const shipmentStatusEnum = pgEnum('shipment_status', ['PACKING', 'CONFIRMED']);
 export const aircapTypeEnum = pgEnum('aircap_type', ['INDIVIDUAL', 'PER_ORDER', 'BOTH']);
+export const stockChangeTypeEnum = pgEnum('stock_change_type', ['INBOUND', 'OUTBOUND', 'INITIAL', 'ADJUSTMENT']);
 
 export const productGroups = pgTable('product_groups', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -62,6 +63,18 @@ export const boxes = pgTable('boxes', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
 });
+
+export const boxStockHistories = pgTable('box_stock_histories', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  boxId: uuid('box_id').notNull().references(() => boxes.id, { onDelete: 'cascade' }),
+  type: stockChangeTypeEnum('type').notNull(),
+  quantity: integer('quantity').notNull(),
+  resultStock: integer('result_stock').notNull(),
+  note: text('note'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('box_stock_histories_box_id_idx').on(table.boxId),
+]);
 
 export const shipments = pgTable('shipments', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -179,10 +192,18 @@ export const boxGroupsRelations = relations(boxGroups, ({ many }) => ({
   boxes: many(boxes),
 }));
 
-export const boxesRelations = relations(boxes, ({ one }) => ({
+export const boxesRelations = relations(boxes, ({ one, many }) => ({
   boxGroup: one(boxGroups, {
     fields: [boxes.boxGroupId],
     references: [boxGroups.id],
+  }),
+  stockHistories: many(boxStockHistories),
+}));
+
+export const boxStockHistoriesRelations = relations(boxStockHistories, ({ one }) => ({
+  box: one(boxes, {
+    fields: [boxStockHistories.boxId],
+    references: [boxes.id],
   }),
 }));
 

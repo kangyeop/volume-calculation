@@ -8,11 +8,13 @@ import {
   PackingResult,
   Box,
   BoxGroup,
+  BoxStockHistory,
   PackingResult3D,
   ApiResponse,
   PackingResultDetail,
   ProjectStats,
 } from '@/types';
+import type { StockChangeType } from '@/types';
 
 const API_BASE = '/api';
 
@@ -256,6 +258,10 @@ export const api = {
     update: (id: string, data: Partial<Omit<Box, 'id' | 'boxGroup'>>) =>
       fetchApi<Box>(`/boxes/${id}`, { method: 'PATCH', data }),
     delete: (id: string) => fetchApi<void>(`/boxes/${id}`, { method: 'DELETE' }),
+    stockHistories: (boxId: string) =>
+      fetchApi<BoxStockHistory[]>(`/boxes/${boxId}/stock-histories`),
+    createStockHistory: (boxId: string, data: { type: StockChangeType; quantity: number; note?: string }) =>
+      fetchApi<BoxStockHistory>(`/boxes/${boxId}/stock-histories`, { method: 'POST', data }),
     uploadExcel: (file: File, groupId?: string): Promise<{ imported: number }> => {
       const formData = new FormData();
       formData.append('file', file);

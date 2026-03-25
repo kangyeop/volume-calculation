@@ -30,7 +30,21 @@
 | createdAt | timestamp | |
 | updatedAt | timestamp | |
 
-**관계:** Box N : 0..1 BoxGroup
+**관계:** Box N : 0..1 BoxGroup, Box 1 : N BoxStockHistory
+
+### BoxStockHistory
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| id | UUID (PK) | |
+| boxId | UUID (FK → boxes, CASCADE) | 대상 박스 |
+| type | stock_change_type | 변동 유형 (INBOUND/OUTBOUND/INITIAL/ADJUSTMENT) |
+| quantity | integer | 부호 있는 변동량 (+ 증가, - 감소) |
+| resultStock | integer | 변동 후 최종 재고 |
+| note | text, nullable | 변경 사유 메모 |
+| createdAt | timestamp | |
+
+**관계:** BoxStockHistory N : 1 Box (CASCADE DELETE)
 
 ## 페이지
 
@@ -38,7 +52,7 @@
 |------|------|
 | `/boxes` | 박스 독립 목록 (전체/미할당 필터, 삭제) |
 | `/boxes/new` | 박스 생성 (단건 폼 + 엑셀 업로드) |
-| `/boxes/[id]` | 박스 수정 (이름, 치수, 가격, 재고) |
+| `/boxes/[id]` | 박스 수정 (이름, 치수, 가격) + 재고 이력 관리 |
 | `/box-groups` | 박스 그룹 목록 (그룹명, 박스 수, 생성일, 삭제) |
 | `/box-groups/new` | 박스 그룹 생성 (그룹명 + 기존 박스 선택) |
 | `/box-groups/[id]` | 박스 그룹 상세 (소속 박스 관리 — 할당/해제) |
@@ -71,6 +85,8 @@
 | PATCH | `/api/boxes/{id}` | 박스 수정 |
 | DELETE | `/api/boxes/{id}` | 박스 삭제 |
 | POST | `/api/boxes/upload` | 엑셀 업로드 (groupId query param optional) |
+| GET | `/api/boxes/{id}/stock-histories` | 박스 재고 이력 목록 |
+| POST | `/api/boxes/{id}/stock-histories` | 재고 변동 등록 (type, quantity, note?) |
 
 ### 박스 그룹
 
@@ -107,6 +123,21 @@
 
 groupId 없이 업로드하면 미할당 박스로 생성된다.
 
+### 재고 이력 관리
+
+재고는 편집 폼에서 직접 수정할 수 없으며, 반드시 재고 이력(BoxStockHistory)을 통해서만 변경된다.
+
+| 유형 | 설명 | quantity 계산 |
+|------|------|--------------|
+| INBOUND (입고) | 재고 입고 | delta = +수량, result = 현재 + 수량 |
+| OUTBOUND (출고) | 재고 출고 | delta = -수량, result = 현재 - 수량 |
+| INITIAL (초기 등록) | 초기 재고 설정 | delta = 목표 - 현재, result = 목표 |
+| ADJUSTMENT (수정) | 재고 보정 | delta = 목표 - 현재, result = 목표 |
+
+- 이력 생성과 재고 업데이트는 트랜잭션 내에서 원자적으로 처리
+- OUTBOUND 시 결과 재고가 음수이면 에러
+- 이력 레코드는 불변(immutable) — 수정·삭제 불가
+
 ### 패킹 연동 경로
 
 패킹 시 박스 조회 체인: `ProductGroup.boxGroupId → boxesService.findByGroupId(bgId) → Box[]`
@@ -124,9 +155,11 @@ groupId 없이 업로드하면 미할당 박스로 생성된다.
 |------|------|
 | `src/lib/db/schema.ts` | DB 스키마 (boxGroups, boxes) |
 | `src/lib/services/boxes.ts` | 박스 CRUD, 엑셀 업로드, 할당/해제 서비스 |
+| `src/lib/services/box-stock-histories.ts` | 재고 이력 생성 (트랜잭션), 조회 서비스 |
 | `src/lib/services/box-groups.ts` | 박스 그룹 서비스 (생성, 할당 변경, 삭제) |
 | `src/lib/api.ts` | 프론트엔드 API 클라이언트 |
 | `src/hooks/queries/useBoxes.ts` | React Query 훅 (박스) |
+| `src/hooks/queries/useBoxStockHistories.ts` | React Query 훅 (재고 이력) |
 | `src/hooks/queries/useBoxGroups.ts` | React Query 훅 (박스 그룹) |
 | `src/app/(main)/boxes/` | 박스 UI 페이지 |
 | `src/app/(main)/box-groups/` | 박스 그룹 UI 페이지 |

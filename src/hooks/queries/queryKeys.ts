@@ -32,6 +32,7 @@ export const shipments = createQueryKeys('shipments', {
 export const boxes = createQueryKeys('boxes', {
   all: null,
   unassigned: null,
+  stockHistories: (boxId: string) => [boxId, 'stock-histories'],
 });
 
 export const boxGroups = createQueryKeys('boxGroups', {

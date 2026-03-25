@@ -19,6 +19,18 @@ export interface Box extends Dimensions {
   boxGroup?: BoxGroup;
 }
 
+export type StockChangeType = 'INBOUND' | 'OUTBOUND' | 'INITIAL' | 'ADJUSTMENT';
+
+export interface BoxStockHistory {
+  id: string;
+  boxId: string;
+  type: StockChangeType;
+  quantity: number;
+  resultStock: number;
+  note: string | null;
+  createdAt: string;
+}
+
 export interface BoxGroup {
   id: string;
   name: string;
