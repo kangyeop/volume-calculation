@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Package, Truck, Box, LogOut } from 'lucide-react';
+import { Package, Truck, Box, Layers, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createSupabaseBrowser } from '@/lib/supabase/client';
 
@@ -12,6 +12,7 @@ const navItems = [
   { to: '/products', label: '상품', icon: Package },
   { to: '/shipments', label: '출고', icon: Truck },
   { to: '/boxes', label: '박스 관리', icon: Box },
+  { to: '/box-groups', label: '박스 그룹', icon: Layers },
 ];
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {

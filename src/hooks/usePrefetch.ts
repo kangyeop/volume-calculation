@@ -45,3 +45,16 @@ export function usePrefetchBoxGroup() {
     [queryClient],
   );
 }
+
+export function usePrefetchBoxGroupDetail() {
+  const queryClient = useQueryClient();
+  return useCallback(
+    (id: string) => {
+      queryClient.prefetchQuery({
+        ...boxGroups.detail(id),
+        queryFn: () => api.boxGroups.get(id),
+      });
+    },
+    [queryClient],
+  );
+}

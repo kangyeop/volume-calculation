@@ -5,7 +5,7 @@ import {
   type UseMutationResult,
 } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { boxGroups } from './queryKeys';
+import { boxes, boxGroups } from './queryKeys';
 import type { BoxGroup } from '@/types';
 
 export function useBoxGroups() {
@@ -23,14 +23,23 @@ export function useBoxGroup(id: string) {
   });
 }
 
-export function useCreateBoxGroup(): UseMutationResult<BoxGroup, Error, string> {
+export function useCreateBoxGroup(): UseMutationResult<
+  BoxGroup,
+  Error,
+  { name: string; boxIds?: string[] }
+> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (name: string) => api.boxGroups.create(name),
+    mutationFn: ({ name, boxIds }) => api.boxGroups.create(name, boxIds),
     onSuccess: (newGroup) => {
-      queryClient.setQueryData(boxGroups.detail(newGroup.id).queryKey, { ...newGroup, boxes: [] });
+      queryClient.setQueryData(boxGroups.detail(newGroup.id).queryKey, {
+        ...newGroup,
+        boxes: newGroup.boxes ?? [],
+      });
       queryClient.invalidateQueries({ queryKey: boxGroups.all.queryKey });
+      queryClient.invalidateQueries({ queryKey: boxes.all.queryKey });
+      queryClient.invalidateQueries({ queryKey: boxes.unassigned.queryKey });
     },
   });
 }
@@ -55,6 +64,24 @@ export function useDeleteBoxGroup(): UseMutationResult<void, Error, string> {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: boxGroups.all.queryKey });
+      queryClient.invalidateQueries({ queryKey: boxes.all.queryKey });
+      queryClient.invalidateQueries({ queryKey: boxes.unassigned.queryKey });
+    },
+  });
+}
+
+export function useUpdateBoxAssignments(
+  groupId: string
+): UseMutationResult<BoxGroup, Error, string[]> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (boxIds: string[]) => api.boxGroups.updateBoxes(groupId, boxIds),
+    onSuccess: (updatedGroup) => {
+      queryClient.setQueryData(boxGroups.detail(groupId).queryKey, updatedGroup);
+      queryClient.invalidateQueries({ queryKey: boxGroups.all.queryKey });
+      queryClient.invalidateQueries({ queryKey: boxes.all.queryKey });
+      queryClient.invalidateQueries({ queryKey: boxes.unassigned.queryKey });
     },
   });
 }
