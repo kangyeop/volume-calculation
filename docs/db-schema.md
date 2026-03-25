@@ -43,6 +43,7 @@ erDiagram
         numeric length
         numeric height
         numeric price "nullable"
+        integer stock "default 0"
         uuid boxGroupId FK "nullable"
         timestamp createdAt
         timestamp updatedAt
