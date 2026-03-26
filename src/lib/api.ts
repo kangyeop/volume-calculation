@@ -58,6 +58,30 @@ export interface Shipment {
   updatedAt?: Date | string;
 }
 
+export interface SettlementOrderDetail {
+  orderUuid: string;
+  orderId: string;
+  items: { sku: string; quantity: number }[];
+  boxId: string | null;
+  packingResultId: string | null;
+  status: 'matched' | 'matched_unassigned' | 'unmatched';
+}
+
+export interface SettlementDetail {
+  id: string;
+  name: string;
+  status: string;
+  createdAt: Date | string;
+  orders: SettlementOrderDetail[];
+}
+
+export interface SettlementUploadResult {
+  imported: number;
+  unmatched: number;
+  shipmentId: string;
+  shipmentName: string;
+}
+
 export interface DashboardStats {
   totalBatches: number;
   totalBoxesUsed: number;
@@ -189,6 +213,24 @@ export const api = {
           } | null;
         }[];
       }>(`/shipments/${shipmentId}/order-items/configuration-summary`),
+  },
+  settlements: {
+    list: () => fetchApi<Shipment[]>('/settlements'),
+    get: (id: string) => fetchApi<SettlementDetail>(`/settlements/${id}`),
+    delete: (id: string) => fetchApi<void>(`/settlements/${id}`, { method: 'DELETE' }),
+    upload: (file: File): Promise<SettlementUploadResult> => {
+      const formData = new FormData();
+      formData.append('file', file);
+      return apiClient
+        .post<ApiResponse<SettlementUploadResult>>('/upload/settlement', formData)
+        .then(unwrapResponse);
+    },
+    assignBox: (id: string, orderId: string, boxId: string) =>
+      fetchApi<void>(`/settlements/${id}/assign-box`, { method: 'PATCH', data: { orderId, boxId } }),
+    confirm: (id: string) =>
+      fetchApi<{ success: boolean }>(`/settlements/${id}/confirm`, { method: 'POST' }),
+    unconfirm: (id: string) =>
+      fetchApi<{ success: boolean }>(`/settlements/${id}/confirm`, { method: 'DELETE' }),
   },
   boxGroups: {
     list: () => fetchApi<BoxGroup[]>('/box-groups'),

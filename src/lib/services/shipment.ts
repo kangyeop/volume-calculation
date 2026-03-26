@@ -3,19 +3,23 @@ import { shipments, orderItems, orders, packingResults } from '@/lib/db/schema';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { getUserId } from '@/lib/auth';
 
-export async function findAll() {
+export async function findAll(type?: 'SHIPMENT' | 'SETTLEMENT') {
   const userId = await getUserId();
+  const conditions = type
+    ? and(eq(shipments.userId, userId), eq(shipments.type, type))
+    : eq(shipments.userId, userId);
   return db
     .select({
       id: shipments.id,
       name: shipments.name,
       status: shipments.status,
+      type: shipments.type,
       note: shipments.note,
       createdAt: shipments.createdAt,
       updatedAt: shipments.updatedAt,
     })
     .from(shipments)
-    .where(eq(shipments.userId, userId))
+    .where(conditions)
     .orderBy(desc(shipments.createdAt));
 }
 
@@ -30,7 +34,7 @@ export async function findOne(id: string) {
   });
 }
 
-export async function generateBatchName(filename: string): Promise<string> {
+export async function generateBatchName(filename: string, type: 'SHIPMENT' | 'SETTLEMENT' = 'SHIPMENT'): Promise<string> {
   const userId = await getUserId();
   const now = new Date();
   const today = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
@@ -40,16 +44,16 @@ export async function generateBatchName(filename: string): Promise<string> {
   const rows = await db
     .select({ id: shipments.id })
     .from(shipments)
-    .where(and(gte(shipments.createdAt, startOfDay), lte(shipments.createdAt, endOfDay), eq(shipments.userId, userId)));
+    .where(and(gte(shipments.createdAt, startOfDay), lte(shipments.createdAt, endOfDay), eq(shipments.userId, userId), eq(shipments.type, type)));
 
   const count = rows.length;
   const cleanFilename = filename.replace(/\.[^/.]+$/, '');
   return `${today}-${count + 1}-${cleanFilename}`;
 }
 
-export async function create(name: string) {
+export async function create(name: string, type: 'SHIPMENT' | 'SETTLEMENT' = 'SHIPMENT') {
   const userId = await getUserId();
-  const [batch] = await db.insert(shipments).values({ name, userId }).returning();
+  const [batch] = await db.insert(shipments).values({ name, userId, type }).returning();
   return batch;
 }
 
