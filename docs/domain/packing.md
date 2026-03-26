@@ -9,47 +9,36 @@
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
 | id | UUID (PK) | |
-| boxId | varchar(255) | 박스 ID (nullable) |
-| boxName | varchar(255) | 박스 이름 (nullable) |
-| boxWidth | numeric(10,2) | 박스 가로 (nullable) |
-| boxLength | numeric(10,2) | 박스 세로 (nullable) |
-| boxHeight | numeric(10,2) | 박스 높이 (nullable) |
-| boxGroupId | varchar(255) | 박스 그룹 ID (nullable) |
+| orderId | UUID (FK → orders, UNIQUE) | 주문 UUID (1:1) |
+| shipmentId | UUID (FK → shipments) | |
+| boxId | UUID (FK → boxes) | 배정된 박스 (nullable, null=미배정) |
 | packedCount | integer | 담긴 아이템 수 |
 | efficiency | numeric(10,4) | 부피 활용률 |
 | totalCBM | numeric(10,4) | CBM (m³) |
 | groupLabel | varchar(255) | 그룹 식별자 (nullable) |
 | groupIndex | integer | 그룹 순서 인덱스 (nullable) |
-| orderId | varchar(255) | 주문번호 (nullable) |
 | boxNumber | integer | 그룹 내 박스 순번 (nullable) |
-| shipmentId | UUID (FK → shipments) | |
+| items | jsonb | PackingResultItem[] — SKU별 상세 |
 | createdAt | timestamp | |
 | updatedAt | timestamp | |
 
-**관계:** Shipment 1 : N PackingResult
+**관계:** Order 1 : 1 PackingResult, Shipment 1 : N PackingResult, Box 1 : N PackingResult
 
-### PackingResultDetail
+**items JSONB 구조 (PackingResultItem):**
 
-| 컬럼 | 타입 | 설명 |
+| 필드 | 타입 | 설명 |
 |------|------|------|
-| id | UUID (PK) | |
-| shipmentId | UUID (FK → shipments) | |
-| orderId | varchar(255) | 주문번호 |
-| sku | varchar(255) | 상품 SKU |
-| productName | varchar(255) | 상품명 |
-| quantity | integer | 수량 |
-| boxName | varchar(255) | 배정된 박스 이름 |
-| boxNumber | integer | 박스 순번 |
-| boxIndex | integer | 전체 박스 인덱스 |
-| boxCBM | numeric(10,4) | 박스 CBM |
-| efficiency | numeric(10,4) | 부피 활용률 |
-| unpacked | boolean | 미배정 여부 (nullable) |
-| unpackedReason | text | 미배정 사유 (nullable) |
-| placements | jsonb | 3D 배치 좌표 (nullable) |
-| createdAt | timestamp | |
-| updatedAt | timestamp | |
-
-**관계:** Shipment 1 : N PackingResultDetail
+| sku | string | 상품 SKU |
+| productName | string | 상품명 |
+| quantity | number | 수량 |
+| boxName | string | 배정된 박스 이름 |
+| boxNumber | number | 박스 순번 |
+| boxIndex | number | 전체 박스 인덱스 |
+| boxCBM | number | 박스 CBM |
+| efficiency | number | 부피 활용률 |
+| unpacked | boolean | 미배정 여부 |
+| unpackedReason | string? | 미배정 사유 |
+| placements | Placement3D[]? | 3D 배치 좌표 |
 
 ## 페이지
 
@@ -79,7 +68,6 @@
 | Method | Endpoint | 설명 |
 |--------|----------|------|
 | GET | `/api/shipments/{shipmentId}/packing/results` | 패킹 결과 목록 |
-| GET | `/api/shipments/{shipmentId}/packing/details` | 패킹 상세 결과 |
 
 ### 추천/내보내기
 
@@ -125,7 +113,7 @@
 
 ### 결과 저장
 
-재계산 시 기존 결과를 삭제 후 새로 생성한다 (누적 히스토리 아님).
+재계산 시 기존 결과를 삭제 후 새로 생성한다 (누적 히스토리 아님). 상세 아이템 정보는 `items` JSONB 컬럼에 저장된다.
 
 ### 패킹 확정
 
@@ -153,11 +141,11 @@
 
 | 파일 | 역할 |
 |------|------|
-| `src/lib/db/schema.ts` | DB 스키마 (packingResults, packingResultDetails) |
+| `src/lib/db/schema.ts` | DB 스키마 (packingResults) |
 | `src/lib/services/packing.ts` | 패킹 계산·조회·추천 서비스 |
 | `src/lib/algorithms/packing.ts` | 패킹 알고리즘 구현 |
 | `src/hooks/queries/usePacking.ts` | React Query 훅 (계산, 결과 조회, 추천, 내보내기) |
 | `src/hooks/usePackingNormalizer.ts` | 추천 결과 정규화 훅 |
-| `src/types/index.ts` | 패킹 관련 타입 정의 |
+| `src/types/index.ts` | 패킹 관련 타입 정의 (PackingResultItem 등) |
 | `src/app/(main)/shipments/[id]/packing/page.tsx` | 패킹 UI 페이지 |
 | `src/app/api/shipments/[shipmentId]/packing/` | 패킹 API 라우트 |

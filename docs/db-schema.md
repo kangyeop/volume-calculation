@@ -30,6 +30,7 @@ erDiagram
 
     BoxGroup |o--o{ Box : "has many (optional)"
     Box ||--o{ BoxStockHistory : "has many"
+    Box ||--o{ PackingResult : "assigned to"
     BoxStockHistory {
         uuid id PK
         uuid boxId FK
@@ -63,7 +64,6 @@ erDiagram
     Shipment ||--o{ Order : "has many"
     Shipment ||--o{ OrderItem : "has many"
     Shipment ||--o{ PackingResult : "has many"
-    Shipment ||--o{ PackingResultDetail : "has many"
     Shipment {
         uuid id PK
         varchar name
@@ -74,6 +74,7 @@ erDiagram
         timestamp updatedAt
     }
 
+    Order ||--o| PackingResult : "has one (1:1)"
     Order {
         uuid id PK
         varchar orderId
@@ -98,39 +99,16 @@ erDiagram
 
     PackingResult {
         uuid id PK
-        varchar boxId "nullable"
-        varchar boxName "nullable"
-        numeric boxWidth "nullable"
-        numeric boxLength "nullable"
-        numeric boxHeight "nullable"
-        varchar boxGroupId "nullable"
+        uuid orderId FK_UK "→ orders.id"
+        uuid shipmentId FK "→ shipments.id"
+        uuid boxId FK "→ boxes.id, nullable"
         integer packedCount
         numeric efficiency
         numeric totalCBM
         varchar groupLabel "nullable"
         integer groupIndex "nullable"
-        varchar orderId "nullable"
         integer boxNumber "nullable"
-        uuid shipmentId FK
-        timestamp createdAt
-        timestamp updatedAt
-    }
-
-    PackingResultDetail {
-        uuid id PK
-        uuid shipmentId FK
-        varchar orderId
-        varchar sku
-        varchar productName
-        integer quantity
-        varchar boxName
-        integer boxNumber
-        integer boxIndex
-        numeric boxCBM
-        numeric efficiency
-        boolean unpacked "nullable"
-        text unpackedReason "nullable"
-        jsonb placements "nullable"
+        jsonb items "PackingResultItem[]"
         timestamp createdAt
         timestamp updatedAt
     }
@@ -177,6 +155,8 @@ erDiagram
 | `outbounds` | INDEX | `(project_id, product_id)` |
 | `outbounds` | INDEX | `(project_id, order_id)` |
 | `box_stock_histories` | INDEX | `(box_id)` |
+| `packing_results` | UNIQUE | `order_id` |
+| `packing_results` | INDEX | `shipment_id` |
 
 ## 관계 요약
 
@@ -187,8 +167,9 @@ erDiagram
 | `BoxGroup` | `Box` | 0..1:N | SET NULL |
 | `Shipment` | `Order` | 1:N | - |
 | `Shipment` | `OrderItem` | 1:N | - |
-| `Shipment` | `PackingResult` | 1:N | - |
-| `Shipment` | `PackingResultDetail` | 1:N | - |
+| `Shipment` | `PackingResult` | 1:N | CASCADE |
+| `Order` | `PackingResult` | 1:1 | CASCADE |
+| `Box` | `PackingResult` | 1:N | SET NULL |
 | `Product` | `OrderItem` | 1:N | SET NULL |
 | `Project` | `Outbound` | 1:N | - |
 | `Box` | `BoxStockHistory` | 1:N | CASCADE |
