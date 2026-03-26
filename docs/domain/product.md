@@ -9,6 +9,7 @@
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
 | id | UUID (PK) | |
+| userId | UUID, nullable | 소유자 (auth.users) |
 | name | varchar(255) | 그룹 이름 |
 | boxGroupId | UUID (FK → boxGroups) | 패킹 시 사용할 박스 그룹 |
 | createdAt | timestamp | |
@@ -21,7 +22,8 @@
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
 | id | UUID (PK) | |
-| sku | varchar(255), UNIQUE | 상품명 (고유 식별자 역할) |
+| userId | UUID, nullable | 소유자 (auth.users) |
+| sku | varchar(255), UNIQUE(userId, sku) | 상품명 (사용자별 고유 식별자) |
 | width | numeric(10,2) | 가로 (cm) |
 | length | numeric(10,2) | 세로 (cm) |
 | height | numeric(10,2) | 높이 (cm) |

@@ -27,6 +27,7 @@ OrderItem (주문 아이템)
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
 | id | UUID (PK) | |
+| userId | UUID, nullable | 소유자 (auth.users) |
 | name | varchar(255) | 출고명 (자동 생성: `YYYYMMDD-N-파일명`) |
 | lastBoxGroupId | UUID | 마지막 사용한 박스 그룹 |
 | createdAt | timestamp | |

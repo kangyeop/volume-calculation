@@ -94,6 +94,7 @@ volume-calculator/
 │   ├── lib/                          # 서버/공통 라이브러리
 │   │   ├── api.ts                    # API 클라이언트 (Axios)
 │   │   ├── utils.ts                  # 유틸리티 (cn 등)
+│   │   ├── auth.ts                  # getUserId() — Supabase Auth 기반 인증 헬퍼
 │   │   ├── db/
 │   │   │   └── schema.ts            # Drizzle ORM 스키마 정의
 │   │   ├── supabase/
@@ -192,7 +193,8 @@ volume-calculator/
 API Route Handler
        │
        ▼
-    Service          ←── 비즈니스 로직
+    Service          ←── 비즈니스 로직 (getUserId()로 userId 주입)
+
        │
        ├──→ Drizzle ORM ──→ Supabase PostgreSQL
        │

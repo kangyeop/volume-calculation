@@ -8,6 +8,7 @@ erDiagram
     ProductGroup ||--o{ Product : "has many"
     ProductGroup {
         uuid id PK
+        uuid userId "nullable"
         varchar name
         uuid boxGroupId FK
         timestamp createdAt
@@ -16,7 +17,8 @@ erDiagram
 
     Product {
         uuid id PK
-        varchar sku UK
+        uuid userId "nullable"
+        varchar sku
         varchar name
         numeric width
         numeric length
@@ -43,6 +45,7 @@ erDiagram
 
     BoxGroup {
         uuid id PK
+        uuid userId "nullable"
         varchar name
         timestamp createdAt
         timestamp updatedAt
@@ -50,6 +53,7 @@ erDiagram
 
     Box {
         uuid id PK
+        uuid userId "nullable"
         varchar name
         numeric width
         numeric length
@@ -66,6 +70,7 @@ erDiagram
     Shipment ||--o{ PackingResult : "has many"
     Shipment {
         uuid id PK
+        uuid userId "nullable"
         varchar name
         shipment_status status "default PACKING"
         text note "nullable"
@@ -116,6 +121,7 @@ erDiagram
     Project ||--o{ Outbound : "has many (legacy)"
     Project {
         uuid id PK
+        uuid userId "nullable"
         varchar name
         timestamp createdAt
         timestamp updatedAt
@@ -148,7 +154,7 @@ erDiagram
 
 | 테이블 | 타입 | 컬럼 |
 |--------|------|------|
-| `products` | UNIQUE | `sku` |
+| `products` | UNIQUE | `(user_id, sku)` |
 | `orders` | UNIQUE | `(shipment_id, order_id)` |
 | `order_items` | INDEX | `(shipment_id, product_id)` |
 | `order_items` | INDEX | `(shipment_id, order_id)` |

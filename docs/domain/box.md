@@ -9,6 +9,7 @@
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
 | id | UUID (PK) | |
+| userId | UUID, nullable | 소유자 (auth.users) |
 | name | varchar(255) | 그룹 이름 |
 | createdAt | timestamp | |
 | updatedAt | timestamp | |
@@ -20,6 +21,7 @@
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
 | id | UUID (PK) | |
+| userId | UUID, nullable | 소유자 (auth.users) |
 | name | varchar(255) | 박스 이름 |
 | boxGroupId | UUID (FK → boxGroups, nullable) | 소속 그룹 (SET NULL) |
 | width | numeric(10,2) | 가로 (cm) |
