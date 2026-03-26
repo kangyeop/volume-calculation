@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { orders, orderItems, products } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
+import { getUserId } from '@/lib/auth';
 
 type CreateOrderDto = {
   shipmentId: string;
@@ -77,6 +78,7 @@ export async function calculateVolume(shipmentId: string, orderId: string): Prom
 }
 
 export async function mapProducts(shipmentId: string, orderId: string) {
+  const userId = await getUserId();
   const order = await findOne(shipmentId, orderId);
   if (!order) {
     throw new Error(`Order with shipmentId "${shipmentId}" and orderId "${orderId}" not found`);
@@ -99,7 +101,7 @@ export async function mapProducts(shipmentId: string, orderId: string) {
       const [product] = await tx
         .select()
         .from(products)
-        .where(eq(products.sku, item.sku))
+        .where(and(eq(products.sku, item.sku), eq(products.userId, userId)))
         .limit(1);
 
       if (product) {

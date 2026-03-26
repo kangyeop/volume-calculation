@@ -1,12 +1,14 @@
 import { db } from '@/lib/db';
 import { projects, packingResults, boxes } from '@/lib/db/schema';
-import { eq, desc, sql } from 'drizzle-orm';
+import { eq, desc, sql, and } from 'drizzle-orm';
 import type { ProjectStats } from '@/types';
+import { getUserId } from '@/lib/auth';
 
 type CreateProjectDto = { name: string };
 
 export async function findAll() {
-  return db.select().from(projects).orderBy(desc(projects.createdAt));
+  const userId = await getUserId();
+  return db.select().from(projects).where(eq(projects.userId, userId)).orderBy(desc(projects.createdAt));
 }
 
 export async function findOne(id: string) {
@@ -14,21 +16,25 @@ export async function findOne(id: string) {
 }
 
 export async function create(dto: CreateProjectDto) {
-  const [project] = await db.insert(projects).values(dto).returning();
+  const userId = await getUserId();
+  const [project] = await db.insert(projects).values({ ...dto, userId }).returning();
   return project;
 }
 
 export async function update(id: string, dto: Partial<CreateProjectDto>) {
-  const [project] = await db.update(projects).set(dto).where(eq(projects.id, id)).returning();
+  const userId = await getUserId();
+  const [project] = await db.update(projects).set(dto).where(and(eq(projects.id, id), eq(projects.userId, userId))).returning();
   return project;
 }
 
 export async function remove(id: string) {
-  const [row] = await db.delete(projects).where(eq(projects.id, id)).returning();
+  const userId = await getUserId();
+  const [row] = await db.delete(projects).where(and(eq(projects.id, id), eq(projects.userId, userId))).returning();
   return !!row;
 }
 
 export async function getStats(): Promise<ProjectStats[]> {
+  const userId = await getUserId();
   const results = await db
     .select({
       projectId: packingResults.shipmentId,
@@ -40,6 +46,7 @@ export async function getStats(): Promise<ProjectStats[]> {
     .from(packingResults)
     .innerJoin(projects, eq(projects.id, packingResults.shipmentId))
     .innerJoin(boxes, eq(boxes.id, packingResults.boxId))
+    .where(eq(projects.userId, userId))
     .groupBy(
       packingResults.shipmentId,
       projects.name,

@@ -1,8 +1,10 @@
 import { db } from '@/lib/db';
 import { shipments, orderItems, orders, packingResults } from '@/lib/db/schema';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
+import { getUserId } from '@/lib/auth';
 
 export async function findAll() {
+  const userId = await getUserId();
   return db
     .select({
       id: shipments.id,
@@ -13,6 +15,7 @@ export async function findAll() {
       updatedAt: shipments.updatedAt,
     })
     .from(shipments)
+    .where(eq(shipments.userId, userId))
     .orderBy(desc(shipments.createdAt));
 }
 
@@ -28,6 +31,7 @@ export async function findOne(id: string) {
 }
 
 export async function generateBatchName(filename: string): Promise<string> {
+  const userId = await getUserId();
   const now = new Date();
   const today = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
@@ -36,7 +40,7 @@ export async function generateBatchName(filename: string): Promise<string> {
   const rows = await db
     .select({ id: shipments.id })
     .from(shipments)
-    .where(and(gte(shipments.createdAt, startOfDay), lte(shipments.createdAt, endOfDay)));
+    .where(and(gte(shipments.createdAt, startOfDay), lte(shipments.createdAt, endOfDay), eq(shipments.userId, userId)));
 
   const count = rows.length;
   const cleanFilename = filename.replace(/\.[^/.]+$/, '');
@@ -44,42 +48,47 @@ export async function generateBatchName(filename: string): Promise<string> {
 }
 
 export async function create(name: string) {
-  const [batch] = await db.insert(shipments).values({ name }).returning();
+  const userId = await getUserId();
+  const [batch] = await db.insert(shipments).values({ name, userId }).returning();
   return batch;
 }
 
 export async function confirm(id: string) {
+  const userId = await getUserId();
   const [shipment] = await db
     .update(shipments)
     .set({ status: 'CONFIRMED' })
-    .where(eq(shipments.id, id))
+    .where(and(eq(shipments.id, id), eq(shipments.userId, userId)))
     .returning();
   return shipment;
 }
 
 export async function unconfirm(id: string) {
+  const userId = await getUserId();
   const [shipment] = await db
     .update(shipments)
     .set({ status: 'PACKING' })
-    .where(eq(shipments.id, id))
+    .where(and(eq(shipments.id, id), eq(shipments.userId, userId)))
     .returning();
   return shipment;
 }
 
 export async function updateNote(id: string, note: string | null) {
+  const userId = await getUserId();
   const [shipment] = await db
     .update(shipments)
     .set({ note })
-    .where(eq(shipments.id, id))
+    .where(and(eq(shipments.id, id), eq(shipments.userId, userId)))
     .returning();
   return shipment;
 }
 
 export async function remove(id: string): Promise<void> {
+  const userId = await getUserId();
   await db.transaction(async (tx) => {
     await tx.delete(packingResults).where(eq(packingResults.shipmentId, id));
     await tx.delete(orderItems).where(eq(orderItems.shipmentId, id));
     await tx.delete(orders).where(eq(orders.shipmentId, id));
-    await tx.delete(shipments).where(eq(shipments.id, id));
+    await tx.delete(shipments).where(and(eq(shipments.id, id), eq(shipments.userId, userId)));
   });
 }

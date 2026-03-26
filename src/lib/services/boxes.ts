@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { boxes } from '@/lib/db/schema';
-import { eq, desc, isNull, inArray } from 'drizzle-orm';
+import { eq, desc, isNull, inArray, and } from 'drizzle-orm';
+import { getUserId } from '@/lib/auth';
 
 type CreateBoxDto = {
   name: string;
@@ -22,7 +23,9 @@ const COLUMN_MAP: Record<string, string> = {
 };
 
 export async function findAll() {
+  const userId = await getUserId();
   const rows = await db.query.boxes.findMany({
+    where: eq(boxes.userId, userId),
     orderBy: [desc(boxes.createdAt)],
     with: { boxGroup: true },
   });
@@ -44,8 +47,9 @@ export async function findByGroupId(groupId: string) {
 }
 
 export async function findUnassigned() {
+  const userId = await getUserId();
   const rows = await db.query.boxes.findMany({
-    where: isNull(boxes.boxGroupId),
+    where: and(isNull(boxes.boxGroupId), eq(boxes.userId, userId)),
     orderBy: [desc(boxes.createdAt)],
     with: { boxGroup: true },
   });
@@ -53,10 +57,12 @@ export async function findUnassigned() {
 }
 
 export async function create(dto: CreateBoxDto) {
+  const userId = await getUserId();
   const [row] = await db
     .insert(boxes)
     .values({
       ...dto,
+      userId,
       boxGroupId: dto.boxGroupId ?? null,
       width: String(dto.width),
       length: String(dto.length),
@@ -69,6 +75,7 @@ export async function create(dto: CreateBoxDto) {
 }
 
 export async function update(id: string, dto: Partial<CreateBoxDto>) {
+  const userId = await getUserId();
   const { width, length, height, price, stock, ...rest } = dto;
   const values: Partial<typeof boxes.$inferInsert> = { ...rest };
   if (stock !== undefined) values.stock = stock;
@@ -76,12 +83,13 @@ export async function update(id: string, dto: Partial<CreateBoxDto>) {
   if (length !== undefined) values.length = String(length);
   if (height !== undefined) values.height = String(height);
   if (price !== undefined) values.price = String(price);
-  const [row] = await db.update(boxes).set(values).where(eq(boxes.id, id)).returning();
+  const [row] = await db.update(boxes).set(values).where(and(eq(boxes.id, id), eq(boxes.userId, userId))).returning();
   return parseBox(row);
 }
 
 export async function remove(id: string) {
-  const [row] = await db.delete(boxes).where(eq(boxes.id, id)).returning();
+  const userId = await getUserId();
+  const [row] = await db.delete(boxes).where(and(eq(boxes.id, id), eq(boxes.userId, userId))).returning();
   return !!row;
 }
 
@@ -89,6 +97,7 @@ export async function uploadBoxes(
   groupId: string | null,
   parsedData: { headers: string[]; rows: Record<string, unknown>[] },
 ) {
+  const userId = await getUserId();
   const { headers, rows } = parsedData;
 
   const requiredColumns = ['박스명', '가로', '세로', '높이'];
@@ -98,7 +107,7 @@ export async function uploadBoxes(
   }
 
   const values = rows.map((row) => {
-    const mapped: Record<string, unknown> = { boxGroupId: groupId };
+    const mapped: Record<string, unknown> = { boxGroupId: groupId, userId };
     for (const [korean, english] of Object.entries(COLUMN_MAP)) {
       if (row[korean] !== undefined && row[korean] !== '') {
         mapped[english] =
@@ -115,11 +124,13 @@ export async function uploadBoxes(
 }
 
 export async function assignToGroup(boxIds: string[], groupId: string) {
-  await db.update(boxes).set({ boxGroupId: groupId }).where(inArray(boxes.id, boxIds));
+  const userId = await getUserId();
+  await db.update(boxes).set({ boxGroupId: groupId }).where(and(inArray(boxes.id, boxIds), eq(boxes.userId, userId)));
 }
 
 export async function unassignFromGroup(boxIds: string[]) {
-  await db.update(boxes).set({ boxGroupId: null }).where(inArray(boxes.id, boxIds));
+  const userId = await getUserId();
+  await db.update(boxes).set({ boxGroupId: null }).where(and(inArray(boxes.id, boxIds), eq(boxes.userId, userId)));
 }
 
 function parseBox(row: typeof boxes.$inferSelect) {

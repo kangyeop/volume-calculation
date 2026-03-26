@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { orderItems, packingResults, orders, products, productGroups, shipments } from '@/lib/db/schema';
 export { exportPackingResults } from '@/lib/services/excel';
 import { eq, and } from 'drizzle-orm';
+import { getUserId } from '@/lib/auth';
 import { calculatePacking, calculateOrderPackingUnified } from '@/lib/algorithms/packing';
 import type {
   SKU,
@@ -34,16 +35,17 @@ export async function calculate(
   strategy: BoxSortStrategy = 'volume',
 ): Promise<PackingRecommendation> {
   await assertNotConfirmed(shipmentId);
+  const userId = await getUserId();
   const allItems = await db.query.orderItems.findMany({
     where: eq(orderItems.shipmentId, shipmentId),
     with: { product: true },
   });
 
-  const allProducts = await db.select().from(products);
+  const allProducts = await db.select().from(products).where(eq(products.userId, userId));
   const productMapById = new Map(allProducts.map((p) => [p.id, p]));
   const productMapBySku = new Map(allProducts.map((p) => [p.sku, p]));
 
-  const allProductGroups = await db.select().from(productGroups);
+  const allProductGroups = await db.select().from(productGroups).where(eq(productGroups.userId, userId));
   const productGroupMap = new Map(allProductGroups.map((pg) => [pg.id, pg]));
 
   const boxGroupIds = [...new Set(allProductGroups.map((pg) => pg.boxGroupId))];
@@ -297,7 +299,8 @@ export async function getRecommendation(shipmentId: string): Promise<PackingReco
 
   if (results.length === 0) return null;
 
-  const allProducts = await db.select().from(products);
+  const userId = await getUserId();
+  const allProducts = await db.select().from(products).where(eq(products.userId, userId));
   const productBySku = new Map(allProducts.map((p) => [p.sku, p]));
 
   const groups: PackingGroup[] = [];

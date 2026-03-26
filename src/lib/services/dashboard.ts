@@ -2,8 +2,10 @@ import { db } from '@/lib/db';
 import { shipments, packingResults } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import type { DashboardStats } from '@/types';
+import { getUserId } from '@/lib/auth';
 
 export async function getStats(): Promise<DashboardStats> {
+  const userId = await getUserId();
   const batches = await db
     .select({
       batchId: shipments.id,
@@ -13,6 +15,7 @@ export async function getStats(): Promise<DashboardStats> {
     })
     .from(shipments)
     .leftJoin(packingResults, eq(packingResults.shipmentId, shipments.id))
+    .where(eq(shipments.userId, userId))
     .groupBy(shipments.id, shipments.name)
     .orderBy(shipments.createdAt);
 

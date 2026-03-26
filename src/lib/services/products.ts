@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { products, productGroups } from '@/lib/db/schema';
 import { eq, and, inArray, desc } from 'drizzle-orm';
+import { getUserId } from '@/lib/auth';
 import type { AircapType } from '@/types';
 
 export type CreateProductDto = {
@@ -23,11 +24,13 @@ export async function findAll(productGroupId: string) {
 }
 
 export async function findAllForMatching() {
-  const rows = await db.select().from(products).orderBy(desc(products.createdAt));
+  const userId = await getUserId();
+  const rows = await db.select().from(products).where(eq(products.userId, userId)).orderBy(desc(products.createdAt));
   return rows.map(parseProduct);
 }
 
 export async function findAllWithGroup() {
+  const userId = await getUserId();
   const rows = await db
     .select({
       id: products.id,
@@ -45,6 +48,7 @@ export async function findAllWithGroup() {
     })
     .from(products)
     .leftJoin(productGroups, eq(products.productGroupId, productGroups.id))
+    .where(eq(products.userId, userId))
     .orderBy(desc(products.createdAt));
   return rows.map((row) => ({
     ...row,
@@ -60,19 +64,22 @@ export async function findOne(id: string) {
 }
 
 export async function findBySku(sku: string) {
-  const rows = await db.select().from(products).where(eq(products.sku, sku));
+  const userId = await getUserId();
+  const rows = await db.select().from(products).where(and(eq(products.sku, sku), eq(products.userId, userId)));
   return rows.map(parseProduct);
 }
 
 export async function create(productGroupId: string, dto: CreateProductDto) {
+  const userId = await getUserId();
   const [row] = await db
     .insert(products)
-    .values({ ...dto, productGroupId, width: String(dto.width), length: String(dto.length), height: String(dto.height) })
+    .values({ ...dto, productGroupId, userId, width: String(dto.width), length: String(dto.length), height: String(dto.height) })
     .returning();
   return parseProduct(row);
 }
 
 export async function update(id: string, dto: Partial<CreateProductDto>) {
+  const userId = await getUserId();
   const { width, length, height, barcode, aircapType, ...rest } = dto;
   const values: Partial<typeof products.$inferInsert> = { ...rest };
   if (width !== undefined) values.width = String(width);
@@ -80,20 +87,23 @@ export async function update(id: string, dto: Partial<CreateProductDto>) {
   if (height !== undefined) values.height = String(height);
   if (barcode !== undefined) values.barcode = barcode;
   if (aircapType !== undefined) values.aircapType = aircapType;
-  const [row] = await db.update(products).set(values).where(eq(products.id, id)).returning();
+  const [row] = await db.update(products).set(values).where(and(eq(products.id, id), eq(products.userId, userId))).returning();
   return parseProduct(row);
 }
 
 export async function remove(id: string) {
-  const [row] = await db.delete(products).where(eq(products.id, id)).returning();
+  const userId = await getUserId();
+  const [row] = await db.delete(products).where(and(eq(products.id, id), eq(products.userId, userId))).returning();
   return !!row;
 }
 
 export async function createBulk(productGroupId: string, dtos: CreateProductDto[]) {
   if (dtos.length === 0) return [];
+  const userId = await getUserId();
   const values = dtos.map((dto) => ({
     ...dto,
     productGroupId,
+    userId,
     width: String(dto.width),
     length: String(dto.length),
     height: String(dto.height),
@@ -104,7 +114,7 @@ export async function createBulk(productGroupId: string, dtos: CreateProductDto[
     .insert(products)
     .values(values)
     .onConflictDoUpdate({
-      target: products.sku,
+      target: [products.userId, products.sku],
       set: {
         name: products.name,
         width: products.width,
@@ -120,7 +130,8 @@ export async function createBulk(productGroupId: string, dtos: CreateProductDto[
 
 export async function removeBulk(ids: string[]) {
   if (ids.length === 0) return;
-  await db.delete(products).where(inArray(products.id, ids));
+  const userId = await getUserId();
+  await db.delete(products).where(and(inArray(products.id, ids), eq(products.userId, userId)));
 }
 
 function parseProduct(row: typeof products.$inferSelect) {

@@ -1,9 +1,11 @@
 import { db } from '@/lib/db';
 import { boxes, boxGroups } from '@/lib/db/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, and } from 'drizzle-orm';
+import { getUserId } from '@/lib/auth';
 
 export async function findAll() {
-  return db.query.boxGroups.findMany({ with: { boxes: true } });
+  const userId = await getUserId();
+  return db.query.boxGroups.findMany({ where: eq(boxGroups.userId, userId), with: { boxes: true } });
 }
 
 export async function findOne(id: string) {
@@ -14,7 +16,8 @@ export async function findOne(id: string) {
 }
 
 export async function create(name: string, boxIds?: string[]) {
-  const [group] = await db.insert(boxGroups).values({ name }).returning();
+  const userId = await getUserId();
+  const [group] = await db.insert(boxGroups).values({ name, userId }).returning();
   if (boxIds && boxIds.length > 0) {
     await db.update(boxes).set({ boxGroupId: group.id }).where(inArray(boxes.id, boxIds));
   }
@@ -22,14 +25,16 @@ export async function create(name: string, boxIds?: string[]) {
 }
 
 export async function updateBoxAssignments(groupId: string, boxIds: string[]) {
+  const userId = await getUserId();
   await db.transaction(async (tx) => {
-    await tx.update(boxes).set({ boxGroupId: null }).where(eq(boxes.boxGroupId, groupId));
+    await tx.update(boxes).set({ boxGroupId: null }).where(and(eq(boxes.boxGroupId, groupId), eq(boxes.userId, userId)));
     if (boxIds.length > 0) {
-      await tx.update(boxes).set({ boxGroupId: groupId }).where(inArray(boxes.id, boxIds));
+      await tx.update(boxes).set({ boxGroupId: groupId }).where(and(inArray(boxes.id, boxIds), eq(boxes.userId, userId)));
     }
   });
 }
 
 export async function deleteBoxGroup(id: string) {
-  await db.delete(boxGroups).where(eq(boxGroups.id, id));
+  const userId = await getUserId();
+  await db.delete(boxGroups).where(and(eq(boxGroups.id, id), eq(boxGroups.userId, userId)));
 }
