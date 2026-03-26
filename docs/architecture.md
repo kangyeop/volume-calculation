@@ -36,6 +36,7 @@ volume-calculator/
 │   │   │   ├── layout.tsx            # 사이드바 + 메인 컨텐츠 레이아웃
 │   │   │   ├── products/             # 상품 관리 페이지
 │   │   │   ├── shipments/            # 출고 관리 페이지
+│   │   │   ├── settlements/          # 정산 관리 페이지 (목록, 업로드, 상세)
 │   │   │   ├── boxes/                # 박스 독립 목록 페이지
 │   │   │   └── box-groups/           # 박스 그룹 관리 페이지
 │   │   │
@@ -50,8 +51,14 @@ volume-calculator/
 │   │       │       ├── order-items/  # 주문 아이템(OrderItem) CRUD
 │   │       │       ├── orders/       # 주문별 상품 매핑, 부피 계산
 │   │       │       └── packing/      # 패킹 계산, 결과, 내보내기
+│   │       ├── settlements/          # 정산(Settlement) 관리
+│   │       │   └── [id]/
+│   │       │       ├── assign-box/   # 수동 박스 배정
+│   │       │       └── confirm/      # 정산 확정/해제
 │   │       ├── order-items/          # 주문 아이템 개별 조작
-│   │       ├── upload/               # 출고 엑셀 업로드
+│   │       ├── upload/               # 출고 및 정산 엑셀 업로드
+│   │       │   ├── shipment/         # 출고 엑셀 업로드
+│   │       │   └── settlement/       # 정산 엑셀 업로드
 │   │       ├── product-upload/       # 상품 엑셀 업로드
 │   │       ├── projects/             # 프로젝트 CRUD + 통계
 │   │       └── dashboard/            # 대시보드 통계
@@ -75,6 +82,7 @@ volume-calculator/
 │   │   │   ├── useBoxes.ts
 │   │   │   ├── useBoxStockHistories.ts
 │   │   │   ├── useShipments.ts
+│   │   │   ├── useSettlements.ts     # 정산 쿼리 훅
 │   │   │   ├── useOrderItems.ts
 │   │   │   ├── usePacking.ts
 │   │   │   ├── useProductGroups.ts
@@ -113,6 +121,7 @@ volume-calculator/
 │   │   │   ├── projects.ts
 │   │   │   ├── shipment.ts           # 출고(Shipment) CRUD
 │   │   │   ├── shipments.ts          # Shipment 목록 조회
+│   │   │   ├── settlement.ts         # 정산(Settlement) CRUD + 업로드
 │   │   │   ├── orders.ts             # Order 서비스
 │   │   │   ├── order-item.ts        # 주문 아이템(OrderItem) CRUD
 │   │   │   ├── dashboard.ts          # 대시보드 통계
@@ -217,6 +226,9 @@ API Route Handler
 | `/shipments/new` | 새 출고 생성 |
 | `/shipments/[id]` | 출고 상세 (주문/아이템 목록) |
 | `/shipments/[id]/packing` | 패킹 계산 및 결과 |
+| `/settlements` | 정산 목록 |
+| `/settlements/new` | 정산 엑셀 업로드 |
+| `/settlements/[id]` | 정산 상세 (주문/아이템 목록) |
 | `/boxes` | 박스 독립 목록 (미배정 박스 포함) |
 | `/box-groups` | 박스 그룹 목록 |
 | `/box-groups/new` | 새 박스 그룹 생성 |
