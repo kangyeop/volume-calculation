@@ -17,6 +17,7 @@ import { relations } from 'drizzle-orm';
 
 export const orderStatusEnum = pgEnum('order_status', ['PENDING', 'PROCESSING', 'COMPLETED']);
 export const shipmentStatusEnum = pgEnum('shipment_status', ['PACKING', 'CONFIRMED']);
+export const shipmentTypeEnum = pgEnum('shipment_type', ['SHIPMENT', 'SETTLEMENT']);
 export const aircapTypeEnum = pgEnum('aircap_type', ['INDIVIDUAL', 'PER_ORDER', 'BOTH']);
 export const stockChangeTypeEnum = pgEnum('stock_change_type', ['INBOUND', 'OUTBOUND', 'INITIAL', 'ADJUSTMENT']);
 
@@ -85,6 +86,7 @@ export const shipments = pgTable('shipments', {
   userId: uuid('user_id').notNull(),
   name: varchar('name', { length: 255 }).notNull(),
   status: shipmentStatusEnum('status').default('PACKING').notNull(),
+  type: shipmentTypeEnum('type').default('SHIPMENT').notNull(),
   note: text('note'),
   lastBoxGroupId: uuid('last_box_group_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -100,6 +102,7 @@ export const orders = pgTable('orders', {
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
 }, (table) => [
   uniqueIndex('orders_shipment_order_unique').on(table.shipmentId, table.orderId),
+  index('orders_order_id_idx').on(table.orderId),
 ]);
 
 export const orderItems = pgTable('order_items', {
