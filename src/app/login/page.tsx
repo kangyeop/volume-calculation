@@ -37,8 +37,8 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="w-full max-w-sm space-y-8 rounded-xl border bg-white p-8 shadow-sm">
         <div className="flex flex-col items-center gap-2">
-          <Image src="/logo.png" alt="dnut" width={48} height={48} />
-          <h1 className="text-2xl font-bold tracking-tight">VC</h1>
+          <Image src="/logo.png" alt="큐브" width={48} height={48} />
+          <h1 className="text-2xl font-bold tracking-tight">도넛 큐브</h1>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">

@@ -1,4 +1,4 @@
-# dnut VC
+# 도넛 큐브
 
 Next.js 15 (App Router) + Supabase PostgreSQL 풀스택 앱. 출고 박스 패킹 최적화 시스템.
 

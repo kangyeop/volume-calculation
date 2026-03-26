@@ -3,7 +3,7 @@ import './globals.css';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: 'dnut VC',
+  title: '도넛 큐브',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
