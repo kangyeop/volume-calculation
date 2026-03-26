@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { shipments, orderItems, orders, packingResults, packingResultDetails } from '@/lib/db/schema';
+import { shipments, orderItems, orders, packingResults } from '@/lib/db/schema';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
 
 export async function findAll() {
@@ -77,7 +77,6 @@ export async function updateNote(id: string, note: string | null) {
 
 export async function remove(id: string): Promise<void> {
   await db.transaction(async (tx) => {
-    await tx.delete(packingResultDetails).where(eq(packingResultDetails.shipmentId, id));
     await tx.delete(packingResults).where(eq(packingResults.shipmentId, id));
     await tx.delete(orderItems).where(eq(orderItems.shipmentId, id));
     await tx.delete(orders).where(eq(orders.shipmentId, id));

@@ -1,8 +1,9 @@
 import * as ExcelJS from 'exceljs';
 import * as xlsx from 'xlsx';
 import { db } from '@/lib/db';
-import { packingResultDetails } from '@/lib/db/schema';
+import { packingResults } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import type { PackingResultItem } from '@/types';
 
 interface ParseResult {
   headers: string[];
@@ -43,11 +44,25 @@ export function parseExcelFile(buffer: Buffer, filename: string): ParseResult {
 }
 
 export async function exportPackingResults(shipmentId: string): Promise<Buffer> {
-  const results = await db
-    .select()
-    .from(packingResultDetails)
-    .where(eq(packingResultDetails.shipmentId, shipmentId))
-    .orderBy(packingResultDetails.orderId, packingResultDetails.boxIndex, packingResultDetails.boxNumber);
+  const results = await db.query.packingResults.findMany({
+    where: eq(packingResults.shipmentId, shipmentId),
+    with: { order: true },
+    orderBy: packingResults.groupIndex,
+  });
+
+  const rows = results.flatMap((r) => {
+    const items = (r.items || []) as PackingResultItem[];
+    return items.map((item) => ({
+      orderId: r.order.orderId,
+      sku: item.sku,
+      productName: item.productName,
+      quantity: item.quantity,
+      boxName: item.boxName,
+      boxNumber: item.boxNumber,
+      boxIndex: item.boxIndex,
+      unpacked: item.unpacked,
+    }));
+  });
 
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Packing Results');
@@ -70,7 +85,7 @@ export async function exportPackingResults(shipmentId: string): Promise<Buffer> 
     fgColor: { argb: 'FFE0E0E0' },
   };
 
-  for (const result of results) {
+  for (const result of rows) {
     const row = worksheet.addRow({
       orderId: result.orderId,
       sku: result.sku,

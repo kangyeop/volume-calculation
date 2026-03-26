@@ -11,7 +11,6 @@ import {
   BoxStockHistory,
   PackingResult3D,
   ApiResponse,
-  PackingResultDetail,
   ProjectStats,
 } from '@/types';
 import type { StockChangeType } from '@/types';
@@ -227,8 +226,6 @@ export const api = {
       fetchApi<PackingRecommendation | null>(`/shipments/${shipmentId}/packing/recommendation`),
     history: (shipmentId: string) =>
       fetchApi<PackingResult[]>(`/shipments/${shipmentId}/packing/results`),
-    details: (shipmentId: string) =>
-      fetchApi<PackingResultDetail[]>(`/shipments/${shipmentId}/packing/details`),
     export: (shipmentId: string) => {
       return apiClient
         .get(`/shipments/${shipmentId}/packing/export`, {

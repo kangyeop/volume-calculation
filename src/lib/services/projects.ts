@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { projects, packingResults } from '@/lib/db/schema';
+import { projects, packingResults, boxes } from '@/lib/db/schema';
 import { eq, desc, sql } from 'drizzle-orm';
 import type { ProjectStats } from '@/types';
 
@@ -34,16 +34,17 @@ export async function getStats(): Promise<ProjectStats[]> {
       projectId: packingResults.shipmentId,
       projectName: projects.name,
       createdAt: projects.createdAt,
-      boxName: packingResults.boxName,
+      boxName: boxes.name,
       boxCount: sql<string>`COUNT(*)`,
     })
     .from(packingResults)
     .innerJoin(projects, eq(projects.id, packingResults.shipmentId))
+    .innerJoin(boxes, eq(boxes.id, packingResults.boxId))
     .groupBy(
       packingResults.shipmentId,
       projects.name,
       projects.createdAt,
-      packingResults.boxName,
+      boxes.name,
     );
 
   const statsMap = new Map<string, ProjectStats>();

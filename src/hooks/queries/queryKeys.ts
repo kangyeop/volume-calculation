@@ -42,9 +42,7 @@ export const boxGroups = createQueryKeys('boxGroups', {
 
 export const packing = createQueryKeys('packing', {
   history: (projectId: string) => [projectId, 'history'],
-  details: (projectId: string) => [projectId, 'details'],
   historyByBatch: (shipmentId: string) => [shipmentId, 'batch', 'history'],
-  detailsByBatch: (shipmentId: string) => [shipmentId, 'batch', 'details'],
   recommendation: (shipmentId: string) => [shipmentId, 'recommendation'],
 });
 

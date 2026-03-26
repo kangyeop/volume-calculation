@@ -53,7 +53,6 @@ export function useCalculateOrderPacking(): UseMutationResult<
       api.packing.calculateOrder(batchId, orderId, groupLabel),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: packing.history._def });
-      queryClient.invalidateQueries({ queryKey: packing.details._def });
     },
   });
 }
@@ -77,14 +76,6 @@ export function useUpdateBoxAssignment(): UseMutationResult<
 export function useExportPacking(): UseMutationResult<void, Error, { batchId: string }> {
   return useMutation({
     mutationFn: ({ batchId }) => api.packing.export(batchId),
-  });
-}
-
-export function usePackingDetails(batchId: string) {
-  return useQuery({
-    ...packing.details(batchId),
-    queryFn: () => api.packing.details(batchId),
-    enabled: !!batchId,
   });
 }
 
