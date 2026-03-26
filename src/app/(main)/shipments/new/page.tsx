@@ -11,7 +11,6 @@ import { useShipmentUploadFlow } from '@/hooks/useShipmentUploadFlow';
 type ShipmentFormat = 'adjustment' | 'beforeMapping' | 'afterMapping';
 
 const FORMAT_OPTIONS: { value: ShipmentFormat; label: string }[] = [
-  { value: 'adjustment', label: '정산' },
   { value: 'beforeMapping', label: '매핑 전' },
   { value: 'afterMapping', label: '매핑 후' },
 ];
@@ -19,7 +18,7 @@ const FORMAT_OPTIONS: { value: ShipmentFormat; label: string }[] = [
 export default function OutboundCreate() {
   const router = useRouter();
   const flow = useShipmentUploadFlow();
-  const [format, setFormat] = useState<ShipmentFormat>('adjustment');
+  const [format, setFormat] = useState<ShipmentFormat>('beforeMapping');
 
   const handleFileSelect = async (file: File) => {
     try {

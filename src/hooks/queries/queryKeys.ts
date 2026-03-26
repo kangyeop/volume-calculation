@@ -29,6 +29,11 @@ export const shipments = createQueryKeys('shipments', {
   configurationSummary: (shipmentId: string) => [shipmentId, 'configuration-summary'],
 });
 
+export const settlements = createQueryKeys('settlements', {
+  all: null,
+  detail: (id: string) => [id],
+});
+
 export const boxes = createQueryKeys('boxes', {
   all: null,
   unassigned: null,

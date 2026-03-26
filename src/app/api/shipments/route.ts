@@ -3,7 +3,7 @@ import * as shipmentService from '@/lib/services/shipment';
 
 export async function GET() {
   try {
-    const result = await shipmentService.findAll();
+    const result = await shipmentService.findAll('SHIPMENT');
     return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch shipments' }, { status: 500 });
