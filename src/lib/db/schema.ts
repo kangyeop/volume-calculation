@@ -136,42 +136,22 @@ export const outbounds = pgTable('outbounds', {
 
 export const packingResults = pgTable('packing_results', {
   id: uuid('id').defaultRandom().primaryKey(),
-  boxId: varchar('box_id', { length: 255 }),
-  boxName: varchar('box_name', { length: 255 }),
-  boxWidth: numeric('box_width', { precision: 10, scale: 2 }),
-  boxLength: numeric('box_length', { precision: 10, scale: 2 }),
-  boxHeight: numeric('box_height', { precision: 10, scale: 2 }),
-  boxGroupId: varchar('box_group_id', { length: 255 }),
+  orderId: uuid('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
+  shipmentId: uuid('shipment_id').notNull().references(() => shipments.id, { onDelete: 'cascade' }),
+  boxId: uuid('box_id').references(() => boxes.id, { onDelete: 'set null' }),
   packedCount: integer('packed_count').notNull(),
   efficiency: numeric('efficiency', { precision: 10, scale: 4 }).notNull(),
   totalCBM: numeric('total_cbm', { precision: 10, scale: 4 }).notNull(),
   groupLabel: varchar('group_label', { length: 255 }),
   groupIndex: integer('group_index'),
-  orderId: varchar('order_id', { length: 255 }),
   boxNumber: integer('box_number'),
-  shipmentId: uuid('shipment_id').notNull().references(() => shipments.id),
+  items: jsonb('items').$type<import('@/types').PackingResultItem[]>().notNull().default([]),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
-});
-
-export const packingResultDetails = pgTable('packing_result_details', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  shipmentId: uuid('shipment_id').notNull().references(() => shipments.id),
-  orderId: varchar('order_id', { length: 255 }).notNull(),
-  sku: varchar('sku', { length: 255 }).notNull(),
-  productName: varchar('product_name', { length: 255 }).notNull(),
-  quantity: integer('quantity').notNull(),
-  boxName: varchar('box_name', { length: 255 }).notNull(),
-  boxNumber: integer('box_number').notNull(),
-  boxIndex: integer('box_index').notNull(),
-  boxCBM: numeric('box_cbm', { precision: 10, scale: 4 }).notNull(),
-  efficiency: numeric('efficiency', { precision: 10, scale: 4 }).notNull(),
-  unpacked: boolean('unpacked'),
-  unpackedReason: text('unpacked_reason'),
-  placements: jsonb('placements'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
-});
+}, (table) => [
+  uniqueIndex('packing_results_order_id_unique').on(table.orderId),
+  index('packing_results_shipment_id_idx').on(table.shipmentId),
+]);
 
 export const productGroupsRelations = relations(productGroups, ({ one, many }) => ({
   products: many(products),
@@ -198,6 +178,7 @@ export const boxesRelations = relations(boxes, ({ one, many }) => ({
     references: [boxGroups.id],
   }),
   stockHistories: many(boxStockHistories),
+  packingResults: many(packingResults),
 }));
 
 export const boxStockHistoriesRelations = relations(boxStockHistories, ({ one }) => ({
@@ -219,6 +200,7 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
     references: [shipments.id],
   }),
   orderItems: many(orderItems),
+  packingResult: one(packingResults),
 }));
 
 export const orderItemsRelations = relations(orderItems, ({ one }) => ({
@@ -252,11 +234,12 @@ export const packingResultsRelations = relations(packingResults, ({ one }) => ({
     fields: [packingResults.shipmentId],
     references: [shipments.id],
   }),
-}));
-
-export const packingResultDetailsRelations = relations(packingResultDetails, ({ one }) => ({
-  shipment: one(shipments, {
-    fields: [packingResultDetails.shipmentId],
-    references: [shipments.id],
+  order: one(orders, {
+    fields: [packingResults.orderId],
+    references: [orders.id],
+  }),
+  box: one(boxes, {
+    fields: [packingResults.boxId],
+    references: [boxes.id],
   }),
 }));

@@ -176,21 +176,17 @@ export interface PackingResult3D {
   totalEfficiency: number;
 }
 
-export interface PackingResultDetail {
-  id: string;
-  shipmentId: string;
-  orderId: string;
-  recipientName?: string;
+export interface PackingResultItem {
   sku: string;
   productName: string;
   quantity: number;
   boxName: string;
   boxNumber: number;
+  boxIndex: number;
   boxCBM: number;
   efficiency: number;
-  unpacked?: boolean;
+  unpacked: boolean;
   unpackedReason?: string;
-  createdAt: string;
   placements?: Placement3D[];
 }
 
@@ -239,12 +235,15 @@ export interface BatchStats {
 export interface PackingResult {
   id: string;
   shipmentId: string;
+  orderId: string;
   boxId?: string;
-  boxName?: string;
   packedCount: number;
   efficiency: number;
   totalCBM: number;
   groupLabel?: string;
+  groupIndex?: number;
+  boxNumber?: number;
+  items: PackingResultItem[];
   createdAt: Date | string;
 }
 
