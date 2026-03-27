@@ -220,6 +220,13 @@ export async function findSettlementDetail(id: string) {
 
   const prMap = new Map(prRows.map((pr) => [pr.orderId, pr]));
 
+  const allSkus = [...new Set(itemRows.map((i) => i.sku))];
+  const userProducts =
+    allSkus.length > 0
+      ? await db.select().from(products).where(and(eq(products.userId, userId), inArray(products.sku, allSkus)))
+      : [];
+  const productMap = new Map(userProducts.map((p) => [p.sku, p]));
+
   const orderDetails = orderRows.map((order) => {
     const pr = prMap.get(order.id);
     const orderItemRows = itemRows.filter((i) => i.orderId === order.id);
@@ -231,6 +238,17 @@ export async function findSettlementDetail(id: string) {
           : order.status === 'COMPLETED'
             ? 'matched_unassigned'
             : 'unmatched';
+
+    let barcodeCount = 0;
+    let aircapIndividual = 0;
+    let hasPerOrder = false;
+    for (const item of orderItemRows) {
+      const p = productMap.get(item.sku);
+      if (p?.barcode) barcodeCount += item.quantity;
+      if (p?.aircapType === 'INDIVIDUAL' || p?.aircapType === 'BOTH') aircapIndividual += item.quantity;
+      if (p?.aircapType === 'PER_ORDER' || p?.aircapType === 'BOTH') hasPerOrder = true;
+    }
+
     return {
       orderUuid: order.id,
       orderId: order.orderId,
@@ -238,6 +256,8 @@ export async function findSettlementDetail(id: string) {
       boxId: pr?.boxId ?? null,
       packingResultId: pr?.id ?? null,
       status,
+      barcodeCount,
+      aircapCount: aircapIndividual + (hasPerOrder ? 1 : 0),
     };
   });
 

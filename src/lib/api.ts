@@ -65,6 +65,8 @@ export interface SettlementOrderDetail {
   boxId: string | null;
   packingResultId: string | null;
   status: 'matched' | 'matched_unassigned' | 'unmatched' | 'auto_packed';
+  barcodeCount: number;
+  aircapCount: number;
 }
 
 export interface SettlementDetail {
