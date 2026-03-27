@@ -92,7 +92,8 @@
 
 ### 정산 상세 페이지 주요 기능
 
-- **주문 목록 테이블**: 주문번호, 상품(sku x 수량), 상태 뱃지, 현재 박스, 박스 지정 드롭다운
+- **주문 목록 테이블**: 주문번호, 상품(sku x 수량), 상태 뱃지, 바코드 개수, 에어캡 개수, 현재 박스, 박스 지정 드롭다운
+- **합계 행**: 전체 정산의 바코드/에어캡 합계 표시
 - **수동 박스 지정**: 드롭다운에서 박스 선택 시 즉시 API 호출로 반영
 - **확정/해제**: PACKING <-> CONFIRMED 상태 전환
 - **삭제**: ConfirmDialog로 확인 후 cascade 삭제
@@ -139,13 +140,22 @@
       "items": [{ "sku": "상품A", "quantity": 2 }],
       "boxId": "uuid-or-null",
       "packingResultId": "uuid-or-null",
-      "status": "matched | matched_unassigned | auto_packed | unmatched"
+      "status": "matched | matched_unassigned | auto_packed | unmatched",
+      "barcodeCount": 3,
+      "aircapCount": 2
     }
   ]
 }
 ```
 
 ## 비즈니스 로직
+
+### 바코드/에어캡 개수 계산
+
+정산 상세 조회 시 orderItems의 SKU로 상품 테이블을 조회하여 주문별 바코드/에어캡 개수를 계산한다.
+
+- **바코드**: `product.barcode = true`인 상품의 수량 합계
+- **에어캡**: `INDIVIDUAL` → 상품 수량, `PER_ORDER` → 주문당 1개, `BOTH` → 수량 + 주문당 1개
 
 ### Type Guard (assertSettlement)
 

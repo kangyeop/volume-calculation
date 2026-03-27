@@ -146,13 +146,15 @@ export default function SettlementDetailPage() {
               <th className="px-4 py-3 text-left font-medium text-gray-600">주문번호</th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">상품</th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">상태</th>
+              <th className="px-4 py-3 text-right font-medium text-gray-600">바코드</th>
+              <th className="px-4 py-3 text-right font-medium text-gray-600">에어캡</th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">박스</th>
               <th className="px-4 py-3 text-left font-medium text-gray-600">박스 지정</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {settlement.orders.map((order) => (
-              <tr key={order.orderUuid} className="hover:bg-gray-50 transition-colors">
+              <tr key={order.orderUuid} className="hover:bg-gray-50/50 transition-colors">
                 <td className="px-4 py-3 font-medium text-gray-900">{order.orderId}</td>
                 <td className="px-4 py-3 text-gray-600">
                   {order.items.map((item) => `${item.sku} × ${item.quantity}`).join(', ')}
@@ -179,6 +181,8 @@ export default function SettlementDetailPage() {
                     </span>
                   )}
                 </td>
+                <td className="px-4 py-3 text-right text-gray-600">{order.barcodeCount}</td>
+                <td className="px-4 py-3 text-right text-gray-600">{order.aircapCount}</td>
                 <td className="px-4 py-3 text-gray-600">
                   {order.boxId ? (boxes.find((b) => b.id === order.boxId)?.name ?? '-') : '-'}
                 </td>
@@ -199,6 +203,19 @@ export default function SettlementDetailPage() {
                 </td>
               </tr>
             ))}
+            <tr className="bg-gray-50 font-semibold border-t-2 border-gray-200">
+              <td className="px-4 py-3 text-gray-900">합계</td>
+              <td className="px-4 py-3" />
+              <td className="px-4 py-3" />
+              <td className="px-4 py-3 text-right text-gray-900">
+                {settlement.orders.reduce((sum, o) => sum + o.barcodeCount, 0)}
+              </td>
+              <td className="px-4 py-3 text-right text-gray-900">
+                {settlement.orders.reduce((sum, o) => sum + o.aircapCount, 0)}
+              </td>
+              <td className="px-4 py-3" />
+              <td className="px-4 py-3" />
+            </tr>
           </tbody>
         </table>
       </div>
