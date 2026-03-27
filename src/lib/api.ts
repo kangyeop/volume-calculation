@@ -64,7 +64,7 @@ export interface SettlementOrderDetail {
   items: { sku: string; quantity: number }[];
   boxId: string | null;
   packingResultId: string | null;
-  status: 'matched' | 'matched_unassigned' | 'unmatched';
+  status: 'matched' | 'matched_unassigned' | 'unmatched' | 'auto_packed';
 }
 
 export interface SettlementDetail {
@@ -78,6 +78,7 @@ export interface SettlementDetail {
 export interface SettlementUploadResult {
   imported: number;
   unmatched: number;
+  autoPacked: number;
   shipmentId: string;
   shipmentName: string;
 }

@@ -16,6 +16,78 @@ import * as boxesService from '@/lib/services/boxes';
 
 const CHUNK_SIZE = 500;
 
+type ProductLike = { id: string; sku: string; name: string; width: string | number; length: string | number; height: string | number };
+
+export function buildPackingResultItems(
+  recommendation: ReturnType<typeof calculatePacking>,
+  productMapById: Map<string, ProductLike>,
+  skuToItemSku?: Map<string, string>,
+): PackingResultItem[] {
+  const items: PackingResultItem[] = [];
+  let boxIndex = 1;
+  for (const box of recommendation.boxes) {
+    const boxVol = box.box.width * box.box.length * box.box.height;
+    const boxCBM = boxVol / 1_000_000;
+    for (let i = 0; i < box.count; i++) {
+      for (const packedSku of box.packedSKUs) {
+        const product = productMapById.get(packedSku.skuId);
+        if (!product) continue;
+        const efficiency = boxVol > 0
+          ? (Number(product.width) * Number(product.length) * Number(product.height) * packedSku.quantity) / boxVol
+          : 0;
+        items.push({
+          sku: skuToItemSku?.get(packedSku.skuId) || product.sku,
+          productName: product.name,
+          quantity: packedSku.quantity,
+          boxName: box.box.name,
+          boxNumber: i + 1,
+          boxIndex,
+          boxCBM,
+          efficiency,
+          unpacked: false,
+        });
+      }
+    }
+    boxIndex++;
+  }
+  for (const item of recommendation.unpackedItems) {
+    const product = productMapById.get(item.skuId);
+    items.push({
+      sku: skuToItemSku?.get(item.skuId) || product?.sku || item.skuId,
+      productName: product?.name || 'Unknown',
+      quantity: item.quantity,
+      boxName: 'Unpacked',
+      boxNumber: 0,
+      boxIndex: 0,
+      boxCBM: 0,
+      efficiency: 0,
+      unpacked: true,
+      unpackedReason: item.reason || '',
+    });
+  }
+  return items;
+}
+
+export function buildPackingResultRowStats(
+  recommendation: ReturnType<typeof calculatePacking>,
+  productMapById: Map<string, ProductLike>,
+) {
+  const firstBox = recommendation.boxes[0];
+  const boxVol = firstBox ? firstBox.box.width * firstBox.box.length * firstBox.box.height : 0;
+  const usedVol = firstBox
+    ? firstBox.packedSKUs.reduce((acc, s) => {
+        const product = productMapById.get(s.skuId);
+        return acc + (product ? Number(product.width) * Number(product.length) * Number(product.height) * s.quantity : 0);
+      }, 0)
+    : 0;
+  return {
+    boxId: firstBox ? firstBox.box.id : null,
+    packedCount: firstBox ? firstBox.packedSKUs.reduce((a, s) => a + s.quantity, 0) : 0,
+    efficiency: String(boxVol > 0 ? usedVol / boxVol : 0),
+    totalCBM: String(firstBox ? boxVol / 1_000_000 : 0),
+  };
+}
+
 async function assertNotConfirmed(shipmentId: string) {
   const shipment = await db.query.shipments.findFirst({
     where: eq(shipments.id, shipmentId),
@@ -140,65 +212,17 @@ export async function calculate(
       return { ...item, name: product ? product.name : 'Unknown Product' };
     });
 
-    const skuToItem = new Map<string, { sku: string }>();
+    const skuToItemSku = new Map<string, string>();
     for (const item of group) {
       const product =
         (item.productId ? productMapById.get(item.productId) : undefined) ??
         productMapBySku.get(item.sku);
-      if (product && !skuToItem.has(product.id)) {
-        skuToItem.set(product.id, { sku: item.sku });
+      if (product && !skuToItemSku.has(product.id)) {
+        skuToItemSku.set(product.id, item.sku);
       }
     }
 
-    const items: PackingResultItem[] = [];
-    let boxIndex = 1;
-    for (const box of boxesWithNames) {
-      const boxVol = box.box.width * box.box.length * box.box.height;
-      const boxCBM = boxVol / 1_000_000;
-
-      for (let i = 0; i < box.count; i++) {
-        for (const packedSku of box.packedSKUs) {
-          const product = productMapById.get(packedSku.skuId);
-          if (!product) continue;
-
-          const itemInfo = skuToItem.get(packedSku.skuId);
-          const efficiency =
-            boxVol > 0
-              ? (Number(product.width) * Number(product.length) * Number(product.height) * packedSku.quantity) /
-                boxVol
-              : 0;
-
-          items.push({
-            sku: itemInfo?.sku || product.sku,
-            productName: product.name,
-            quantity: packedSku.quantity,
-            boxName: box.box.name,
-            boxNumber: i + 1,
-            boxIndex,
-            boxCBM,
-            efficiency,
-            unpacked: false,
-          });
-        }
-      }
-      boxIndex++;
-    }
-
-    for (const item of unpackedWithNames) {
-      const itemInfo = skuToItem.get(item.skuId);
-      items.push({
-        sku: itemInfo?.sku || item.skuId,
-        productName: item.name,
-        quantity: item.quantity,
-        boxName: 'Unpacked',
-        boxNumber: 0,
-        boxIndex: 0,
-        boxCBM: 0,
-        efficiency: 0,
-        unpacked: true,
-        unpackedReason: item.reason || '',
-      });
-    }
+    const items = buildPackingResultItems(recommendation, productMapById, skuToItemSku);
 
     groups.push({
       groupLabel,
@@ -215,22 +239,12 @@ export async function calculate(
     const orderRecord = orderMap.get(groupOrderId);
     if (!orderRecord) continue;
 
-    const firstBox = boxesWithNames[0];
-    const boxVol = firstBox ? firstBox.box.width * firstBox.box.length * firstBox.box.height : 0;
-    const usedVol = firstBox
-      ? firstBox.packedSKUs.reduce((acc, s) => {
-          const product = productMapById.get(s.skuId);
-          return acc + (product ? Number(product.width) * Number(product.length) * Number(product.height) * s.quantity : 0);
-        }, 0)
-      : 0;
+    const rowStats = buildPackingResultRowStats(recommendation, productMapById);
 
     allResultRows.push({
       shipmentId,
       orderId: orderRecord.id,
-      boxId: firstBox ? firstBox.box.id : null,
-      packedCount: firstBox ? firstBox.packedSKUs.reduce((a, s) => a + s.quantity, 0) : 0,
-      efficiency: String(boxVol > 0 ? usedVol / boxVol : 0),
-      totalCBM: String(firstBox ? boxVol / 1_000_000 : 0),
+      ...rowStats,
       groupLabel,
       groupIndex: groupIdx,
       items,

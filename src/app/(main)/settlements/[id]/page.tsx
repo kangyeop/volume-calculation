@@ -168,6 +168,11 @@ export default function SettlementDetailPage() {
                       매칭됨-미지정
                     </span>
                   )}
+                  {order.status === 'auto_packed' && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                      자동패킹
+                    </span>
+                  )}
                   {order.status === 'unmatched' && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20">
                       미매칭
