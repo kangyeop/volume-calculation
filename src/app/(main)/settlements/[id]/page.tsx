@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Check, X, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Check, X, Trash2, Calculator } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -13,6 +13,7 @@ import {
   useConfirmSettlement,
   useUnconfirmSettlement,
   useDeleteSettlement,
+  useAutoPackUnmatched,
   useBoxes,
 } from '@/hooks/queries';
 
@@ -26,6 +27,7 @@ export default function SettlementDetailPage() {
   const confirmSettlement = useConfirmSettlement();
   const unconfirmSettlement = useUnconfirmSettlement();
   const deleteSettlement = useDeleteSettlement();
+  const autoPackUnmatched = useAutoPackUnmatched();
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const handleAssignBox = async (orderUuid: string, boxId: string) => {
@@ -55,6 +57,18 @@ export default function SettlementDetailPage() {
     }
   };
 
+  const handleAutoPack = async () => {
+    try {
+      const result = await autoPackUnmatched.mutateAsync(id);
+      const parts = [];
+      if (result.packed > 0) parts.push(`${result.packed}건 패킹 완료`);
+      if (result.failed > 0) parts.push(`${result.failed}건 실패`);
+      toast.success('미매칭 패킹 계산 완료', { description: parts.join(', ') });
+    } catch {
+      toast.error('패킹 계산에 실패했습니다.');
+    }
+  };
+
   const handleDelete = async () => {
     setDeleteOpen(false);
     try {
@@ -70,6 +84,7 @@ export default function SettlementDetailPage() {
   if (!settlement) return <div>정산을 찾을 수 없습니다.</div>;
 
   const isConfirmed = settlement.status === 'CONFIRMED';
+  const hasUnmatched = settlement.orders.some((o) => o.status === 'unmatched');
 
   return (
     <PageContainer>
@@ -110,6 +125,20 @@ export default function SettlementDetailPage() {
             </button>
           ) : (
             <>
+              {hasUnmatched && (
+                <button
+                  onClick={handleAutoPack}
+                  disabled={autoPackUnmatched.isPending}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-700 border border-blue-200 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {autoPackUnmatched.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Calculator className="h-4 w-4" />
+                  )}
+                  미매칭 패킹 계산
+                </button>
+              )}
               <button
                 onClick={handleConfirm}
                 disabled={confirmSettlement.isPending}

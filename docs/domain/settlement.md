@@ -89,6 +89,7 @@
 
 - **주문 목록 테이블**: 주문번호, 상품(sku x 수량), 상태 뱃지, 바코드 개수, 에어캡 개수, 현재 박스, 박스 지정 드롭다운
 - **합계 행**: 전체 정산의 바코드/에어캡 합계 표시
+- **미매칭 패킹 계산**: 미매칭 주문이 있을 때 버튼 표시. SKU→상품 매칭 후 calculatePacking 알고리즘으로 일괄 자동 패킹
 - **수동 박스 지정**: 드롭다운에서 박스 선택 시 즉시 API 호출로 반영
 - **확정/해제**: PACKING <-> CONFIRMED 상태 전환
 - **삭제**: ConfirmDialog로 확인 후 cascade 삭제
@@ -101,6 +102,7 @@
 | POST | `/api/upload/settlement` | 정산 엑셀 업로드 (multipart/form-data, `file` 필드) |
 | GET | `/api/settlements/{id}` | 정산 상세 (orders + 매칭 상태) |
 | DELETE | `/api/settlements/{id}` | 정산 삭제 (cascade) |
+| POST | `/api/settlements/{id}/auto-pack` | 미매칭 주문 일괄 자동 패킹 계산 |
 | PATCH | `/api/settlements/{id}/assign-box` | 수동 박스 지정 (`{ orderId, boxId }`) |
 | POST | `/api/settlements/{id}/confirm` | 정산 확정 |
 | DELETE | `/api/settlements/{id}/confirm` | 정산 확정 해제 |
@@ -193,7 +195,7 @@
 | `src/app/api/settlements/` | 정산 API 라우트 (목록, 상세, 삭제, 확정, 박스 지정) |
 | `src/app/api/upload/settlement/` | 정산 업로드 API |
 | `src/app/(main)/settlements/` | 정산 UI (목록, 업로드, 상세) |
-| `src/hooks/queries/useSettlements.ts` | React Query 훅 7개 |
+| `src/hooks/queries/useSettlements.ts` | React Query 훅 8개 |
 | `src/lib/services/format-parser.ts` | parseAdjustment() — 정산 엑셀 파싱 |
 
 ## 설계 결정

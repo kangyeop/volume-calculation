@@ -92,3 +92,14 @@ export function useUnconfirmSettlement() {
     },
   });
 }
+
+export function useAutoPackUnmatched() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => api.settlements.autoPackUnmatched(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: settlements.detail(id).queryKey });
+    },
+  });
+}

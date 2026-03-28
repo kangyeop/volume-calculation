@@ -233,6 +233,8 @@ export const api = {
       fetchApi<{ success: boolean }>(`/settlements/${id}/confirm`, { method: 'POST' }),
     unconfirm: (id: string) =>
       fetchApi<{ success: boolean }>(`/settlements/${id}/confirm`, { method: 'DELETE' }),
+    autoPackUnmatched: (id: string) =>
+      fetchApi<{ packed: number; failed: number }>(`/settlements/${id}/auto-pack`, { method: 'POST' }),
   },
   boxGroups: {
     list: () => fetchApi<BoxGroup[]>('/box-groups'),

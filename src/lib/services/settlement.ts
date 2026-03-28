@@ -1,10 +1,14 @@
 import { db } from '@/lib/db';
-import { shipments, orders, orderItems, packingResults, products } from '@/lib/db/schema';
+import { shipments, orders, orderItems, packingResults, products, productGroups } from '@/lib/db/schema';
 import { eq, and, desc, inArray } from 'drizzle-orm';
 import { getUserId } from '@/lib/auth';
 import { parseExcelFile } from '@/lib/services/excel';
 import { parseAdjustment } from '@/lib/services/format-parser';
+import { calculatePacking } from '@/lib/algorithms/packing';
+import { buildPackingResultItems, buildPackingResultRowStats } from '@/lib/services/packing';
 import * as shipmentService from '@/lib/services/shipment';
+import * as boxesService from '@/lib/services/boxes';
+import type { SKU } from '@/types';
 
 export async function uploadSettlement(
   buffer: Buffer,
@@ -219,4 +223,109 @@ export async function assignBox(settlementId: string, orderUuid: string, boxId: 
 
   if (!updated) throw new Error('해당 주문의 패킹 결과를 찾을 수 없습니다.');
   return updated;
+}
+
+export async function autoPackUnmatched(settlementId: string): Promise<{ packed: number; failed: number }> {
+  await assertSettlement(settlementId);
+  const userId = await getUserId();
+
+  const pendingOrders = await db
+    .select()
+    .from(orders)
+    .where(and(eq(orders.shipmentId, settlementId), eq(orders.status, 'PENDING')));
+
+  if (pendingOrders.length === 0) return { packed: 0, failed: 0 };
+
+  const pendingOrderIds = pendingOrders.map((o) => o.id);
+  const itemRows = await db
+    .select()
+    .from(orderItems)
+    .where(and(eq(orderItems.shipmentId, settlementId), inArray(orderItems.orderId, pendingOrderIds)));
+
+  const allProducts = await db.select().from(products).where(eq(products.userId, userId));
+  const productMapBySku = new Map(allProducts.map((p) => [p.sku, p]));
+  const productMapById = new Map(allProducts.map((p) => [p.id, p]));
+
+  const allProductGroups = await db.select().from(productGroups).where(eq(productGroups.userId, userId));
+  const productGroupMap = new Map(allProductGroups.map((pg) => [pg.id, pg]));
+
+  const boxGroupIds = [...new Set(allProductGroups.map((pg) => pg.boxGroupId))];
+  const boxesByGroupId = new Map<string, Awaited<ReturnType<typeof boxesService.findByGroupId>>>();
+  for (const bgId of boxGroupIds) {
+    boxesByGroupId.set(bgId, await boxesService.findByGroupId(bgId));
+  }
+
+  let packed = 0;
+  let failed = 0;
+
+  await db.transaction(async (tx) => {
+    for (const order of pendingOrders) {
+      const orderItemsList = itemRows
+        .filter((i) => i.orderId === order.id)
+        .map((i) => ({ sku: i.sku, quantity: i.quantity }));
+
+      const result = tryAutoPack(orderItemsList, productMapBySku, productMapById, productGroupMap, boxesByGroupId);
+      if (result) {
+        await tx
+          .update(packingResults)
+          .set({
+            boxId: result.boxId,
+            packedCount: result.packedCount,
+            efficiency: result.efficiency,
+            totalCBM: result.totalCBM,
+            items: result.items,
+          })
+          .where(and(eq(packingResults.shipmentId, settlementId), eq(packingResults.orderId, order.id)));
+        await tx.update(orders).set({ status: 'PROCESSING' }).where(eq(orders.id, order.id));
+        packed++;
+      } else {
+        failed++;
+      }
+    }
+  });
+
+  return { packed, failed };
+}
+
+type ProductRow = typeof products.$inferSelect;
+
+function tryAutoPack(
+  orderItemsList: { sku: string; quantity: number }[],
+  productMapBySku: Map<string, ProductRow>,
+  productMapById: Map<string, ProductRow>,
+  productGroupMap: Map<string, typeof productGroups.$inferSelect>,
+  boxesByGroupId: Map<string, Awaited<ReturnType<typeof boxesService.findByGroupId>>>,
+) {
+  const skus: SKU[] = [];
+  let firstProduct: ProductRow | undefined;
+
+  for (const item of orderItemsList) {
+    const product = productMapBySku.get(item.sku);
+    if (!product) return null;
+    if (!firstProduct) firstProduct = product;
+    skus.push({
+      id: product.id,
+      name: product.name,
+      width: Number(product.width),
+      length: Number(product.length),
+      height: Number(product.height),
+      quantity: item.quantity,
+    });
+  }
+
+  if (skus.length === 0 || !firstProduct) return null;
+
+  const pg = productGroupMap.get(firstProduct.productGroupId);
+  if (!pg) return null;
+
+  const availableBoxes = boxesByGroupId.get(pg.boxGroupId);
+  if (!availableBoxes || availableBoxes.length === 0) return null;
+
+  const recommendation = calculatePacking(skus, availableBoxes, 'volume');
+  if (recommendation.boxes.length === 0) return null;
+
+  const items = buildPackingResultItems(recommendation, productMapById);
+  const rowStats = buildPackingResultRowStats(recommendation, productMapById);
+
+  return { ...rowStats, items };
 }
