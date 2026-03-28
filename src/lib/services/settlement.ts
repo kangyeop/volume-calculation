@@ -445,6 +445,7 @@ function tryAutoPack(
 
   const recommendation = calculatePacking(skus, availableBoxes, strategy);
   if (recommendation.boxes.length === 0) return null;
+  if (recommendation.boxes[0].box.id === 'unassigned') return null;
 
   const items = buildPackingResultItems(recommendation, productMapById);
   const rowStats = buildPackingResultRowStats(recommendation, productMapById);
