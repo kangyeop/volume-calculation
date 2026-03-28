@@ -97,7 +97,7 @@ export const orders = pgTable('orders', {
   id: uuid('id').defaultRandom().primaryKey(),
   orderId: varchar('order_id', { length: 255 }).notNull(),
   status: orderStatusEnum('status').default('PENDING').notNull(),
-  shipmentId: uuid('shipment_id').notNull().references(() => shipments.id),
+  shipmentId: uuid('shipment_id').notNull().references(() => shipments.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
 }, (table) => [
@@ -110,7 +110,7 @@ export const orderItems = pgTable('order_items', {
   orderId: varchar('order_id', { length: 255 }).notNull(),
   sku: varchar('sku', { length: 255 }).notNull(),
   quantity: integer('quantity').notNull(),
-  shipmentId: uuid('shipment_id').notNull().references(() => shipments.id),
+  shipmentId: uuid('shipment_id').notNull().references(() => shipments.id, { onDelete: 'cascade' }),
   productId: uuid('product_id').references(() => products.id, { onDelete: 'set null' }),
   orderIdentifier: varchar('order_identifier', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),

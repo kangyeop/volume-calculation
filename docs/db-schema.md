@@ -174,8 +174,8 @@ erDiagram
 | `ProductGroup` | `Product` | 1:N | CASCADE |
 | `BoxGroup` | `ProductGroup` | 1:N | - |
 | `BoxGroup` | `Box` | 0..1:N | SET NULL |
-| `Shipment` | `Order` | 1:N | - |
-| `Shipment` | `OrderItem` | 1:N | - |
+| `Shipment` | `Order` | 1:N | CASCADE |
+| `Shipment` | `OrderItem` | 1:N | CASCADE |
 | `Shipment` | `PackingResult` | 1:N | CASCADE |
 | `Order` | `PackingResult` | 1:1 | CASCADE |
 | `Box` | `PackingResult` | 1:N | SET NULL |

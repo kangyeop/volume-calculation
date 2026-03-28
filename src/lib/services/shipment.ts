@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { shipments, orderItems, orders, packingResults } from '@/lib/db/schema';
+import { shipments } from '@/lib/db/schema';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { getUserId } from '@/lib/auth';
 
@@ -89,10 +89,5 @@ export async function updateNote(id: string, note: string | null) {
 
 export async function remove(id: string): Promise<void> {
   const userId = await getUserId();
-  await db.transaction(async (tx) => {
-    await tx.delete(packingResults).where(eq(packingResults.shipmentId, id));
-    await tx.delete(orderItems).where(eq(orderItems.shipmentId, id));
-    await tx.delete(orders).where(eq(orders.shipmentId, id));
-    await tx.delete(shipments).where(and(eq(shipments.id, id), eq(shipments.userId, userId)));
-  });
+  await db.delete(shipments).where(and(eq(shipments.id, id), eq(shipments.userId, userId)));
 }
