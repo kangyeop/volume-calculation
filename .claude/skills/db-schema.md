@@ -85,6 +85,17 @@ ALTER INDEX old_index_name RENAME TO new_index_name;
 
 **컬럼 삭제**: 코드에서 먼저 해당 컬럼 참조 제거 → 배포 → 이후 컬럼 삭제
 
+## 커스텀 마이그레이션과 generate 중복 주의
+
+`db:generate`는 스키마 diff를 기준으로 SQL을 생성하므로, **수동 작성한 커스텀 마이그레이션(backfill, 데이터 패치 등)의 DDL을 인식하지 못한다.** 커스텀 마이그레이션에서 `ALTER COLUMN SET NOT NULL` 등을 이미 실행했더라도, 다음 `db:generate`에서 동일한 DDL이 다시 생성될 수 있다.
+
+중복 DDL이 포함된 마이그레이션을 실행하면:
+- 이미 적용된 DDL에서 에러 발생
+- Drizzle이 마이그레이션을 "적용됨"으로 기록하지만, **에러 이후의 문(statement)은 실행되지 않음**
+- 결과적으로 일부 컬럼/인덱스/타입이 누락되는 부분 적용 상태가 됨
+
+**방지 방법**: `db:generate` 후 생성된 SQL에서 이전 커스텀 마이그레이션과 겹치는 DDL이 있는지 확인하고, 중복 문을 제거한다.
+
 ## 생성된 SQL 검토 체크리스트
 
 `pnpm db:generate` 실행 후 생성된 SQL 파일에서 다음을 확인:
@@ -94,6 +105,7 @@ ALTER INDEX old_index_name RENAME TO new_index_name;
 - `ALTER COLUMN ... SET NOT NULL` → 기존 데이터에 null이 없는지
 - `ALTER TYPE` (enum 변경) → 안전한 방향인지 (값 추가만 허용)
 - 의도하지 않은 변경이 포함되어 있지 않은지
+- **이전 커스텀 마이그레이션과 중복되는 DDL이 없는지**
 
 ## 스키마 작성 패턴
 
