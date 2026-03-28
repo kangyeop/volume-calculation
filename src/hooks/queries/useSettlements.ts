@@ -4,7 +4,7 @@ import {
   useQueryClient,
   type UseMutationResult,
 } from '@tanstack/react-query';
-import { api, type Shipment, type SettlementDetail, type SettlementUploadResult } from '@/lib/api';
+import { api, type Shipment, type SettlementUploadResult } from '@/lib/api';
 import { settlements } from './queryKeys';
 
 export function useSettlements() {
@@ -101,5 +101,44 @@ export function useAutoPackUnmatched() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: settlements.detail(id).queryKey });
     },
+  });
+}
+
+export function useSettlementPackingRecommendation(id: string) {
+  return useQuery({
+    ...settlements.packingRecommendation(id),
+    queryFn: () => api.settlements.packing.recommendation(id),
+    enabled: !!id,
+  });
+}
+
+export function useCalculateSettlementPacking() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, strategy }: { id: string; strategy?: string }) =>
+      api.settlements.packing.calculate(id, strategy),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: settlements.packingRecommendation(id).queryKey });
+      queryClient.invalidateQueries({ queryKey: settlements.detail(id).queryKey });
+    },
+  });
+}
+
+export function useUpdateSettlementBoxAssignment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, items, newBoxId }: { id: string; items: { groupIndex: number; boxIndex: number }[]; newBoxId: string }) =>
+      api.settlements.packing.updateBoxAssignment(id, { items, newBoxId }),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: settlements.packingRecommendation(id).queryKey });
+    },
+  });
+}
+
+export function useExportSettlementPacking() {
+  return useMutation({
+    mutationFn: ({ id }: { id: string }) => api.settlements.packing.export(id),
   });
 }

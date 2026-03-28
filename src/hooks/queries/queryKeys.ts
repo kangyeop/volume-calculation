@@ -32,6 +32,7 @@ export const shipments = createQueryKeys('shipments', {
 export const settlements = createQueryKeys('settlements', {
   all: null,
   detail: (id: string) => [id],
+  packingRecommendation: (id: string) => [id, 'packing-recommendation'],
 });
 
 export const boxes = createQueryKeys('boxes', {

@@ -235,6 +235,36 @@ export const api = {
       fetchApi<{ success: boolean }>(`/settlements/${id}/confirm`, { method: 'DELETE' }),
     autoPackUnmatched: (id: string) =>
       fetchApi<{ packed: number; failed: number }>(`/settlements/${id}/auto-pack`, { method: 'POST' }),
+    packing: {
+      calculate: (id: string, strategy?: string) =>
+        fetchApi<{ packed: number; failed: number }>(`/settlements/${id}/packing/calculate`, {
+          method: 'POST',
+          data: { strategy },
+        }),
+      recommendation: (id: string) =>
+        fetchApi<PackingRecommendation | null>(`/settlements/${id}/packing/recommendation`),
+      updateBoxAssignment: (id: string, data: { items: { groupIndex: number; boxIndex: number }[]; newBoxId: string }) =>
+        fetchApi<PackingRecommendation>(`/settlements/${id}/packing/recommendation`, {
+          method: 'PATCH',
+          data,
+        }),
+      export: (id: string) => {
+        return apiClient
+          .get(`/settlements/${id}/packing/export`, {
+            responseType: 'blob',
+          })
+          .then((response) => {
+            const url = window.URL.createObjectURL(response.data);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `settlement_packing_${id}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+          });
+      },
+    },
   },
   boxGroups: {
     list: () => fetchApi<BoxGroup[]>('/box-groups'),
