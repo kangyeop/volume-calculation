@@ -1,6 +1,6 @@
 # 정산 도메인 (Settlement)
 
-기존 확정된 출고(SHIPMENT)의 패킹 결과를 복사(Copy)하여 point-in-time 스냅샷을 생성하는 도메인. 미매칭 주문은 PENDING 상태로 저장되며, 패킹은 별도로 수행한다.
+기존 확정된 출고(SHIPMENT)의 패킹 결과를 복사(Copy)하여 point-in-time 스냅샷을 생성하는 도메인. 미매칭 주문 중 SKU가 상품 DB에 존재하는 주문만 PENDING 상태로 저장되며, SKU가 없는 주문은 제외된다.
 
 ## 핵심 개념
 
@@ -62,7 +62,11 @@
   Settlement shipment 생성 (type='SETTLEMENT')
        |
        v
+  사용자 상품 SKU 목록 조회
+       |
+       v
   트랜잭션: orderId별로
+  ├── 미매칭 + SKU 미존재 → 건너뜀 (skipped)
   ├── 새 order 생성 (status: COMPLETED=매칭, PENDING=미매칭)
   ├── orderItems 생성 (엑셀 파싱 결과)
   └── packingResult 생성
