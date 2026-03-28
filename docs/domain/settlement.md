@@ -18,6 +18,7 @@
 |------|------|------|
 | `matched` | orders.status=COMPLETED, boxId != null | 기존 출고에서 매칭 + 박스 복사됨 |
 | `matched_unassigned` | orders.status=COMPLETED, boxId == null | 매칭됐으나 원본에 boxId 없었음 |
+| `auto_packed` | orders.status=PROCESSING | 미매칭 주문이 자동 패킹 계산됨 |
 | `unmatched` | orders.status=PENDING | 기존 출고에서 주문번호를 찾지 못함. 패킹 미수행 |
 
 ## 데이터 모델
@@ -89,16 +90,25 @@
 |------|------|
 | `/settlements` | 정산 목록 (테이블: 정산명, 상태 뱃지, 생성일, 삭제) |
 | `/settlements/new` | 정산 엑셀 업로드 (양식 선택 없음, 정산 형식 고정) |
-| `/settlements/[id]` | 정산 상세 — 주문별 박스 현황 + 수동 박스 지정 |
+| `/settlements/[id]` | 정산 상세 — Configuration 요약 뷰 + 매칭 상태 |
+| `/settlements/[id]/packing` | 정산 패킹 — 상품 그룹별 패킹 결과 + 바코드/에어캡 + 미매칭 재계산 |
 
 ### 정산 상세 페이지 주요 기능
 
-- **주문 목록 테이블**: 주문번호, 상품(sku x 수량), 상태 뱃지, 바코드 개수, 에어캡 개수, 현재 박스, 박스 지정 드롭다운
-- **합계 행**: 전체 정산의 바코드/에어캡 합계 표시
-- **미매칭 패킹 계산**: 미매칭 주문이 있을 때 버튼 표시. SKU→상품 매칭 후 calculatePacking 알고리즘으로 일괄 자동 패킹
-- **수동 박스 지정**: 드롭다운에서 박스 선택 시 즉시 API 호출로 반영
+- **Configuration 요약 뷰**: 출고 상세와 동일한 형태로, 상품 조합(SKU 키)별 그룹화된 Collapsible 목록
+- **통계 카드**: 총 주문 수, 고유 Configuration 수, 매칭 현황 (N건 매칭 / M건 미매칭)
+- **매칭 상태 오버레이**: Configuration 그룹 헤더에 매칭/미매칭 요약 배지, 펼치면 주문별 상태 배지
+- **패킹 버튼**: `/settlements/[id]/packing`으로 이동
 - **확정/해제**: PACKING <-> CONFIRMED 상태 전환
 - **삭제**: ConfirmDialog로 확인 후 cascade 삭제
+
+### 정산 패킹 페이지 주요 기능
+
+- **상품 그룹별 섹션**: 출고 패킹과 동일한 BoxTypeCard 그리드 + 바코드/에어캡 합계 표시
+- **미매칭 패킹 계산**: 미매칭(PENDING) 주문만 대상으로 패킹 알고리즘 실행 (전략 선택: 부피/최장변)
+- **전체 결과 표시**: 매칭된 주문은 읽기전용, 미매칭/자동패킹 주문만 박스 변경 가능
+- **엑셀 내보내기**: 전체 패킹 결과 다운로드
+- **확정/해제**: PACKING <-> CONFIRMED 상태 전환
 
 ## API
 
@@ -108,10 +118,14 @@
 | POST | `/api/upload/settlement` | 정산 엑셀 업로드 (multipart/form-data, `file` 필드) |
 | GET | `/api/settlements/{id}` | 정산 상세 (orders + 매칭 상태) |
 | DELETE | `/api/settlements/{id}` | 정산 삭제 (cascade) |
-| POST | `/api/settlements/{id}/auto-pack` | 미매칭 주문 일괄 자동 패킹 계산 |
+| POST | `/api/settlements/{id}/auto-pack` | 미매칭 주문 일괄 자동 패킹 계산 (레거시) |
 | PATCH | `/api/settlements/{id}/assign-box` | 수동 박스 지정 (`{ orderId, boxId }`) |
 | POST | `/api/settlements/{id}/confirm` | 정산 확정 |
 | DELETE | `/api/settlements/{id}/confirm` | 정산 확정 해제 |
+| POST | `/api/settlements/{id}/packing/calculate` | 미매칭 주문 패킹 계산 (`{ strategy }`) |
+| GET | `/api/settlements/{id}/packing/recommendation` | 저장된 패킹 추천 조회 |
+| PATCH | `/api/settlements/{id}/packing/recommendation` | 박스 변경 (`{ items, newBoxId }`) |
+| GET | `/api/settlements/{id}/packing/export` | 패킹 결과 엑셀 내보내기 |
 
 ### 업로드 응답
 
@@ -198,10 +212,10 @@
 |------|------|
 | `src/lib/services/settlement.ts` | 업로드, 상세 조회, 박스 지정 |
 | `src/lib/services/shipment.ts` | create/findAll에 type 파라미터 (SETTLEMENT 지원) |
-| `src/app/api/settlements/` | 정산 API 라우트 (목록, 상세, 삭제, 확정, 박스 지정) |
+| `src/app/api/settlements/` | 정산 API 라우트 (목록, 상세, 삭제, 확정, 박스 지정, 패킹) |
 | `src/app/api/upload/settlement/` | 정산 업로드 API |
-| `src/app/(main)/settlements/` | 정산 UI (목록, 업로드, 상세) |
-| `src/hooks/queries/useSettlements.ts` | React Query 훅 8개 |
+| `src/app/(main)/settlements/` | 정산 UI (목록, 업로드, 상세, 패킹) |
+| `src/hooks/queries/useSettlements.ts` | React Query 훅 12개 |
 | `src/lib/services/format-parser.ts` | parseAdjustment() — 정산 엑셀 파싱 |
 
 ## 설계 결정
