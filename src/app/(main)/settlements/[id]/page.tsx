@@ -1,42 +1,86 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Check, X, Trash2, Calculator } from 'lucide-react';
+import { ArrowLeft, Check, X, Trash2, Loader2, Package, Layers, ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { ListTableSkeleton } from '@/components/skeletons';
+import { ShipmentDetailSkeleton } from '@/components/skeletons';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   useSettlementDetail,
-  useAssignBox,
   useConfirmSettlement,
   useUnconfirmSettlement,
   useDeleteSettlement,
-  useAutoPackUnmatched,
-  useBoxes,
+  useConfigurationSummary,
 } from '@/hooks/queries';
+
+const STATUS_LABELS: Record<string, { label: string; className: string }> = {
+  matched: { label: '매칭됨', className: 'bg-green-50 text-green-700 ring-green-600/20' },
+  matched_unassigned: { label: '매칭됨-미지정', className: 'bg-yellow-50 text-yellow-700 ring-yellow-600/20' },
+  auto_packed: { label: '자동패킹', className: 'bg-blue-50 text-blue-700 ring-blue-600/20' },
+  unmatched: { label: '미매칭', className: 'bg-red-50 text-red-700 ring-red-600/20' },
+};
 
 export default function SettlementDetailPage() {
   const params = useParams();
   const id = params.id as string;
   const router = useRouter();
-  const { data: settlement, isLoading } = useSettlementDetail(id);
-  const { data: boxes = [] } = useBoxes();
-  const assignBox = useAssignBox();
+  const { data: settlement, isLoading: isLoadingSettlement } = useSettlementDetail(id);
+  const { data: summary, isLoading: isLoadingSummary } = useConfigurationSummary(id);
   const confirmSettlement = useConfirmSettlement();
   const unconfirmSettlement = useUnconfirmSettlement();
   const deleteSettlement = useDeleteSettlement();
-  const autoPackUnmatched = useAutoPackUnmatched();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [expandedConfigs, setExpandedConfigs] = useState<Set<string>>(new Set());
 
-  const handleAssignBox = async (orderUuid: string, boxId: string) => {
-    try {
-      await assignBox.mutateAsync({ settlementId: id, orderId: orderUuid, boxId });
-      toast.success('박스가 지정되었습니다.');
-    } catch {
-      toast.error('박스 지정에 실패했습니다.');
+  const statusMap = useMemo(() => {
+    if (!settlement) return new Map<string, string>();
+    const map = new Map<string, string>();
+    for (const order of settlement.orders) {
+      map.set(order.orderId, order.status);
     }
+    return map;
+  }, [settlement]);
+
+  const matchStats = useMemo(() => {
+    if (!settlement) return { matched: 0, unmatched: 0, autoPacked: 0, matchedUnassigned: 0 };
+    let matched = 0, unmatched = 0, autoPacked = 0, matchedUnassigned = 0;
+    for (const order of settlement.orders) {
+      if (order.status === 'matched') matched++;
+      else if (order.status === 'unmatched') unmatched++;
+      else if (order.status === 'auto_packed') autoPacked++;
+      else if (order.status === 'matched_unassigned') matchedUnassigned++;
+    }
+    return { matched, unmatched, autoPacked, matchedUnassigned };
+  }, [settlement]);
+
+  const toggleConfig = (key: string) => {
+    setExpandedConfigs((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const getConfigMatchSummary = (orderIds: string[]) => {
+    let matched = 0, unmatched = 0;
+    for (const orderId of orderIds) {
+      const status = statusMap.get(orderId);
+      if (status === 'unmatched') unmatched++;
+      else matched++;
+    }
+    return { matched, unmatched };
   };
 
   const handleConfirm = async () => {
@@ -57,18 +101,6 @@ export default function SettlementDetailPage() {
     }
   };
 
-  const handleAutoPack = async () => {
-    try {
-      const result = await autoPackUnmatched.mutateAsync(id);
-      const parts = [];
-      if (result.packed > 0) parts.push(`${result.packed}건 패킹 완료`);
-      if (result.failed > 0) parts.push(`${result.failed}건 실패`);
-      toast.success('미매칭 패킹 계산 완료', { description: parts.join(', ') });
-    } catch {
-      toast.error('패킹 계산에 실패했습니다.');
-    }
-  };
-
   const handleDelete = async () => {
     setDeleteOpen(false);
     try {
@@ -80,11 +112,12 @@ export default function SettlementDetailPage() {
     }
   };
 
-  if (isLoading) return <ListTableSkeleton />;
+  const isLoading = isLoadingSettlement || isLoadingSummary;
+
+  if (isLoading) return <ShipmentDetailSkeleton />;
   if (!settlement) return <div>정산을 찾을 수 없습니다.</div>;
 
   const isConfirmed = settlement.status === 'CONFIRMED';
-  const hasUnmatched = settlement.orders.some((o) => o.status === 'unmatched');
 
   return (
     <PageContainer>
@@ -108,6 +141,7 @@ export default function SettlementDetailPage() {
               </span>
             )}
           </div>
+          <p className="text-muted-foreground">Configuration별로 그룹화된 정산 데이터입니다.</p>
         </div>
         <div className="flex items-center gap-2">
           {isConfirmed ? (
@@ -125,24 +159,17 @@ export default function SettlementDetailPage() {
             </button>
           ) : (
             <>
-              {hasUnmatched && (
-                <button
-                  onClick={handleAutoPack}
-                  disabled={autoPackUnmatched.isPending}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-700 border border-blue-200 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {autoPackUnmatched.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Calculator className="h-4 w-4" />
-                  )}
-                  미매칭 패킹 계산
-                </button>
-              )}
+              <button
+                onClick={() => router.push(`/settlements/${id}/packing`)}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                <Package className="h-4 w-4" />
+                패킹
+              </button>
               <button
                 onClick={handleConfirm}
                 disabled={confirmSettlement.isPending}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
               >
                 {confirmSettlement.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -168,86 +195,174 @@ export default function SettlementDetailPage() {
         </div>
       </div>
 
-      <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b">
-            <tr>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">주문번호</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">상품</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">상태</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-600">바코드</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-600">에어캡</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">박스</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600">박스 지정</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {settlement.orders.map((order) => (
-              <tr key={order.orderUuid} className="hover:bg-gray-50/50 transition-colors">
-                <td className="px-4 py-3 font-medium text-gray-900">{order.orderId}</td>
-                <td className="px-4 py-3 text-gray-600">
-                  {order.items.map((item) => `${item.sku} × ${item.quantity}`).join(', ')}
-                </td>
-                <td className="px-4 py-3">
-                  {order.status === 'matched' && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20">
-                      매칭됨
-                    </span>
+      {summary && (
+        <>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-white border rounded-xl p-5 shadow-sm flex items-center gap-4">
+              <div className="bg-blue-100 p-3 rounded-full">
+                <Package className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">총 주문 수</p>
+                <p className="text-2xl font-bold text-gray-900">{summary.totalOrders}</p>
+              </div>
+            </div>
+            <div className="bg-white border rounded-xl p-5 shadow-sm flex items-center gap-4">
+              <div className="bg-purple-100 p-3 rounded-full">
+                <Layers className="h-6 w-6 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">고유 Configuration</p>
+                <p className="text-2xl font-bold text-gray-900">{summary.configurations.length}</p>
+              </div>
+            </div>
+            <div className="bg-white border rounded-xl p-5 shadow-sm flex items-center gap-4">
+              <div className={`${matchStats.unmatched > 0 ? 'bg-red-100' : 'bg-green-100'} p-3 rounded-full`}>
+                {matchStats.unmatched > 0 ? (
+                  <AlertTriangle className="h-6 w-6 text-red-600" />
+                ) : (
+                  <Check className="h-6 w-6 text-green-600" />
+                )}
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">매칭 현황</p>
+                <p className="text-lg font-bold text-gray-900">
+                  <span className="text-green-700">{matchStats.matched + matchStats.matchedUnassigned + matchStats.autoPacked}건 매칭</span>
+                  {matchStats.unmatched > 0 && (
+                    <span className="text-red-700"> / {matchStats.unmatched}건 미매칭</span>
                   )}
-                  {order.status === 'matched_unassigned' && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-50 text-yellow-700 ring-1 ring-inset ring-yellow-600/20">
-                      매칭됨-미지정
-                    </span>
-                  )}
-                  {order.status === 'auto_packed' && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20">
-                      자동패킹
-                    </span>
-                  )}
-                  {order.status === 'unmatched' && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20">
-                      미매칭
-                    </span>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-right text-gray-600">{order.barcodeCount}</td>
-                <td className="px-4 py-3 text-right text-gray-600">{order.aircapCount}</td>
-                <td className="px-4 py-3 text-gray-600">
-                  {order.boxId ? (boxes.find((b) => b.id === order.boxId)?.name ?? '-') : '-'}
-                </td>
-                <td className="px-4 py-3">
-                  <select
-                    value={order.boxId ?? ''}
-                    onChange={(e) => handleAssignBox(order.orderUuid, e.target.value)}
-                    disabled={isConfirmed || assignBox.isPending}
-                    className="w-full px-2 py-1.5 text-sm border rounded-lg bg-white disabled:bg-gray-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="">박스 선택</option>
-                    {boxes.map((box) => (
-                      <option key={box.id} value={box.id}>
-                        {box.name} ({box.width}×{box.length}×{box.height})
-                      </option>
-                    ))}
-                  </select>
-                </td>
-              </tr>
-            ))}
-            <tr className="bg-gray-50 font-semibold border-t-2 border-gray-200">
-              <td className="px-4 py-3 text-gray-900">합계</td>
-              <td className="px-4 py-3" />
-              <td className="px-4 py-3" />
-              <td className="px-4 py-3 text-right text-gray-900">
-                {settlement.orders.reduce((sum, o) => sum + o.barcodeCount, 0)}
-              </td>
-              <td className="px-4 py-3 text-right text-gray-900">
-                {settlement.orders.reduce((sum, o) => sum + o.aircapCount, 0)}
-              </td>
-              <td className="px-4 py-3" />
-              <td className="px-4 py-3" />
-            </tr>
-          </tbody>
-        </table>
-      </div>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+            <div className="p-4 border-b">
+              <span className="font-medium text-gray-700">Configuration 목록</span>
+            </div>
+
+            {summary.configurations.length > 0 ? (
+              <div className="divide-y">
+                {summary.configurations.map((config, idx) => {
+                  const isExpanded = expandedConfigs.has(config.skuKey);
+                  const configMatch = getConfigMatchSummary(config.orderIds);
+
+                  return (
+                    <Collapsible
+                      key={config.skuKey}
+                      open={isExpanded}
+                      onOpenChange={() => toggleConfig(config.skuKey)}
+                    >
+                      <CollapsibleTrigger className="w-full px-4 py-3 hover:bg-gray-50 flex items-center justify-between transition-colors">
+                        <div className="flex items-center gap-3 min-w-0 overflow-hidden">
+                          <span className="text-xs font-mono text-gray-400 flex-shrink-0">
+                            #{idx + 1}
+                          </span>
+                          <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+                            {config.skuItems.map((s, i) => (
+                              <span
+                                key={i}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 text-xs text-gray-700 flex-shrink-0 max-w-[200px]"
+                                title={`${s.productName || s.sku} ×${s.quantity}`}
+                              >
+                                <span className="truncate">{s.productName || s.sku}</span>
+                                <span className="text-gray-400 flex-shrink-0">×{s.quantity}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                          {config.largestItem && (
+                            <span
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-amber-50 text-amber-700 border border-amber-200"
+                              title={`최대 상품: ${config.largestItem.productName || '-'}`}
+                            >
+                              <Package className="h-3 w-3" />
+                              {config.largestItem.width}×{config.largestItem.length}×
+                              {config.largestItem.height}
+                            </span>
+                          )}
+                          {configMatch.unmatched > 0 ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20">
+                              {configMatch.matched}건 매칭 · {configMatch.unmatched}건 미매칭
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20">
+                              전체 매칭
+                            </span>
+                          )}
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                            {config.orderCount}건
+                          </span>
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4 text-gray-400" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-gray-400" />
+                          )}
+                        </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="border-t bg-gray-50 px-4 py-3 space-y-3">
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 mb-2">
+                            주문 ID ({config.orderCount}건)
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {config.orderIds.map((orderId) => {
+                              const status = statusMap.get(orderId);
+                              const statusInfo = status ? STATUS_LABELS[status] : null;
+                              return (
+                                <span
+                                  key={orderId}
+                                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-mono bg-white border text-gray-700"
+                                >
+                                  {orderId}
+                                  {statusInfo && (
+                                    <span className={`inline-flex items-center px-1.5 py-0 rounded text-[10px] font-medium ring-1 ring-inset ${statusInfo.className}`}>
+                                      {statusInfo.label}
+                                    </span>
+                                  )}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>SKU</TableHead>
+                              <TableHead>상품명</TableHead>
+                              <TableHead className="text-right">수량</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {config.skuItems.map((item) => (
+                              <TableRow key={item.sku}>
+                                <TableCell className="font-mono text-gray-700">
+                                  {item.sku}
+                                </TableCell>
+                                <TableCell className="text-gray-600">
+                                  {item.productName || '-'}
+                                </TableCell>
+                                <TableCell className="text-right text-gray-600">
+                                  {item.quantity}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="px-4 py-12 text-center text-gray-400 text-sm">
+                정산 데이터가 없습니다.
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       <ConfirmDialog
         open={deleteOpen}
