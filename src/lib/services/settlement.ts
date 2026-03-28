@@ -23,6 +23,9 @@ export async function uploadSettlement(
   }
   const userId = await getUserId();
 
+  const allUserProducts = await db.select().from(products).where(eq(products.userId, userId));
+  const productSkuSet = new Set(allUserProducts.map((p) => p.sku));
+
   const existingOrders = await db
     .select({
       orderId: orders.orderId,
@@ -69,6 +72,11 @@ export async function uploadSettlement(
     for (const [userOrderId, orderItemsList] of orderItemsMap) {
       const matched = matchedOrderMap.get(userOrderId);
       const existingPR = matched ? packingResultMap.get(matched.orderUuid) : undefined;
+
+      if (!matched) {
+        const allSkusExist = orderItemsList.every((item) => productSkuSet.has(item.sku));
+        if (!allSkusExist) continue;
+      }
 
       const orderStatus = matched ? 'COMPLETED' : 'PENDING';
       const [newOrder] = await tx
