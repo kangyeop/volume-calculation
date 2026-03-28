@@ -1,6 +1,6 @@
 # 정산 도메인 (Settlement)
 
-기존 확정된 출고(SHIPMENT)의 패킹 결과를 복사(Copy)하여 point-in-time 스냅샷을 생성하고, 미매칭 주문은 자동 패킹 계산을 수행하는 도메인.
+기존 확정된 출고(SHIPMENT)의 패킹 결과를 복사(Copy)하여 point-in-time 스냅샷을 생성하는 도메인. 미매칭 주문은 PENDING 상태로 저장되며, 패킹은 별도로 수행한다.
 
 ## 핵심 개념
 
@@ -18,8 +18,7 @@
 |------|------|------|
 | `matched` | orders.status=COMPLETED, boxId != null | 기존 출고에서 매칭 + 박스 복사됨 |
 | `matched_unassigned` | orders.status=COMPLETED, boxId == null | 매칭됐으나 원본에 boxId 없었음 |
-| `auto_packed` | orders.status=PROCESSING | 미매칭이나 SKU→상품 매칭으로 자동 패킹 계산됨 |
-| `unmatched` | orders.status=PENDING | 기존 출고에서 주문번호를 찾지 못하고 자동 패킹도 불가 |
+| `unmatched` | orders.status=PENDING | 기존 출고에서 주문번호를 찾지 못함. 패킹 미수행 |
 
 ## 데이터 모델
 
@@ -32,14 +31,14 @@
 | `shipments` | type='SETTLEMENT'인 row가 정산 컨테이너 |
 | `orders` | 정산 shipment에 종속된 주문 (원본에서 orderId 복사) |
 | `order_items` | 엑셀에서 파싱된 아이템 (productId는 null) |
-| `packing_results` | 매칭: 원본에서 boxId 복사 / 자동패킹: calculatePacking 결과 / 미매칭: boxId=null |
+| `packing_results` | 매칭: 원본에서 boxId 복사 / 미매칭: boxId=null, items=[] |
 
 ### shipments.type 구분
 
 | type | 용도 | 패킹 |
 |------|------|------|
 | `SHIPMENT` | 일반 출고 | 자동 패킹 계산 |
-| `SETTLEMENT` | 정산 | 매칭 복사 + 미매칭 자동 패킹 + 수동 박스 지정 |
+| `SETTLEMENT` | 정산 | 매칭 복사 + 수동 박스 지정 |
 
 ## 업로드 파이프라인
 
@@ -63,16 +62,12 @@
   Settlement shipment 생성 (type='SETTLEMENT')
        |
        v
-  상품 DB 조회 (SKU→상품 매칭, 상품그룹→박스그룹→박스 준비)
-       |
-       v
   트랜잭션: orderId별로
-  ├── 새 order 생성 (status: COMPLETED=매칭, PROCESSING=자동패킹, PENDING=미매칭)
+  ├── 새 order 생성 (status: COMPLETED=매칭, PENDING=미매칭)
   ├── orderItems 생성 (엑셀 파싱 결과)
   └── packingResult 생성
       ├── 매칭: 원본 boxId/items 복사
-      ├── 자동패킹: calculatePacking()으로 최적 박스 계산
-      └── 미매칭: boxId=null, items=[] (SKU 매칭 실패 시)
+      └── 미매칭: boxId=null, items=[]
 ```
 
 ### 매칭 쿼리 규칙
@@ -118,7 +113,6 @@
   "data": {
     "imported": 10,
     "unmatched": 1,
-    "autoPacked": 2,
     "shipmentId": "uuid",
     "shipmentName": "20260326-1-파일명"
   }
@@ -140,7 +134,7 @@
       "items": [{ "sku": "상품A", "quantity": 2 }],
       "boxId": "uuid-or-null",
       "packingResultId": "uuid-or-null",
-      "status": "matched | matched_unassigned | auto_packed | unmatched",
+      "status": "matched | matched_unassigned | unmatched",
       "barcodeCount": 3,
       "aircapCount": 2
     }
@@ -187,7 +181,7 @@
 | 연관 도메인 | 관계 |
 |-------------|------|
 | **Shipment** | 매칭 대상. CONFIRMED SHIPMENT의 orders/packingResults를 복사 |
-| **Packing** | packingResults 구조 재활용. 미매칭 주문에 calculatePacking 알고리즘 적용 |
+| **Packing** | packingResults 구조 재활용 |
 | **Box** | 수동 박스 지정 시 boxes 테이블 참조 |
 
 ## 주요 파일

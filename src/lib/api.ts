@@ -80,7 +80,6 @@ export interface SettlementDetail {
 export interface SettlementUploadResult {
   imported: number;
   unmatched: number;
-  autoPacked: number;
   shipmentId: string;
   shipmentName: string;
 }
