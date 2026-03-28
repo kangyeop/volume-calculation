@@ -62,14 +62,16 @@
   Settlement shipment 생성 (type='SETTLEMENT')
        |
        v
-  사용자 상품 SKU 목록 조회
+  업로드된 SKU로 사용자 상품 필터 조회
        |
        v
-  트랜잭션: orderId별로
-  ├── 미매칭 + SKU 미존재 → 건너뜀 (skipped)
-  ├── 새 order 생성 (status: COMPLETED=매칭, PENDING=미매칭)
-  ├── orderItems 생성 (엑셀 파싱 결과)
-  └── packingResult 생성
+  유효 주문 필터링 (미매칭 + SKU 미존재 → 제외)
+       |
+       v
+  트랜잭션: 배치 INSERT 3회
+  ├── 1) orders 일괄 INSERT + returning (COMPLETED=매칭, PENDING=미매칭)
+  ├── 2) orderItems 일괄 INSERT
+  └── 3) packingResults 일괄 INSERT
       ├── 매칭: 원본 boxId/items 복사
       └── 미매칭: boxId=null, items=[]
 ```

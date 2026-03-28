@@ -8,7 +8,7 @@ import { calculatePacking } from '@/lib/algorithms/packing';
 import { buildPackingResultItems, buildPackingResultRowStats } from '@/lib/services/packing';
 import * as shipmentService from '@/lib/services/shipment';
 import * as boxesService from '@/lib/services/boxes';
-import type { SKU } from '@/types';
+import type { SKU, PackingResultItem } from '@/types';
 
 export async function uploadSettlement(
   buffer: Buffer,
@@ -23,8 +23,12 @@ export async function uploadSettlement(
   }
   const userId = await getUserId();
 
-  const allUserProducts = await db.select().from(products).where(eq(products.userId, userId));
-  const productSkuSet = new Set(allUserProducts.map((p) => p.sku));
+  const uniqueSkus = [...new Set(items.map((i) => i.sku))];
+  const userProducts =
+    uniqueSkus.length > 0
+      ? await db.select().from(products).where(and(eq(products.userId, userId), inArray(products.sku, uniqueSkus)))
+      : [];
+  const productSkuSet = new Set(userProducts.map((p) => p.sku));
 
   const existingOrders = await db
     .select({
@@ -68,62 +72,103 @@ export async function uploadSettlement(
     orderItemsMap.get(item.orderId)!.push({ sku: item.sku, quantity: item.quantity });
   }
 
-  await db.transaction(async (tx) => {
-    for (const [userOrderId, orderItemsList] of orderItemsMap) {
-      const matched = matchedOrderMap.get(userOrderId);
-      const existingPR = matched ? packingResultMap.get(matched.orderUuid) : undefined;
+  const validEntries: Array<{
+    userOrderId: string;
+    orderItemsList: { sku: string; quantity: number }[];
+    status: 'COMPLETED' | 'PENDING';
+    existingPR: (typeof existingPackingResults)[number] | undefined;
+  }> = [];
 
-      if (!matched) {
-        const allSkusExist = orderItemsList.every((item) => productSkuSet.has(item.sku));
-        if (!allSkusExist) continue;
-      }
+  for (const [userOrderId, orderItemsList] of orderItemsMap) {
+    const matched = matchedOrderMap.get(userOrderId);
+    const existingPR = matched ? packingResultMap.get(matched.orderUuid) : undefined;
 
-      const orderStatus = matched ? 'COMPLETED' : 'PENDING';
-      const [newOrder] = await tx
+    if (!matched) {
+      const allSkusExist = orderItemsList.every((item) => productSkuSet.has(item.sku));
+      if (!allSkusExist) continue;
+    }
+
+    validEntries.push({
+      userOrderId,
+      orderItemsList,
+      status: matched ? 'COMPLETED' : 'PENDING',
+      existingPR,
+    });
+  }
+
+  if (validEntries.length > 0) {
+    await db.transaction(async (tx) => {
+      const insertedOrders = await tx
         .insert(orders)
-        .values({ shipmentId: settlementShipment.id, orderId: userOrderId, status: orderStatus })
+        .values(
+          validEntries.map((e) => ({
+            shipmentId: settlementShipment.id,
+            orderId: e.userOrderId,
+            status: e.status,
+          })),
+        )
         .returning();
 
-      await tx.insert(orderItems).values(
-        orderItemsList.map((item) => ({
-          shipmentId: settlementShipment.id,
-          orderId: newOrder.id,
-          orderIdentifier: userOrderId,
-          sku: item.sku,
-          quantity: item.quantity,
-          productId: null,
-        })),
-      );
+      const allOrderItems: {
+        shipmentId: string;
+        orderId: string;
+        orderIdentifier: string;
+        sku: string;
+        quantity: number;
+        productId: null;
+      }[] = [];
 
-      if (matched) {
-        await tx.insert(packingResults).values({
+      const allPackingResults: {
+        shipmentId: string;
+        orderId: string;
+        boxId: string | null;
+        packedCount: number;
+        efficiency: string;
+        totalCBM: string;
+        groupLabel: string | null;
+        groupIndex: number | null;
+        boxNumber: number | null;
+        items: PackingResultItem[];
+      }[] = [];
+
+      for (let i = 0; i < validEntries.length; i++) {
+        const entry = validEntries[i];
+        const newOrder = insertedOrders[i];
+
+        for (const item of entry.orderItemsList) {
+          allOrderItems.push({
+            shipmentId: settlementShipment.id,
+            orderId: newOrder.id,
+            orderIdentifier: entry.userOrderId,
+            sku: item.sku,
+            quantity: item.quantity,
+            productId: null,
+          });
+        }
+
+        const pr = entry.existingPR;
+        allPackingResults.push({
           shipmentId: settlementShipment.id,
           orderId: newOrder.id,
-          boxId: existingPR?.boxId ?? null,
-          packedCount: existingPR?.packedCount ?? 0,
-          efficiency: existingPR?.efficiency ?? '0',
-          totalCBM: existingPR?.totalCBM ?? '0',
-          groupLabel: existingPR?.groupLabel ?? null,
-          groupIndex: existingPR?.groupIndex ?? null,
-          boxNumber: existingPR?.boxNumber ?? null,
-          items: existingPR?.items ?? [],
-        });
-      } else {
-        await tx.insert(packingResults).values({
-          shipmentId: settlementShipment.id,
-          orderId: newOrder.id,
-          boxId: null,
-          packedCount: 0,
-          efficiency: '0',
-          totalCBM: '0',
-          groupLabel: null,
-          groupIndex: null,
-          boxNumber: null,
-          items: [],
+          boxId: pr?.boxId ?? null,
+          packedCount: pr?.packedCount ?? 0,
+          efficiency: pr?.efficiency ?? '0',
+          totalCBM: pr?.totalCBM ?? '0',
+          groupLabel: pr?.groupLabel ?? null,
+          groupIndex: pr?.groupIndex ?? null,
+          boxNumber: pr?.boxNumber ?? null,
+          items: pr?.items ?? [],
         });
       }
-    }
-  });
+
+      if (allOrderItems.length > 0) {
+        await tx.insert(orderItems).values(allOrderItems);
+      }
+      if (allPackingResults.length > 0) {
+        await tx.insert(packingResults).values(allPackingResults);
+      }
+    });
+  }
 
   const imported = uniqueOrderIds.length;
   const unmatched = uniqueOrderIds.filter((id) => !matchedOrderMap.has(id)).length;
