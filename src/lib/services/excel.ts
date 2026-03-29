@@ -1,9 +1,8 @@
 import * as ExcelJS from 'exceljs';
 import * as xlsx from 'xlsx';
 import { db } from '@/lib/db';
-import { packingResults } from '@/lib/db/schema';
+import { orderItems, packingResults } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import type { PackingResultItem } from '@/types';
 
 interface ParseResult {
   headers: string[];
@@ -44,24 +43,46 @@ export function parseExcelFile(buffer: Buffer, filename: string): ParseResult {
 }
 
 export async function exportPackingResults(shipmentId: string): Promise<Buffer> {
-  const results = await db.query.packingResults.findMany({
-    where: eq(packingResults.shipmentId, shipmentId),
-    with: { order: true },
-    orderBy: packingResults.groupIndex,
-  });
+  const [results, items] = await Promise.all([
+    db.query.packingResults.findMany({
+      where: eq(packingResults.shipmentId, shipmentId),
+      with: { order: true, box: true },
+      orderBy: packingResults.groupIndex,
+    }),
+    db.query.orderItems.findMany({
+      where: eq(orderItems.shipmentId, shipmentId),
+      with: { product: true },
+    }),
+  ]);
 
-  const rows = results.flatMap((r) => {
-    const items = (r.items || []) as PackingResultItem[];
-    return items.map((item) => ({
+  const itemsByOrderId = new Map<string, typeof items>();
+  for (const item of items) {
+    const list = itemsByOrderId.get(item.orderId) ?? [];
+    list.push(item);
+    itemsByOrderId.set(item.orderId, list);
+  }
+
+  const rows = results.map((r) => {
+    const orderItemList = itemsByOrderId.get(r.order.orderId) ?? [];
+
+    const skuComposition = orderItemList
+      .map((oi) => `${oi.sku} x${oi.quantity}`)
+      .join(', ');
+
+    let aircapCount = 0;
+    let barcodeCount = 0;
+    for (const oi of orderItemList) {
+      if (oi.product?.aircap) aircapCount += oi.quantity;
+      if (oi.product?.barcode) barcodeCount += oi.quantity;
+    }
+
+    return {
       orderId: r.order.orderId,
-      sku: item.sku,
-      productName: item.productName,
-      quantity: item.quantity,
-      boxName: item.boxName,
-      boxNumber: item.boxNumber,
-      boxIndex: item.boxIndex,
-      unpacked: item.unpacked,
-    }));
+      boxName: r.box?.name ?? '',
+      skuComposition,
+      aircapCount,
+      barcodeCount,
+    };
   });
 
   const workbook = new ExcelJS.Workbook();
@@ -69,13 +90,10 @@ export async function exportPackingResults(shipmentId: string): Promise<Buffer> 
 
   worksheet.columns = [
     { header: '주문번호', key: 'orderId', width: 20 },
-    { header: 'SKU', key: 'sku', width: 15 },
-    { header: '상품명', key: 'productName', width: 25 },
-    { header: '수량', key: 'quantity', width: 10 },
-    { header: '박스명', key: 'boxName', width: 15 },
-    { header: '박스 번호', key: 'boxNumber', width: 12 },
-    { header: '박스 순서', key: 'boxIndex', width: 12 },
-    { header: '미포장 여부', key: 'unpacked', width: 12 },
+    { header: '박스', key: 'boxName', width: 15 },
+    { header: 'SKU 구성', key: 'skuComposition', width: 40 },
+    { header: '에어캡 개수', key: 'aircapCount', width: 12 },
+    { header: '바코드 개수', key: 'barcodeCount', width: 12 },
   ];
 
   worksheet.getRow(1).font = { bold: true };
@@ -85,49 +103,9 @@ export async function exportPackingResults(shipmentId: string): Promise<Buffer> 
     fgColor: { argb: 'FFE0E0E0' },
   };
 
-  for (const result of rows) {
-    const row = worksheet.addRow({
-      orderId: result.orderId,
-      sku: result.sku,
-      productName: result.productName,
-      quantity: result.quantity,
-      boxName: result.boxName,
-      boxNumber: result.boxNumber,
-      boxIndex: result.boxIndex,
-      unpacked: result.unpacked ? 'Y' : 'N',
-    });
-
-    if (result.unpacked) {
-      row.eachCell((cell) => {
-        cell.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FFFFCCCC' },
-        };
-      });
-    }
+  for (const row of rows) {
+    worksheet.addRow(row);
   }
-
-  worksheet.columns.forEach((column) => {
-    if (column.eachCell) {
-      let maxLength = 0;
-      column.eachCell({ includeEmpty: true }, (cell) => {
-        const cellValue = cell.value;
-        let cellLength = 10;
-        if (cellValue) {
-          if (typeof cellValue === 'string') {
-            cellLength = cellValue.length;
-          } else if (typeof cellValue === 'number' || typeof cellValue === 'boolean') {
-            cellLength = cellValue.toString().length;
-          }
-        }
-        if (cellLength > maxLength) {
-          maxLength = cellLength;
-        }
-      });
-      column.width = maxLength < 10 ? 10 : maxLength + 2;
-    }
-  });
 
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer);
