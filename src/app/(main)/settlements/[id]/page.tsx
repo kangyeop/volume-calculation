@@ -376,6 +376,9 @@ export default function SettlementDetailPage() {
                               전체 매칭
                             </span>
                           )}
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-50 text-gray-600 ring-1 ring-inset ring-gray-200">
+                            {config.skuItems.length}종
+                          </span>
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                             {config.orderCount}건
                           </span>
