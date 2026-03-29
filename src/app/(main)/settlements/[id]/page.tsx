@@ -2,20 +2,14 @@
 
 import React, { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Check, X, Trash2, Loader2, Package, Layers, ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Check, X, Trash2, Loader2, Package, Layers, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { SummaryStatCard } from '@/components/batch/SummaryStatCard';
+import { ConfigurationList } from '@/components/batch/ConfigurationList';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ShipmentDetailSkeleton } from '@/components/skeletons';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   useSettlementDetail,
   useConfirmSettlement,
@@ -181,15 +175,7 @@ export default function SettlementDetailPage() {
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight">{settlement.name}</h1>
-            {isConfirmed ? (
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
-                확정
-              </span>
-            ) : (
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20">
-                패킹중
-              </span>
-            )}
+            <StatusBadge variant={isConfirmed ? 'confirmed' : 'packing'} />
           </div>
           <p className="text-muted-foreground">Configuration별로 그룹화된 정산 데이터입니다.</p>
         </div>
@@ -248,42 +234,34 @@ export default function SettlementDetailPage() {
       {summary && (
         <>
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-white border rounded-xl p-5 shadow-sm flex items-center gap-4">
-              <div className="bg-blue-100 p-3 rounded-full">
-                <Package className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">총 주문 수</p>
-                <p className="text-2xl font-bold text-gray-900">{filteredTotalOrders}</p>
-              </div>
-            </div>
-            <div className="bg-white border rounded-xl p-5 shadow-sm flex items-center gap-4">
-              <div className="bg-purple-100 p-3 rounded-full">
-                <Layers className="h-6 w-6 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">고유 Configuration</p>
-                <p className="text-2xl font-bold text-gray-900">{filteredConfigurations.length}</p>
-              </div>
-            </div>
-            <div className="bg-white border rounded-xl p-5 shadow-sm flex items-center gap-4">
-              <div className={`${filteredMatchStats.unmatched > 0 ? 'bg-red-100' : 'bg-green-100'} p-3 rounded-full`}>
-                {filteredMatchStats.unmatched > 0 ? (
-                  <AlertTriangle className="h-6 w-6 text-red-600" />
-                ) : (
-                  <Check className="h-6 w-6 text-green-600" />
-                )}
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">매칭 현황</p>
-                <p className="text-lg font-bold text-gray-900">
+            <SummaryStatCard
+              icon={<Package className="h-6 w-6 text-blue-600" />}
+              iconBgClassName="bg-blue-100"
+              label="총 주문 수"
+              value={filteredTotalOrders}
+            />
+            <SummaryStatCard
+              icon={<Layers className="h-6 w-6 text-purple-600" />}
+              iconBgClassName="bg-purple-100"
+              label="고유 Configuration"
+              value={filteredConfigurations.length}
+            />
+            <SummaryStatCard
+              icon={filteredMatchStats.unmatched > 0
+                ? <AlertTriangle className="h-6 w-6 text-red-600" />
+                : <Check className="h-6 w-6 text-green-600" />
+              }
+              iconBgClassName={filteredMatchStats.unmatched > 0 ? 'bg-red-100' : 'bg-green-100'}
+              label="매칭 현황"
+              value={
+                <span className="text-lg">
                   <span className="text-green-700">{filteredMatchStats.matched + filteredMatchStats.matchedUnassigned + filteredMatchStats.autoPacked}건 매칭</span>
                   {filteredMatchStats.unmatched > 0 && (
                     <span className="text-red-700"> / {filteredMatchStats.unmatched}건 미매칭</span>
                   )}
-                </p>
-              </div>
-            </div>
+                </span>
+              }
+            />
           </div>
 
           <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
@@ -326,128 +304,38 @@ export default function SettlementDetailPage() {
               )}
             </div>
 
-            {filteredConfigurations.length > 0 ? (
-              <div className="divide-y">
-                {filteredConfigurations.map((config, idx) => {
-                  const isExpanded = expandedConfigs.has(config.skuKey);
-                  const configMatch = getConfigMatchSummary(config.orderIds);
-
-                  return (
-                    <Collapsible
-                      key={config.skuKey}
-                      open={isExpanded}
-                      onOpenChange={() => toggleConfig(config.skuKey)}
-                    >
-                      <CollapsibleTrigger className="w-full px-4 py-3 hover:bg-gray-50 flex items-center justify-between transition-colors">
-                        <div className="flex items-center gap-3 min-w-0 overflow-hidden">
-                          <span className="text-xs font-mono text-gray-400 flex-shrink-0">
-                            #{idx + 1}
-                          </span>
-                          <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
-                            {config.skuItems.map((s, i) => (
-                              <span
-                                key={i}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 text-xs text-gray-700 flex-shrink-0 max-w-[200px]"
-                                title={`${s.productName || s.sku} ×${s.quantity}`}
-                              >
-                                <span className="truncate">{s.productName || s.sku}</span>
-                                <span className="text-gray-400 flex-shrink-0">×{s.quantity}</span>
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                          {config.largestItem && (
-                            <span
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-amber-50 text-amber-700 border border-amber-200"
-                              title={`최대 상품: ${config.largestItem.productName || '-'}`}
-                            >
-                              <Package className="h-3 w-3" />
-                              {config.largestItem.width}×{config.largestItem.length}×
-                              {config.largestItem.height}
-                            </span>
-                          )}
-                          {configMatch.unmatched > 0 ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20">
-                              {configMatch.matched}건 매칭 · {configMatch.unmatched}건 미매칭
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20">
-                              전체 매칭
-                            </span>
-                          )}
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-50 text-gray-600 ring-1 ring-inset ring-gray-200">
-                            {config.skuItems.reduce((sum, s) => sum + s.quantity, 0)}개
-                          </span>
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                            {config.orderCount}건
-                          </span>
-                          {isExpanded ? (
-                            <ChevronDown className="h-4 w-4 text-gray-400" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 text-gray-400" />
-                          )}
-                        </div>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="border-t bg-gray-50 px-4 py-3 space-y-3">
-                        <div>
-                          <p className="text-xs font-medium text-gray-500 mb-2">
-                            주문 ID ({config.orderCount}건)
-                          </p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {config.orderIds.map((orderId) => {
-                              const status = statusMap.get(orderId);
-                              const statusInfo = status ? STATUS_LABELS[status] : null;
-                              return (
-                                <span
-                                  key={orderId}
-                                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-mono bg-white border text-gray-700"
-                                >
-                                  {orderId}
-                                  {statusInfo && (
-                                    <span className={`inline-flex items-center px-1.5 py-0 rounded text-[10px] font-medium ring-1 ring-inset ${statusInfo.className}`}>
-                                      {statusInfo.label}
-                                    </span>
-                                  )}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        </div>
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>SKU</TableHead>
-                              <TableHead>상품명</TableHead>
-                              <TableHead className="text-right">수량</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {config.skuItems.map((item) => (
-                              <TableRow key={item.sku}>
-                                <TableCell className="font-mono text-gray-700">
-                                  {item.sku}
-                                </TableCell>
-                                <TableCell className="text-gray-600">
-                                  {item.productName || '-'}
-                                </TableCell>
-                                <TableCell className="text-right text-gray-600">
-                                  {item.quantity}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="px-4 py-12 text-center text-gray-400 text-sm">
-                정산 데이터가 없습니다.
-              </div>
-            )}
+            <ConfigurationList
+              configurations={filteredConfigurations}
+              expandedConfigs={expandedConfigs}
+              onToggleConfig={toggleConfig}
+              emptyMessage="정산 데이터가 없습니다."
+              renderConfigBadges={(config) => {
+                const configMatch = getConfigMatchSummary(config.orderIds);
+                return configMatch.unmatched > 0 ? (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20">
+                    {configMatch.matched}건 매칭 · {configMatch.unmatched}건 미매칭
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20">
+                    전체 매칭
+                  </span>
+                );
+              }}
+              renderOrderId={(orderId) => {
+                const status = statusMap.get(orderId);
+                const statusInfo = status ? STATUS_LABELS[status] : null;
+                return (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-mono bg-white border text-gray-700">
+                    {orderId}
+                    {statusInfo && (
+                      <span className={`inline-flex items-center px-1.5 py-0 rounded text-[10px] font-medium ring-1 ring-inset ${statusInfo.className}`}>
+                        {statusInfo.label}
+                      </span>
+                    )}
+                  </span>
+                );
+              }}
+            />
           </div>
         </>
       )}
