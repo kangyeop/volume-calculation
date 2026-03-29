@@ -65,7 +65,8 @@ volume-calculator/
 │   │
 │   ├── components/                   # React UI 컴포넌트
 │   │   ├── layout/                   # 레이아웃 (GlobalLayout, Sidebar, ProjectLayout)
-│   │   ├── ui/                       # 공통 UI (table, tabs, collapsible, loading-spinner)
+│   │   ├── ui/                       # 공통 UI (table, tabs, collapsible, loading-spinner, status-badge)
+│   │   ├── batch/                    # 출고/정산 공통 컴포넌트 (BatchListPage, ConfigurationList, SummaryStatCard)
 │   │   ├── packing/                  # 패킹 관련 컴포넌트
 │   │   ├── products/                 # 상품 관련 컴포넌트
 │   │   ├── ErrorBoundary.tsx         # 에러 바운더리
@@ -91,6 +92,7 @@ volume-calculator/
 │   │   ├── useShipmentFilters.ts     # 출고 필터링
 │   │   ├── useShipmentUploadFlow.ts  # 출고 업로드 플로우 관리
 │   │   ├── usePackingNormalizer.ts   # 패킹 데이터 정규화
+│   │   ├── usePackingGroups.ts      # 패킹 그룹 로직 (출고/정산 공통)
 │   │   ├── usePrefetch.ts            # 데이터 프리페치
 │   │   ├── useProductFilters.ts      # 상품 필터링
 │   │   ├── useProductUpload.ts       # 상품 업로드 플로우
