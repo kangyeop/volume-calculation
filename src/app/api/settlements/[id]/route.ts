@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { findSettlementDetail, assertSettlement } from '@/lib/services/settlement';
 import * as shipmentService from '@/lib/services/shipment';
+import { handleApiError } from '@/lib/api-error';
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -8,7 +9,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const result = await findSettlementDetail(id);
     return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch settlement' }, { status: 500 });
+    return handleApiError(error, 'GET /settlements/[id]');
   }
 }
 
@@ -19,6 +20,6 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
     await shipmentService.remove(id);
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete settlement' }, { status: 500 });
+    return handleApiError(error, 'DELETE /settlements/[id]');
   }
 }

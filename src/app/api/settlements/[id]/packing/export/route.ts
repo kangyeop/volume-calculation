@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as packingService from '@/lib/services/packing';
+import { handleApiError } from '@/lib/api-error';
 
 export async function GET(
   request: NextRequest,
@@ -15,6 +16,6 @@ export async function GET(
       },
     });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to export packing results' }, { status: 500 });
+    return handleApiError(error, 'GET /settlements/[id]/packing/export');
   }
 }

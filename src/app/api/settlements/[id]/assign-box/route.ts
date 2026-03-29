@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { assignBox } from '@/lib/services/settlement';
+import { handleApiError } from '@/lib/api-error';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -11,7 +12,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const result = await assignBox(id, orderId, boxId);
     return NextResponse.json(result);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to assign box';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleApiError(error, 'PATCH /settlements/[id]/assign-box');
   }
 }

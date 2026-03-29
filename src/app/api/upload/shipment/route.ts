@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadShipment } from '@/lib/services/upload';
 import type { ShipmentFormat } from '@/lib/services/format-parser';
+import { handleApiError } from '@/lib/api-error';
 
 const VALID_FORMATS: ShipmentFormat[] = ['adjustment', 'beforeMapping', 'afterMapping'];
 
@@ -22,6 +23,6 @@ export async function POST(request: NextRequest) {
     const result = await uploadShipment(buffer, file.name, format as ShipmentFormat);
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to upload shipment file' }, { status: 500 });
+    return handleApiError(error, 'POST /upload/shipment');
   }
 }

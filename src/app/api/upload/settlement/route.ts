@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Upload failed';
+    console.error('[API] POST /upload/settlement:', message);
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

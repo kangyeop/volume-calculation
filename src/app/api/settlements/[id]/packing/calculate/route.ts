@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as settlementService from '@/lib/services/settlement';
 import type { BoxSortStrategy } from '@/types';
+import { handleApiError } from '@/lib/api-error';
 
 export async function POST(
   request: NextRequest,
@@ -16,6 +17,6 @@ export async function POST(
     if (error instanceof Error && error.message === 'SHIPMENT_CONFIRMED') {
       return NextResponse.json({ error: '확정된 정산건은 재계산할 수 없습니다.' }, { status: 409 });
     }
-    return NextResponse.json({ error: 'Failed to calculate packing' }, { status: 500 });
+    return handleApiError(error, 'POST /settlements/[id]/packing/calculate');
   }
 }
