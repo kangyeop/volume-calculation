@@ -303,22 +303,6 @@ export const api = {
       fetchApi<PackingRecommendation | null>(`/shipments/${shipmentId}/packing/recommendation`),
     history: (shipmentId: string) =>
       fetchApi<PackingResult[]>(`/shipments/${shipmentId}/packing/results`),
-    export: (shipmentId: string) => {
-      return apiClient
-        .get(`/shipments/${shipmentId}/packing/export`, {
-          responseType: 'blob',
-        })
-        .then((response) => {
-          const url = window.URL.createObjectURL(response.data);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `packing_results_${shipmentId}.xlsx`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          window.URL.revokeObjectURL(url);
-        });
-    },
   },
   boxes: {
     list: () => fetchApi<Box[]>('/boxes'),

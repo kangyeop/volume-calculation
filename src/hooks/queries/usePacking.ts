@@ -73,12 +73,6 @@ export function useUpdateBoxAssignment(): UseMutationResult<
   });
 }
 
-export function useExportPacking(): UseMutationResult<void, Error, { batchId: string }> {
-  return useMutation({
-    mutationFn: ({ batchId }) => api.packing.export(batchId),
-  });
-}
-
 export function useConfirmShipment(): UseMutationResult<{ success: boolean }, Error, { batchId: string }> {
   const queryClient = useQueryClient();
 

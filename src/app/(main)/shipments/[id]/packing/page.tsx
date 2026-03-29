@@ -3,10 +3,9 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Download, RefreshCw, Lock, LockOpen, Check, Pencil, X, Save } from 'lucide-react';
+import { RefreshCw, Lock, LockOpen, Check, Pencil, X, Save } from 'lucide-react';
 import {
   useCalculatePacking,
-  useExportPacking,
   usePackingRecommendation,
   useUpdateBoxAssignment,
   useProductGroups,
@@ -33,7 +32,6 @@ export default function PackingCalculator() {
   const { data: savedRecommendation, isLoading: isLoadingRecommendation } =
     usePackingRecommendation(batchId ?? '');
   const calculatePacking = useCalculatePacking();
-  const exportPacking = useExportPacking();
   const updateBoxAssignment = useUpdateBoxAssignment();
   const { data: productGroups = [] } = useProductGroups();
   const { data: boxGroupList = [] } = useBoxGroups();
@@ -230,16 +228,6 @@ export default function PackingCalculator() {
     }
   };
 
-  const handleExport = async () => {
-    if (!batchId) return;
-    try {
-      await exportPacking.mutateAsync({ batchId });
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : '엑셀 다운로드에 실패했습니다.';
-      toast.error('내보내기 실패', { description: message });
-    }
-  };
-
   const handleConfirm = async () => {
     if (!batchId) return;
     try {
@@ -316,17 +304,6 @@ export default function PackingCalculator() {
                 {isCalculating ? '계산 중...' : result ? '재계산' : '계산 시작'}
               </button>
             </>
-          )}
-
-          {result && (
-            <button
-              onClick={handleExport}
-              disabled={exportPacking.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-            >
-              <Download className="h-4 w-4" />
-              {exportPacking.isPending ? '다운로드 중...' : 'Excel 내보내기'}
-            </button>
           )}
 
           {result && !isConfirmed && (
