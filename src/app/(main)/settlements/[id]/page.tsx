@@ -95,6 +95,25 @@ export default function SettlementDetailPage() {
     );
   }, [summary, selectedGroupTab]);
 
+  const filteredMatchStats = useMemo(() => {
+    if (selectedGroupTab === null) return matchStats;
+    const filteredOrderIds = new Set(filteredConfigurations.flatMap((c) => c.orderIds));
+    let matched = 0, unmatched = 0, autoPacked = 0, matchedUnassigned = 0;
+    for (const [orderId, status] of statusMap) {
+      if (!filteredOrderIds.has(orderId)) continue;
+      if (status === 'matched') matched++;
+      else if (status === 'unmatched') unmatched++;
+      else if (status === 'auto_packed') autoPacked++;
+      else if (status === 'matched_unassigned') matchedUnassigned++;
+    }
+    return { matched, unmatched, autoPacked, matchedUnassigned };
+  }, [selectedGroupTab, filteredConfigurations, statusMap, matchStats]);
+
+  const filteredTotalOrders = useMemo(() => {
+    if (selectedGroupTab === null) return summary?.totalOrders ?? 0;
+    return filteredConfigurations.reduce((sum, c) => sum + c.orderCount, 0);
+  }, [selectedGroupTab, filteredConfigurations, summary]);
+
   const toggleConfig = (key: string) => {
     setExpandedConfigs((prev) => {
       const next = new Set(prev);
@@ -235,7 +254,7 @@ export default function SettlementDetailPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">총 주문 수</p>
-                <p className="text-2xl font-bold text-gray-900">{summary.totalOrders}</p>
+                <p className="text-2xl font-bold text-gray-900">{filteredTotalOrders}</p>
               </div>
             </div>
             <div className="bg-white border rounded-xl p-5 shadow-sm flex items-center gap-4">
@@ -244,12 +263,12 @@ export default function SettlementDetailPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">고유 Configuration</p>
-                <p className="text-2xl font-bold text-gray-900">{summary.configurations.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{filteredConfigurations.length}</p>
               </div>
             </div>
             <div className="bg-white border rounded-xl p-5 shadow-sm flex items-center gap-4">
-              <div className={`${matchStats.unmatched > 0 ? 'bg-red-100' : 'bg-green-100'} p-3 rounded-full`}>
-                {matchStats.unmatched > 0 ? (
+              <div className={`${filteredMatchStats.unmatched > 0 ? 'bg-red-100' : 'bg-green-100'} p-3 rounded-full`}>
+                {filteredMatchStats.unmatched > 0 ? (
                   <AlertTriangle className="h-6 w-6 text-red-600" />
                 ) : (
                   <Check className="h-6 w-6 text-green-600" />
@@ -258,9 +277,9 @@ export default function SettlementDetailPage() {
               <div>
                 <p className="text-sm text-gray-500">매칭 현황</p>
                 <p className="text-lg font-bold text-gray-900">
-                  <span className="text-green-700">{matchStats.matched + matchStats.matchedUnassigned + matchStats.autoPacked}건 매칭</span>
-                  {matchStats.unmatched > 0 && (
-                    <span className="text-red-700"> / {matchStats.unmatched}건 미매칭</span>
+                  <span className="text-green-700">{filteredMatchStats.matched + filteredMatchStats.matchedUnassigned + filteredMatchStats.autoPacked}건 매칭</span>
+                  {filteredMatchStats.unmatched > 0 && (
+                    <span className="text-red-700"> / {filteredMatchStats.unmatched}건 미매칭</span>
                   )}
                 </p>
               </div>
