@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Check, X, Trash2, Loader2, Package, Layers, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Check, X, Trash2, Loader2, Package, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -19,13 +19,6 @@ import {
   useProductGroups,
 } from '@/hooks/queries';
 
-const STATUS_LABELS: Record<string, { label: string; className: string }> = {
-  matched: { label: '매칭됨', className: 'bg-green-50 text-green-700 ring-green-600/20' },
-  matched_unassigned: { label: '매칭됨-미지정', className: 'bg-yellow-50 text-yellow-700 ring-yellow-600/20' },
-  auto_packed: { label: '자동패킹', className: 'bg-blue-50 text-blue-700 ring-blue-600/20' },
-  unmatched: { label: '미매칭', className: 'bg-red-50 text-red-700 ring-red-600/20' },
-};
-
 export default function SettlementDetailPage() {
   const params = useParams();
   const id = params.id as string;
@@ -39,27 +32,6 @@ export default function SettlementDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [expandedConfigs, setExpandedConfigs] = useState<Set<string>>(new Set());
   const [selectedGroupTab, setSelectedGroupTab] = useState<string | null>(null);
-
-  const statusMap = useMemo(() => {
-    if (!settlement) return new Map<string, string>();
-    const map = new Map<string, string>();
-    for (const order of settlement.orders) {
-      map.set(order.orderId, order.status);
-    }
-    return map;
-  }, [settlement]);
-
-  const matchStats = useMemo(() => {
-    if (!settlement) return { matched: 0, unmatched: 0, autoPacked: 0, matchedUnassigned: 0 };
-    let matched = 0, unmatched = 0, autoPacked = 0, matchedUnassigned = 0;
-    for (const order of settlement.orders) {
-      if (order.status === 'matched') matched++;
-      else if (order.status === 'unmatched') unmatched++;
-      else if (order.status === 'auto_packed') autoPacked++;
-      else if (order.status === 'matched_unassigned') matchedUnassigned++;
-    }
-    return { matched, unmatched, autoPacked, matchedUnassigned };
-  }, [settlement]);
 
   const groupTabs = useMemo(() => {
     if (!summary || !productGroupsData) return [];
@@ -89,20 +61,6 @@ export default function SettlementDetailPage() {
     );
   }, [summary, selectedGroupTab]);
 
-  const filteredMatchStats = useMemo(() => {
-    if (selectedGroupTab === null) return matchStats;
-    const filteredOrderIds = new Set(filteredConfigurations.flatMap((c) => c.orderIds));
-    let matched = 0, unmatched = 0, autoPacked = 0, matchedUnassigned = 0;
-    for (const [orderId, status] of statusMap) {
-      if (!filteredOrderIds.has(orderId)) continue;
-      if (status === 'matched') matched++;
-      else if (status === 'unmatched') unmatched++;
-      else if (status === 'auto_packed') autoPacked++;
-      else if (status === 'matched_unassigned') matchedUnassigned++;
-    }
-    return { matched, unmatched, autoPacked, matchedUnassigned };
-  }, [selectedGroupTab, filteredConfigurations, statusMap, matchStats]);
-
   const filteredTotalOrders = useMemo(() => {
     if (selectedGroupTab === null) return summary?.totalOrders ?? 0;
     return filteredConfigurations.reduce((sum, c) => sum + c.orderCount, 0);
@@ -115,16 +73,6 @@ export default function SettlementDetailPage() {
       else next.add(key);
       return next;
     });
-  };
-
-  const getConfigMatchSummary = (orderIds: string[]) => {
-    let matched = 0, unmatched = 0;
-    for (const orderId of orderIds) {
-      const status = statusMap.get(orderId);
-      if (status === 'unmatched') unmatched++;
-      else matched++;
-    }
-    return { matched, unmatched };
   };
 
   const handleConfirm = async () => {
@@ -233,7 +181,7 @@ export default function SettlementDetailPage() {
 
       {summary && (
         <>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <SummaryStatCard
               icon={<Package className="h-6 w-6 text-blue-600" />}
               iconBgClassName="bg-blue-100"
@@ -245,22 +193,6 @@ export default function SettlementDetailPage() {
               iconBgClassName="bg-purple-100"
               label="고유 Configuration"
               value={filteredConfigurations.length}
-            />
-            <SummaryStatCard
-              icon={filteredMatchStats.unmatched > 0
-                ? <AlertTriangle className="h-6 w-6 text-red-600" />
-                : <Check className="h-6 w-6 text-green-600" />
-              }
-              iconBgClassName={filteredMatchStats.unmatched > 0 ? 'bg-red-100' : 'bg-green-100'}
-              label="매칭 현황"
-              value={
-                <span className="text-lg">
-                  <span className="text-green-700">{filteredMatchStats.matched + filteredMatchStats.matchedUnassigned + filteredMatchStats.autoPacked}건 매칭</span>
-                  {filteredMatchStats.unmatched > 0 && (
-                    <span className="text-red-700"> / {filteredMatchStats.unmatched}건 미매칭</span>
-                  )}
-                </span>
-              }
             />
           </div>
 
@@ -309,32 +241,6 @@ export default function SettlementDetailPage() {
               expandedConfigs={expandedConfigs}
               onToggleConfig={toggleConfig}
               emptyMessage="정산 데이터가 없습니다."
-              renderConfigBadges={(config) => {
-                const configMatch = getConfigMatchSummary(config.orderIds);
-                return configMatch.unmatched > 0 ? (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20">
-                    {configMatch.matched}건 매칭 · {configMatch.unmatched}건 미매칭
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20">
-                    전체 매칭
-                  </span>
-                );
-              }}
-              renderOrderId={(orderId) => {
-                const status = statusMap.get(orderId);
-                const statusInfo = status ? STATUS_LABELS[status] : null;
-                return (
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-mono bg-white border text-gray-700">
-                    {orderId}
-                    {statusInfo && (
-                      <span className={`inline-flex items-center px-1.5 py-0 rounded text-[10px] font-medium ring-1 ring-inset ${statusInfo.className}`}>
-                        {statusInfo.label}
-                      </span>
-                    )}
-                  </span>
-                );
-              }}
             />
           </div>
         </>

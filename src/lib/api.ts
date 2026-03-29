@@ -64,7 +64,7 @@ export interface SettlementOrderDetail {
   items: { sku: string; quantity: number }[];
   boxId: string | null;
   packingResultId: string | null;
-  status: 'matched' | 'matched_unassigned' | 'unmatched' | 'auto_packed';
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED';
   barcodeCount: number;
   aircapCount: number;
 }

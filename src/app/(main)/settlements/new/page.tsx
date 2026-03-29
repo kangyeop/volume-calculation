@@ -17,10 +17,7 @@ export default function SettlementCreate() {
       const resultPromise = upload.mutateAsync(file);
       router.prefetch('/settlements');
       const result = await resultPromise;
-      const matched = result.imported - result.unmatched;
-      const parts = [`${result.imported}건 중 ${matched}건 매칭`];
-      if (result.unmatched > 0) parts.push(`${result.unmatched}건 미매칭`);
-      toast.success('업로드 완료', { description: parts.join(', ') });
+      toast.success('업로드 완료', { description: `${result.imported}건 처리 완료` });
       router.replace(`/settlements/${result.shipmentId}`);
     } catch {
       toast.error('업로드 실패', { description: '처리 중 오류가 발생했습니다.' });

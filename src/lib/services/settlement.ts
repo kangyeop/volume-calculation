@@ -206,14 +206,6 @@ export async function findSettlementDetail(id: string) {
   const orderDetails = orderRows.map((order) => {
     const pr = prMap.get(order.id);
     const orderItemRows = itemRows.filter((i) => i.orderId === order.id);
-    const status: 'matched' | 'matched_unassigned' | 'unmatched' | 'auto_packed' =
-      order.status === 'PROCESSING'
-        ? 'auto_packed'
-        : order.status === 'COMPLETED' && pr?.boxId != null
-          ? 'matched'
-          : order.status === 'COMPLETED'
-            ? 'matched_unassigned'
-            : 'unmatched';
 
     let barcodeCount = 0;
     let aircapCount = 0;
@@ -229,7 +221,7 @@ export async function findSettlementDetail(id: string) {
       items: orderItemRows.map((i) => ({ sku: i.sku, quantity: i.quantity })),
       boxId: pr?.boxId ?? null,
       packingResultId: pr?.id ?? null,
-      status,
+      status: order.status as 'PENDING' | 'PROCESSING' | 'COMPLETED',
       barcodeCount,
       aircapCount,
     };

@@ -61,33 +61,25 @@ export default function SettlementPackingPage() {
     getShipmentGroupId,
   } = usePackingGroups({ normalizedBoxes, productGroups, boxGroupList, searchParams, router });
 
-  const orderStatsMap = useMemo(() => {
-    if (!settlement) return new Map<string, { barcodeCount: number; aircapCount: number }>();
-    const map = new Map<string, { barcodeCount: number; aircapCount: number }>();
-    for (const order of settlement.orders) {
-      map.set(order.orderId, { barcodeCount: order.barcodeCount, aircapCount: order.aircapCount });
-    }
-    return map;
-  }, [settlement]);
-
   const groupStats = useMemo(() => {
-    const stats = new Map<string, { barcodeCount: number; aircapCount: number; orderCount: number }>();
-    for (const boxGroup of normalizedBoxes) {
-      for (const shipment of boxGroup.shipments) {
-        const gid = getShipmentGroupId(shipment.packedSKUs);
-        if (!gid) continue;
-        const orderId = shipment.groupLabel.replace('Order: ', '');
-        const orderStats = orderStatsMap.get(orderId);
-        if (!orderStats) continue;
-        const current = stats.get(gid) ?? { barcodeCount: 0, aircapCount: 0, orderCount: 0 };
-        current.barcodeCount += orderStats.barcodeCount;
-        current.aircapCount += orderStats.aircapCount;
-        current.orderCount += shipment.count;
+    if (!settlement) return new Map<string, { barcodeCount: number; aircapCount: number }>();
+    const stats = new Map<string, { barcodeCount: number; aircapCount: number }>();
+    for (const order of settlement.orders) {
+      if (order.barcodeCount === 0 && order.aircapCount === 0) continue;
+      const groupIds = new Set<string>();
+      for (const item of order.items) {
+        const gid = skuToGroupId.get(item.sku);
+        if (gid) groupIds.add(gid);
+      }
+      for (const gid of groupIds) {
+        const current = stats.get(gid) ?? { barcodeCount: 0, aircapCount: 0 };
+        current.barcodeCount += order.barcodeCount;
+        current.aircapCount += order.aircapCount;
         stats.set(gid, current);
       }
     }
     return stats;
-  }, [normalizedBoxes, orderStatsMap, skuToGroupId]);
+  }, [settlement, skuToGroupId]);
 
   const groupSections = useMemo(() => {
     return baseGroupSections.map((section) => {
@@ -101,7 +93,10 @@ export default function SettlementPackingPage() {
   }, [baseGroupSections, groupStats]);
 
   const isCalculating = calculatePacking.isPending;
-  const hasUnmatched = settlement?.orders.some((o) => o.status === 'unmatched') ?? false;
+  const pendingCount = useMemo(() => {
+    if (!settlement) return 0;
+    return settlement.orders.filter((o) => o.status === 'PENDING').length;
+  }, [settlement]);
 
   const handleCalculate = async () => {
     if (!id) return;
@@ -110,21 +105,22 @@ export default function SettlementPackingPage() {
       const parts = [];
       if (data.packed > 0) parts.push(`${data.packed}건 패킹 완료`);
       if (data.failed > 0) parts.push(`${data.failed}건 실패`);
-      toast.success('미매칭 패킹 계산 완료', { description: parts.join(', ') });
+      toast.success('패킹 계산 완료', { description: parts.join(', ') });
       const p = new URLSearchParams(searchParams.toString());
       p.delete('boxId');
       p.delete('groupId');
       router.replace(`?${p.toString()}`);
     } catch (error: unknown) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : '계산에 실패했습니다.';
+      const message = error instanceof Error ? error.message : '계산에 실패했습니다.';
       toast.error('계산 실패', { description: message });
     }
   };
 
-  const handleBoxOverride = async (groupIndices: number[], boxIndices: number[], newBoxId: string) => {
+  const handleBoxOverride = async (
+    groupIndices: number[],
+    boxIndices: number[],
+    newBoxId: string,
+  ) => {
     if (!id) return;
     try {
       await updateBoxAssignment.mutateAsync({
@@ -184,7 +180,7 @@ export default function SettlementPackingPage() {
           </button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">정산 패킹</h1>
-            <p className="text-muted-foreground">미매칭 주문에 대한 최적 박스 구성을 계산합니다.</p>
+            <p className="text-muted-foreground">정산 주문에 대한 최적 박스 구성을 계산합니다.</p>
           </div>
         </div>
 
@@ -196,7 +192,7 @@ export default function SettlementPackingPage() {
             </span>
           )}
 
-          {!isConfirmed && hasUnmatched && (
+          {!isConfirmed && (
             <>
               <select
                 value={boxSortStrategy}
@@ -213,7 +209,7 @@ export default function SettlementPackingPage() {
                 className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
               >
                 <RefreshCw className={`h-4 w-4 ${isCalculating ? 'animate-spin' : ''}`} />
-                {isCalculating ? '계산 중...' : '미매칭 패킹 계산'}
+                {isCalculating ? '계산 중...' : result ? '재계산' : '계산 시작'}
               </button>
             </>
           )}
@@ -255,27 +251,29 @@ export default function SettlementPackingPage() {
 
       {(totalBarcodeCount > 0 || totalAircapCount > 0) && (
         <div className="flex items-center gap-4 text-sm text-gray-600">
-          <span>전체 바코드: <strong className="text-gray-900">{totalBarcodeCount}</strong></span>
-          <span>전체 에어캡: <strong className="text-gray-900">{totalAircapCount}</strong></span>
+          <span>
+            전체 바코드: <strong className="text-gray-900">{totalBarcodeCount}</strong>
+          </span>
+          <span>
+            전체 에어캡: <strong className="text-gray-900">{totalAircapCount}</strong>
+          </span>
         </div>
       )}
 
-      {isLoadingRecommendation && !result && (
-        <PackingCalculatorSkeleton />
-      )}
+      {isLoadingRecommendation && !result && <PackingCalculatorSkeleton />}
 
       {!isLoadingRecommendation && !result && !isCalculating && (
         <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
           <p className="text-muted-foreground">아직 계산된 패킹 결과가 없습니다.</p>
-          {hasUnmatched && (
-            <p className="text-sm text-muted-foreground">미매칭 패킹 계산 버튼을 눌러 패킹을 계산하세요.</p>
+          {pendingCount > 0 && (
+            <p className="text-sm text-muted-foreground">
+              미분류 주문 {pendingCount}건이 있습니다. 계산 시작 버튼을 눌러 패킹을 계산하세요.
+            </p>
           )}
         </div>
       )}
 
-      {isCalculating && !result && (
-        <PackingCalculatorSkeleton />
-      )}
+      {isCalculating && !result && <PackingCalculatorSkeleton />}
 
       {result && (
         <div className="space-y-8">
@@ -310,18 +308,12 @@ export default function SettlementPackingPage() {
 
               {groupSections.map(({ group, filteredBoxes, barcodeCount, aircapCount }) => (
                 <div key={group.id} className="space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div>
                     <h2 className="text-lg font-semibold">{group.name}</h2>
-                    {(barcodeCount > 0 || aircapCount > 0) && (
-                      <div className="flex items-center gap-3 text-sm text-gray-500">
-                        {barcodeCount > 0 && (
-                          <span>바코드 <strong className="text-gray-700">{barcodeCount}</strong></span>
-                        )}
-                        {aircapCount > 0 && (
-                          <span>에어캡 <strong className="text-gray-700">{aircapCount}</strong></span>
-                        )}
-                      </div>
-                    )}
+                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <span>바코드: <strong className="text-gray-900">{barcodeCount}</strong></span>
+                      <span>에어캡: <strong className="text-gray-900">{aircapCount}</strong></span>
+                    </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredBoxes.map((bg) => (
@@ -341,24 +333,33 @@ export default function SettlementPackingPage() {
                 </div>
               ))}
 
-              {unclassifiedBoxes.length > 0 && (
+              {(unclassifiedBoxes.length > 0 || pendingCount > 0) && (
                 <div className="space-y-3">
-                  <h2 className="text-lg font-semibold">미분류</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {unclassifiedBoxes.map((bg) => (
-                      <BoxTypeCard
-                        key={bg.box.id}
-                        box={bg.box}
-                        count={bg.count}
-                        totalCBM={bg.totalCBM}
-                        efficiency={bg.efficiency}
-                        disabled={isCalculating}
-                        onClick={() =>
-                          setDetailView({ type: 'box', boxId: bg.box.id, groupId: null })
-                        }
-                      />
-                    ))}
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-lg font-semibold">미분류</h2>
+                    {pendingCount > 0 && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                        {pendingCount}건 미계산
+                      </span>
+                    )}
                   </div>
+                  {unclassifiedBoxes.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {unclassifiedBoxes.map((bg) => (
+                        <BoxTypeCard
+                          key={bg.box.id}
+                          box={bg.box}
+                          count={bg.count}
+                          totalCBM={bg.totalCBM}
+                          efficiency={bg.efficiency}
+                          disabled={isCalculating}
+                          onClick={() =>
+                            setDetailView({ type: 'box', boxId: bg.box.id, groupId: null })
+                          }
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
