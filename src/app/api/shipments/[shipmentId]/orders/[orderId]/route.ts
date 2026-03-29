@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as ordersService from '@/lib/services/orders';
+import { handleApiError } from '@/lib/api-error';
 
 export async function GET(
   request: NextRequest,
@@ -13,6 +14,6 @@ export async function GET(
     }
     return NextResponse.json({ success: true, data: order });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch order' }, { status: 500 });
+    return handleApiError(error, 'GET /shipments/[shipmentId]/orders/[orderId]');
   }
 }

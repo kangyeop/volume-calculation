@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as packingService from '@/lib/services/packing';
+import { handleApiError } from '@/lib/api-error';
 
 export async function GET(
   request: NextRequest,
@@ -10,7 +11,7 @@ export async function GET(
     const result = await packingService.getRecommendation(shipmentId);
     return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch recommendation' }, { status: 500 });
+    return handleApiError(error, 'GET /shipments/[shipmentId]/packing/recommendation');
   }
 }
 
@@ -31,6 +32,6 @@ export async function PATCH(
     if (error instanceof Error && error.message === 'SHIPMENT_CONFIRMED') {
       return NextResponse.json({ error: '확정된 출고건은 박스를 변경할 수 없습니다.' }, { status: 409 });
     }
-    return NextResponse.json({ error: 'Failed to update box assignment' }, { status: 500 });
+    return handleApiError(error, 'PATCH /shipments/[shipmentId]/packing/recommendation');
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as packingService from '@/lib/services/packing';
+import { handleApiError } from '@/lib/api-error';
 import type { BoxSortStrategy } from '@/types';
 
 export async function POST(
@@ -16,6 +17,6 @@ export async function POST(
     if (error instanceof Error && error.message === 'SHIPMENT_CONFIRMED') {
       return NextResponse.json({ error: '확정된 출고건은 재계산할 수 없습니다.' }, { status: 409 });
     }
-    return NextResponse.json({ error: 'Failed to calculate packing' }, { status: 500 });
+    return handleApiError(error, 'POST /shipments/[shipmentId]/packing/calculate');
   }
 }

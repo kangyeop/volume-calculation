@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as packingService from '@/lib/services/packing';
+import { handleApiError } from '@/lib/api-error';
 
 export async function POST(
   request: NextRequest,
@@ -11,6 +12,6 @@ export async function POST(
     const result = await packingService.calculateOrderPacking(shipmentId, body.orderId, body.groupLabel);
     return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to calculate order packing' }, { status: 500 });
+    return handleApiError(error, 'POST /shipments/[shipmentId]/packing/calculate-order');
   }
 }

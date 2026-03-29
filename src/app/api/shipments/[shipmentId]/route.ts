@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as shipmentService from '@/lib/services/shipment';
+import { handleApiError } from '@/lib/api-error';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ shipmentId: string }> }) {
   try {
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
     return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch shipment' }, { status: 500 });
+    return handleApiError(error, 'GET /shipments/[shipmentId]');
   }
 }
 
@@ -25,7 +26,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const result = await shipmentService.updateNote(shipmentId, note ?? null);
     return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to update shipment' }, { status: 500 });
+    return handleApiError(error, 'PATCH /shipments/[shipmentId]');
   }
 }
 
@@ -35,6 +36,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await shipmentService.remove(shipmentId);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete shipment' }, { status: 500 });
+    return handleApiError(error, 'DELETE /shipments/[shipmentId]');
   }
 }

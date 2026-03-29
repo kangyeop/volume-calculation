@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as shipmentService from '@/lib/services/shipment';
+import { handleApiError } from '@/lib/api-error';
 
 export async function POST(
   request: NextRequest,
@@ -10,7 +11,7 @@ export async function POST(
     await shipmentService.confirm(shipmentId);
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to confirm shipment' }, { status: 500 });
+    return handleApiError(error, 'POST /shipments/[shipmentId]/confirm');
   }
 }
 
@@ -23,6 +24,6 @@ export async function DELETE(
     await shipmentService.unconfirm(shipmentId);
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to unconfirm shipment' }, { status: 500 });
+    return handleApiError(error, 'DELETE /shipments/[shipmentId]/confirm');
   }
 }

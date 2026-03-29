@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as orderItemService from '@/lib/services/order-item';
+import { handleApiError } from '@/lib/api-error';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ shipmentId: string }> }) {
   try {
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const result = await orderItemService.findAll(shipmentId);
     return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch order items' }, { status: 500 });
+    return handleApiError(error, 'GET /shipments/[shipmentId]/order-items');
   }
 }
 
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const result = await orderItemService.create(shipmentId, body);
     return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create order item' }, { status: 500 });
+    return handleApiError(error, 'POST /shipments/[shipmentId]/order-items');
   }
 }
 
@@ -41,6 +42,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await orderItemService.removeAll(shipmentId);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete order items' }, { status: 500 });
+    return handleApiError(error, 'DELETE /shipments/[shipmentId]/order-items');
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as packingService from '@/lib/services/packing';
+import { handleApiError } from '@/lib/api-error';
 
 export async function GET(
   request: NextRequest,
@@ -10,6 +11,6 @@ export async function GET(
     const result = await packingService.findByOrderId(shipmentId, orderId);
     return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch packing results for order' }, { status: 500 });
+    return handleApiError(error, 'GET /shipments/[shipmentId]/packing/results/[orderId]');
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as orderItemService from '@/lib/services/order-item';
+import { handleApiError } from '@/lib/api-error';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ shipmentId: string }> }) {
   try {
@@ -7,6 +8,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const result = await orderItemService.getConfigurationSummary(shipmentId);
     return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch configuration summary' }, { status: 500 });
+    return handleApiError(error, 'GET /shipments/[shipmentId]/order-items/configuration-summary');
   }
 }

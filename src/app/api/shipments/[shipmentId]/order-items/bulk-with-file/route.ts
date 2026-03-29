@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as orderItemService from '@/lib/services/order-item';
+import { handleApiError } from '@/lib/api-error';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ shipmentId: string }> }) {
   try {
@@ -15,6 +16,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     await orderItemService.createBulk(shipmentId, createOutboundDtos);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to bulk create order items with file' }, { status: 500 });
+    return handleApiError(error, 'POST /shipments/[shipmentId]/order-items/bulk-with-file');
   }
 }
