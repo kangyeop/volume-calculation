@@ -132,7 +132,7 @@ export default function OutboundDetail() {
                             </span>
                           )}
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-50 text-gray-600 border border-gray-200">
-                            {config.skuItems.length}종
+                            {config.skuItems.reduce((sum, s) => sum + s.quantity, 0)}개
                           </span>
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                             {config.orderCount}건
