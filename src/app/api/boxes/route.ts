@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as boxesService from '@/lib/services/boxes';
+import { handleApiError } from '@/lib/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
       : await boxesService.findAll();
     return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch boxes' }, { status: 500 });
+    return handleApiError(error, 'GET /boxes');
   }
 }
 
@@ -20,6 +21,6 @@ export async function POST(request: NextRequest) {
     const result = await boxesService.create(body);
     return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create box' }, { status: 500 });
+    return handleApiError(error, 'POST /boxes');
   }
 }

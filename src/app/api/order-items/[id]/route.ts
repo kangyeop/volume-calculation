@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as orderItemService from '@/lib/services/order-item';
+import { handleApiError } from '@/lib/api-error';
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -7,6 +8,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await orderItemService.remove(id);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete order item' }, { status: 500 });
+    return handleApiError(error, 'DELETE /order-items/[id]');
   }
 }

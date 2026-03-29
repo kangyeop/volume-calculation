@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as boxesService from '@/lib/services/boxes';
 import * as XLSX from 'xlsx';
+import { handleApiError } from '@/lib/api-error';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,6 +25,6 @@ export async function POST(request: NextRequest) {
     const result = await boxesService.uploadBoxes(groupId, { headers, rows });
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to upload boxes' }, { status: 500 });
+    return handleApiError(error, 'POST /boxes/upload');
   }
 }

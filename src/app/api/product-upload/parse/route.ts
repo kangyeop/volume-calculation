@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as productUploadService from '@/lib/services/product-upload';
+import { handleApiError } from '@/lib/api-error';
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,6 +40,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to parse product file' }, { status: 500 });
+    return handleApiError(error, 'POST /product-upload/parse');
   }
 }

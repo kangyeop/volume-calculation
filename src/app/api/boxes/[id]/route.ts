@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as boxesService from '@/lib/services/boxes';
+import { handleApiError } from '@/lib/api-error';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
     return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch box' }, { status: 500 });
+    return handleApiError(error, 'GET /boxes/[id]');
   }
 }
 
@@ -21,7 +22,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const result = await boxesService.update(id, body);
     return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to update box' }, { status: 500 });
+    return handleApiError(error, 'PATCH /boxes/[id]');
   }
 }
 
@@ -31,6 +32,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await boxesService.remove(id);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete box' }, { status: 500 });
+    return handleApiError(error, 'DELETE /boxes/[id]');
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as boxGroupsService from '@/lib/services/box-groups';
+import { handleApiError } from '@/lib/api-error';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
     return NextResponse.json(result);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch box group' }, { status: 500 });
+    return handleApiError(error, 'GET /box-groups/[id]');
   }
 }
 
@@ -21,7 +22,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     await boxGroupsService.updateBoxAssignments(id, body.boxIds);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to update box assignments' }, { status: 500 });
+    return handleApiError(error, 'PATCH /box-groups/[id]');
   }
 }
 
@@ -31,6 +32,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await boxGroupsService.deleteBoxGroup(id);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete box group' }, { status: 500 });
+    return handleApiError(error, 'DELETE /box-groups/[id]');
   }
 }
