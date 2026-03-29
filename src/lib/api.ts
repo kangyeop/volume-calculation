@@ -213,6 +213,7 @@ export const api = {
             volume: number;
             productName?: string;
           } | null;
+          productGroupId: string | null;
         }[];
       }>(`/shipments/${shipmentId}/order-items/configuration-summary`),
   },

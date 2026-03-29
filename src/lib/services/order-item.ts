@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
-import { orderItems, orders, shipments } from '@/lib/db/schema';
+import { orderItems, orders, shipments, products } from '@/lib/db/schema';
 import { eq, and, inArray, asc, sql } from 'drizzle-orm';
+import { getUserId } from '@/lib/auth';
 
 type CreateOrderItemDto = {
   orderId: string;
@@ -148,6 +149,16 @@ export async function getConfigurationSummary(shipmentId: string) {
     with: { product: true },
   });
 
+  const userId = await getUserId();
+  const allSkus = [...new Set(allItems.map((i) => i.sku))];
+  const userProducts = allSkus.length > 0
+    ? await db.select().from(products).where(and(eq(products.userId, userId), inArray(products.sku, allSkus)))
+    : [];
+  const skuToGroupId = new Map<string, string | null>();
+  for (const p of userProducts) {
+    skuToGroupId.set(p.sku, p.productGroupId);
+  }
+
   const orderMap = new Map<string, { sku: string; productName?: string; quantity: number }[]>();
   for (const item of allItems) {
     const orderKey = item.orderIdentifier || item.orderId;
@@ -201,12 +212,18 @@ export async function getConfigurationSummary(shipmentId: string) {
         }
       }
 
+      const groupIds = skuItems
+        .map((s) => skuToGroupId.get(s.sku))
+        .filter((g): g is string => g != null);
+      const productGroupId = groupIds.length > 0 ? groupIds[0] : null;
+
       return {
         skuKey,
         skuItems,
         orderCount: orderIds.length,
         orderIds,
         largestItem,
+        productGroupId,
       };
     })
     .sort((a, b) => b.skuItems.length - a.skuItems.length || b.orderCount - a.orderCount);
