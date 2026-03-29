@@ -52,7 +52,7 @@
 - **추천 결과 표시**: 그룹별 박스 배정 결과를 정규화하여 표시
 - **박스 변경**: 추천 결과에서 미지정·할당 박스 모두 다른 박스로 변경 (배치 API로 race condition 없이 처리)
 - **미배정 경고**: 박스에 담기지 못한 아이템을 경고로 표시
-- **엑셀 내보내기**: 패킹 결과를 엑셀 파일로 다운로드
+- **엑셀 내보내기**: 정산 패킹 결과를 엑셀 파일로 다운로드 (주문 기준: 주문번호, 박스, SKU 구성, 에어캡/바코드 개수)
 
 ## API
 
@@ -75,7 +75,6 @@
 |--------|----------|------|
 | GET | `/api/shipments/{shipmentId}/packing/recommendation` | 저장된 추천 결과 조회 |
 | PATCH | `/api/shipments/{shipmentId}/packing/recommendation` | 박스 배정 변경 |
-| GET | `/api/shipments/{shipmentId}/packing/export` | 엑셀 내보내기 |
 | POST | `/api/shipments/{shipmentId}/confirm` | 패킹 확정 |
 | DELETE | `/api/shipments/{shipmentId}/confirm` | 확정 해제 |
 
@@ -144,7 +143,7 @@
 | `src/lib/db/schema.ts` | DB 스키마 (packingResults) |
 | `src/lib/services/packing.ts` | 패킹 계산·조회·추천 서비스 |
 | `src/lib/algorithms/packing.ts` | 패킹 알고리즘 구현 |
-| `src/hooks/queries/usePacking.ts` | React Query 훅 (계산, 결과 조회, 추천, 내보내기) |
+| `src/hooks/queries/usePacking.ts` | React Query 훅 (계산, 결과 조회, 추천) |
 | `src/hooks/usePackingNormalizer.ts` | 추천 결과 정규화 훅 |
 | `src/types/index.ts` | 패킹 관련 타입 정의 (PackingResultItem 등) |
 | `src/app/(main)/shipments/[id]/packing/page.tsx` | 패킹 UI 페이지 |
