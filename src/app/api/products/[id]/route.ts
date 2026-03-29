@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as productsService from '@/lib/services/products';
-import type { AircapType } from '@/types';
 import { handleApiError } from '@/lib/api-error';
-
-const VALID_AIRCAP_TYPES = new Set<AircapType>(['INDIVIDUAL', 'PER_ORDER', 'BOTH']);
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -16,9 +13,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (typeof body.length === 'number') dto.length = body.length;
     if (typeof body.height === 'number') dto.height = body.height;
     if (typeof body.barcode === 'boolean') dto.barcode = body.barcode;
-    if (body.aircapType === null || VALID_AIRCAP_TYPES.has(body.aircapType)) {
-      dto.aircapType = body.aircapType;
-    }
+    if (typeof body.aircap === 'boolean') dto.aircap = body.aircap;
 
     const result = await productsService.update(id, dto);
     return NextResponse.json(result);

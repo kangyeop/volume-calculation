@@ -39,8 +39,8 @@ export default function ProductGroupDetail() {
     length: number;
     height: number;
     barcode: boolean;
-    aircapType: 'INDIVIDUAL' | 'PER_ORDER' | 'BOTH' | null;
-  }>({ width: 0, length: 0, height: 0, barcode: false, aircapType: null });
+    aircap: boolean;
+  }>({ width: 0, length: 0, height: 0, barcode: false, aircap: false });
   const updateProduct = useUpdateProduct();
 
   const handleToggleRow = (id: string) => {
@@ -101,7 +101,7 @@ export default function ProductGroupDetail() {
 
   const startEditing = (p: Product) => {
     setEditingId(p.id);
-    setEditDims({ width: p.width, length: p.length, height: p.height, barcode: p.barcode, aircapType: p.aircapType });
+    setEditDims({ width: p.width, length: p.length, height: p.height, barcode: p.barcode, aircap: p.aircap });
   };
 
   const cancelEditing = () => setEditingId(null);
@@ -207,7 +207,7 @@ export default function ProductGroupDetail() {
                 <tr>
                   <td className="py-0.5 font-mono">에어캡</td>
                   <td className="py-0.5">→</td>
-                  <td className="py-0.5">개별 / 건당 / 개별+건당</td>
+                  <td className="py-0.5">o (에어캡 있음)</td>
                 </tr>
               </tbody>
             </table>
@@ -345,30 +345,23 @@ export default function ProductGroupDetail() {
                           />
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-500">
+                      <td className="px-4 py-3 text-center">
                         {editingId === p.id ? (
-                          <select
-                            value={editDims.aircapType ?? ''}
+                          <input
+                            type="checkbox"
+                            checked={editDims.aircap}
                             onChange={(e) =>
-                              setEditDims({
-                                ...editDims,
-                                aircapType: (e.target.value || null) as typeof editDims.aircapType,
-                              })
+                              setEditDims({ ...editDims, aircap: e.target.checked })
                             }
-                            className="px-2 py-1 border border-indigo-300 rounded text-xs focus:ring-1 focus:ring-indigo-400 outline-none"
-                          >
-                            <option value="">없음</option>
-                            <option value="INDIVIDUAL">개별</option>
-                            <option value="PER_ORDER">건당</option>
-                            <option value="BOTH">개별+건당</option>
-                          </select>
+                            className="rounded border-indigo-300 text-indigo-600 focus:ring-indigo-400"
+                          />
                         ) : (
-                          <span>
-                            {p.aircapType === 'INDIVIDUAL' && '개별'}
-                            {p.aircapType === 'PER_ORDER' && '건당'}
-                            {p.aircapType === 'BOTH' && '개별+건당'}
-                            {!p.aircapType && '-'}
-                          </span>
+                          <input
+                            type="checkbox"
+                            checked={p.aircap}
+                            disabled
+                            className="rounded border-gray-300"
+                          />
                         )}
                       </td>
                     </tr>

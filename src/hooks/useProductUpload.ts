@@ -1,12 +1,6 @@
 import { useCreateProducts } from '@/hooks/queries';
 import { useUploadState } from './useUploadState';
-import { Product, AircapType } from '@/types';
-
-const AIRCAP_MAP: Record<string, AircapType> = {
-  '개별': 'INDIVIDUAL',
-  '건당': 'PER_ORDER',
-  '개별+건당': 'BOTH',
-};
+import { Product } from '@/types';
 
 export const useProductUpload = (projectId: string) => {
   const createProducts = useCreateProducts(projectId);
@@ -79,8 +73,8 @@ export const useProductUpload = (projectId: string) => {
       } else {
         const barcodeRaw = String(item['바코드'] || '').trim().toLowerCase();
         const barcode = barcodeRaw === 'true' || barcodeRaw === 'o' || barcodeRaw === 'yes' || barcodeRaw === '1';
-        const aircapRaw = String(item['에어캡'] || '').trim();
-        const aircapType = AIRCAP_MAP[aircapRaw] ?? null;
+        const aircapRaw = String(item['에어캡'] || '').trim().toLowerCase();
+        const aircap = aircapRaw === 'o' || aircapRaw === 'true' || aircapRaw === 'yes' || aircapRaw === '1';
 
         validData.push({
           sku: productName,
@@ -89,7 +83,7 @@ export const useProductUpload = (projectId: string) => {
           length,
           height,
           barcode,
-          aircapType,
+          aircap,
           productGroupId: '',
         });
       }

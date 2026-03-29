@@ -10,7 +10,7 @@ import type { Product } from '@/types';
 
 type UpdateProductVars = {
   id: string;
-  data: Partial<Pick<Product, 'width' | 'length' | 'height' | 'name' | 'barcode' | 'aircapType'>>;
+  data: Partial<Pick<Product, 'width' | 'length' | 'height' | 'name' | 'barcode' | 'aircap'>>;
   groupId: string;
 };
 

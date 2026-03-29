@@ -216,13 +216,11 @@ export async function findSettlementDetail(id: string) {
             : 'unmatched';
 
     let barcodeCount = 0;
-    let aircapIndividual = 0;
-    let hasPerOrder = false;
+    let aircapCount = 0;
     for (const item of orderItemRows) {
       const p = productMap.get(item.sku);
       if (p?.barcode) barcodeCount += item.quantity;
-      if (p?.aircapType === 'INDIVIDUAL' || p?.aircapType === 'BOTH') aircapIndividual += item.quantity;
-      if (p?.aircapType === 'PER_ORDER' || p?.aircapType === 'BOTH') hasPerOrder = true;
+      if (p?.aircap) aircapCount += item.quantity;
     }
 
     return {
@@ -233,7 +231,7 @@ export async function findSettlementDetail(id: string) {
       packingResultId: pr?.id ?? null,
       status,
       barcodeCount,
-      aircapCount: aircapIndividual + (hasPerOrder ? 1 : 0),
+      aircapCount,
     };
   });
 

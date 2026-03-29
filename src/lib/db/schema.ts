@@ -18,7 +18,6 @@ import { relations } from 'drizzle-orm';
 export const orderStatusEnum = pgEnum('order_status', ['PENDING', 'PROCESSING', 'COMPLETED']);
 export const shipmentStatusEnum = pgEnum('shipment_status', ['PACKING', 'CONFIRMED']);
 export const shipmentTypeEnum = pgEnum('shipment_type', ['SHIPMENT', 'SETTLEMENT']);
-export const aircapTypeEnum = pgEnum('aircap_type', ['INDIVIDUAL', 'PER_ORDER', 'BOTH']);
 export const stockChangeTypeEnum = pgEnum('stock_change_type', ['INBOUND', 'OUTBOUND', 'INITIAL', 'ADJUSTMENT']);
 
 export const productGroups = pgTable('product_groups', {
@@ -39,7 +38,7 @@ export const products = pgTable('products', {
   length: numeric('length', { precision: 10, scale: 2 }).notNull(),
   height: numeric('height', { precision: 10, scale: 2 }).notNull(),
   barcode: boolean('barcode').default(false).notNull(),
-  aircapType: aircapTypeEnum('aircap_type'),
+  aircap: boolean('aircap').default(false).notNull(),
   productGroupId: uuid('product_group_id').notNull().references(() => productGroups.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),

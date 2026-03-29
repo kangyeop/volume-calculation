@@ -116,11 +116,8 @@ export function ProductSearchTab() {
                   <td className="px-4 py-3 text-center">
                     <input type="checkbox" checked={product.barcode} disabled className="rounded border-gray-300" />
                   </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">
-                    {product.aircapType === 'INDIVIDUAL' && '개별'}
-                    {product.aircapType === 'PER_ORDER' && '건당'}
-                    {product.aircapType === 'BOTH' && '개별+건당'}
-                    {!product.aircapType && '-'}
+                  <td className="px-4 py-3 text-center">
+                    <input type="checkbox" checked={product.aircap} disabled className="rounded border-gray-300" />
                   </td>
                   <td className="px-4 py-3 text-gray-500">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-700">

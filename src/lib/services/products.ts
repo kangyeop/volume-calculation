@@ -2,8 +2,6 @@ import { db } from '@/lib/db';
 import { products, productGroups } from '@/lib/db/schema';
 import { eq, and, inArray, desc } from 'drizzle-orm';
 import { getUserId } from '@/lib/auth';
-import type { AircapType } from '@/types';
-
 export type CreateProductDto = {
   sku: string;
   name: string;
@@ -11,7 +9,7 @@ export type CreateProductDto = {
   length: number;
   height: number;
   barcode?: boolean;
-  aircapType?: AircapType | null;
+  aircap?: boolean;
 };
 
 export async function findAll(productGroupId: string) {
@@ -40,7 +38,7 @@ export async function findAllWithGroup() {
       length: products.length,
       height: products.height,
       barcode: products.barcode,
-      aircapType: products.aircapType,
+      aircap: products.aircap,
       productGroupId: products.productGroupId,
       productGroupName: productGroups.name,
       createdAt: products.createdAt,
@@ -80,13 +78,13 @@ export async function create(productGroupId: string, dto: CreateProductDto) {
 
 export async function update(id: string, dto: Partial<CreateProductDto>) {
   const userId = await getUserId();
-  const { width, length, height, barcode, aircapType, ...rest } = dto;
+  const { width, length, height, barcode, aircap, ...rest } = dto;
   const values: Partial<typeof products.$inferInsert> = { ...rest };
   if (width !== undefined) values.width = String(width);
   if (length !== undefined) values.length = String(length);
   if (height !== undefined) values.height = String(height);
   if (barcode !== undefined) values.barcode = barcode;
-  if (aircapType !== undefined) values.aircapType = aircapType;
+  if (aircap !== undefined) values.aircap = aircap;
   const [row] = await db.update(products).set(values).where(and(eq(products.id, id), eq(products.userId, userId))).returning();
   return parseProduct(row);
 }
@@ -108,7 +106,7 @@ export async function createBulk(productGroupId: string, dtos: CreateProductDto[
     length: String(dto.length),
     height: String(dto.height),
     barcode: dto.barcode ?? false,
-    aircapType: dto.aircapType ?? null,
+    aircap: dto.aircap ?? false,
   }));
   const rows = await db
     .insert(products)
@@ -121,7 +119,7 @@ export async function createBulk(productGroupId: string, dtos: CreateProductDto[
         length: products.length,
         height: products.height,
         barcode: products.barcode,
-        aircapType: products.aircapType,
+        aircap: products.aircap,
       },
     })
     .returning();

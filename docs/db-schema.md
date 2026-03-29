@@ -24,7 +24,7 @@ erDiagram
         numeric length
         numeric height
         boolean barcode "default false"
-        aircap_type aircapType "nullable"
+        boolean aircap "default false"
         uuid productGroupId FK
         timestamp createdAt
         timestamp updatedAt
@@ -149,7 +149,6 @@ erDiagram
 | `order_status` | `PENDING`, `PROCESSING`, `COMPLETED` | 주문 처리 상태 |
 | `shipment_status` | `PACKING`, `CONFIRMED` | 출고건 패킹 상태 |
 | `shipment_type` | `SHIPMENT`, `SETTLEMENT` | Shipment 유형 (출고/정산) |
-| `aircap_type` | `INDIVIDUAL`, `PER_ORDER`, `BOTH` | 에어캡 유형 (개별/건당/개별+건당) |
 | `stock_change_type` | `INBOUND`, `OUTBOUND`, `INITIAL`, `ADJUSTMENT` | 재고 변동 유형 (입고/출고/초기등록/수정) |
 
 ## 인덱스

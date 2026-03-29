@@ -171,7 +171,7 @@
 정산 상세 조회 시 orderItems의 SKU로 상품 테이블을 조회하여 주문별 바코드/에어캡 개수를 계산한다.
 
 - **바코드**: `product.barcode = true`인 상품의 수량 합계
-- **에어캡**: `INDIVIDUAL` → 상품 수량, `PER_ORDER` → 주문당 1개, `BOTH` → 수량 + 주문당 1개
+- **에어캡**: `product.aircap = true`인 상품의 수량 합계
 
 ### Type Guard (assertSettlement)
 
