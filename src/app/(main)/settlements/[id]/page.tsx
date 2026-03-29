@@ -22,6 +22,7 @@ import {
   useUnconfirmSettlement,
   useDeleteSettlement,
   useConfigurationSummary,
+  useProductGroups,
 } from '@/hooks/queries';
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
@@ -40,8 +41,10 @@ export default function SettlementDetailPage() {
   const confirmSettlement = useConfirmSettlement();
   const unconfirmSettlement = useUnconfirmSettlement();
   const deleteSettlement = useDeleteSettlement();
+  const { data: productGroupsData } = useProductGroups();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [expandedConfigs, setExpandedConfigs] = useState<Set<string>>(new Set());
+  const [selectedGroupTab, setSelectedGroupTab] = useState<string | null>(null);
 
   const statusMap = useMemo(() => {
     if (!settlement) return new Map<string, string>();
@@ -63,6 +66,34 @@ export default function SettlementDetailPage() {
     }
     return { matched, unmatched, autoPacked, matchedUnassigned };
   }, [settlement]);
+
+  const groupTabs = useMemo(() => {
+    if (!summary || !productGroupsData) return [];
+    const groupIdSet = new Set(summary.configurations.map((c) => c.productGroupId));
+    const tabs: { id: string | null; name: string; count: number }[] = [];
+    for (const group of productGroupsData) {
+      if (!groupIdSet.has(group.id)) continue;
+      const count = summary.configurations
+        .filter((c) => c.productGroupId === group.id)
+        .reduce((sum, c) => sum + c.orderCount, 0);
+      tabs.push({ id: group.id, name: group.name, count });
+    }
+    if (groupIdSet.has(null)) {
+      const count = summary.configurations
+        .filter((c) => c.productGroupId === null)
+        .reduce((sum, c) => sum + c.orderCount, 0);
+      tabs.push({ id: null, name: '미분류', count });
+    }
+    return tabs;
+  }, [summary, productGroupsData]);
+
+  const filteredConfigurations = useMemo(() => {
+    if (!summary) return [];
+    if (selectedGroupTab === null) return summary.configurations;
+    return summary.configurations.filter((c) =>
+      selectedGroupTab === 'unclassified' ? c.productGroupId === null : c.productGroupId === selectedGroupTab
+    );
+  }, [summary, selectedGroupTab]);
 
   const toggleConfig = (key: string) => {
     setExpandedConfigs((prev) => {
@@ -237,13 +268,48 @@ export default function SettlementDetailPage() {
           </div>
 
           <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
-            <div className="p-4 border-b">
+            <div className="p-4 border-b space-y-3">
               <span className="font-medium text-gray-700">Configuration 목록</span>
+              {groupTabs.length > 0 && (
+                <div className="flex gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => setSelectedGroupTab(null)}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      selectedGroupTab === null
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    전체
+                    <span className={`ml-1.5 text-xs ${selectedGroupTab === null ? 'text-indigo-200' : 'text-gray-400'}`}>
+                      {summary.totalOrders}
+                    </span>
+                  </button>
+                  {groupTabs.map((tab) => (
+                    <button
+                      key={tab.id ?? 'unclassified'}
+                      onClick={() => setSelectedGroupTab(tab.id === null ? 'unclassified' : tab.id)}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                        (tab.id === null ? 'unclassified' : tab.id) === selectedGroupTab
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {tab.name}
+                      <span className={`ml-1.5 text-xs ${
+                        (tab.id === null ? 'unclassified' : tab.id) === selectedGroupTab ? 'text-indigo-200' : 'text-gray-400'
+                      }`}>
+                        {tab.count}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {summary.configurations.length > 0 ? (
+            {filteredConfigurations.length > 0 ? (
               <div className="divide-y">
-                {summary.configurations.map((config, idx) => {
+                {filteredConfigurations.map((config, idx) => {
                   const isExpanded = expandedConfigs.has(config.skuKey);
                   const configMatch = getConfigMatchSummary(config.orderIds);
 
