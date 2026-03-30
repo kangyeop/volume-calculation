@@ -174,6 +174,14 @@ DB의 `orders.status` 값을 그대로 사용한다.
 - **바코드**: `product.barcode = true`인 상품의 수량 합계
 - **에어캡**: `product.aircap = true`인 상품의 수량 합계
 
+### 패킹 계산 벌크 처리
+
+`calculateSettlementPacking()`, `autoPackUnmatched()` 모두 DB 업데이트를 벌크로 처리한다:
+- boxGroup 로딩: `findByGroupIds()`로 1회 벌크 조회
+- packingResults 업데이트: `CASE WHEN` SQL로 1회 벌크 업데이트
+- orders status 업데이트: `inArray`로 1회 벌크 업데이트
+- 패킹 계산(tryAutoPack)은 트랜잭션 밖에서 수행 후, 결과만 트랜잭션 내에서 저장
+
 ### Type Guard (assertSettlement)
 
 모든 settlement 변경 API(상세 조회, 삭제, 확정, 박스 지정)는 `assertSettlement(id)`로 대상이 `type='SETTLEMENT'`인지 검증한다. SHIPMENT type의 데이터가 settlement API를 통해 조회/수정/삭제되는 것을 방지.

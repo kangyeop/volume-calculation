@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { shipments, orders, orderItems, packingResults, products, productGroups } from '@/lib/db/schema';
-import { eq, and, desc, inArray, sql } from 'drizzle-orm';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 import { getUserId } from '@/lib/auth';
 import { parseExcelFile } from '@/lib/services/excel';
 import { parseAdjustment } from '@/lib/services/format-parser';
@@ -455,42 +455,26 @@ async function bulkUpdatePackingResults(
 ) {
   if (results.length === 0) return;
 
-  const BATCH_SIZE = 500;
-  for (let i = 0; i < results.length; i += BATCH_SIZE) {
-    const batch = results.slice(i, i + BATCH_SIZE);
-    const orderIds = batch.map((r) => r.orderId);
+  const CHUNK_SIZE = 500;
+  const orderIds = results.map((r) => r.orderId);
 
-    const boxIdCase = sql.join(
-      batch.map((r) => sql`WHEN ${r.orderId} THEN ${r.result.boxId}`),
-      sql` `,
+  for (let i = 0; i < orderIds.length; i += CHUNK_SIZE) {
+    await tx.delete(packingResults).where(
+      and(eq(packingResults.shipmentId, shipmentId), inArray(packingResults.orderId, orderIds.slice(i, i + CHUNK_SIZE))),
     );
-    const packedCountCase = sql.join(
-      batch.map((r) => sql`WHEN ${r.orderId} THEN ${r.result.packedCount}`),
-      sql` `,
-    );
-    const efficiencyCase = sql.join(
-      batch.map((r) => sql`WHEN ${r.orderId} THEN ${r.result.efficiency}::numeric`),
-      sql` `,
-    );
-    const totalCBMCase = sql.join(
-      batch.map((r) => sql`WHEN ${r.orderId} THEN ${r.result.totalCBM}::numeric`),
-      sql` `,
-    );
-    const itemsCase = sql.join(
-      batch.map((r) => sql`WHEN ${r.orderId} THEN ${JSON.stringify(r.result.items)}::jsonb`),
-      sql` `,
-    );
+  }
 
-    await tx.execute(sql`
-      UPDATE packing_results
-      SET box_id = CASE order_id ${boxIdCase} END,
-          packed_count = CASE order_id ${packedCountCase} END,
-          efficiency = CASE order_id ${efficiencyCase} END,
-          total_cbm = CASE order_id ${totalCBMCase} END,
-          items = CASE order_id ${itemsCase} END,
-          updated_at = NOW()
-      WHERE shipment_id = ${shipmentId}
-        AND order_id IN ${sql`(${sql.join(orderIds.map((id) => sql`${id}`), sql`, `)})`}
-    `);
+  const newRows = results.map((r) => ({
+    shipmentId,
+    orderId: r.orderId,
+    boxId: r.result.boxId,
+    packedCount: r.result.packedCount,
+    efficiency: r.result.efficiency,
+    totalCBM: r.result.totalCBM,
+    items: r.result.items,
+  }));
+
+  for (let i = 0; i < newRows.length; i += CHUNK_SIZE) {
+    await tx.insert(packingResults).values(newRows.slice(i, i + CHUNK_SIZE));
   }
 }
