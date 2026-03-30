@@ -46,6 +46,24 @@ export async function findByGroupId(groupId: string) {
   return rows.map(parseBox);
 }
 
+export async function findByGroupIds(groupIds: string[]) {
+  if (groupIds.length === 0) return new Map<string, ReturnType<typeof parseBox>[]>();
+  const rows = await db
+    .select()
+    .from(boxes)
+    .where(inArray(boxes.boxGroupId, groupIds))
+    .orderBy(desc(boxes.createdAt));
+  const map = new Map<string, ReturnType<typeof parseBox>[]>();
+  for (const row of rows) {
+    const parsed = parseBox(row);
+    const key = row.boxGroupId!;
+    const arr = map.get(key);
+    if (arr) arr.push(parsed);
+    else map.set(key, [parsed]);
+  }
+  return map;
+}
+
 export async function findUnassigned() {
   const userId = await getUserId();
   const rows = await db.query.boxes.findMany({

@@ -121,10 +121,7 @@ export async function calculate(
   const productGroupMap = new Map(allProductGroups.map((pg) => [pg.id, pg]));
 
   const boxGroupIds = [...new Set(allProductGroups.map((pg) => pg.boxGroupId))];
-  const boxesByGroupId = new Map<string, Awaited<ReturnType<typeof boxesService.findByGroupId>>>();
-  for (const bgId of boxGroupIds) {
-    boxesByGroupId.set(bgId, await boxesService.findByGroupId(bgId));
-  }
+  const boxesByGroupId = await boxesService.findByGroupIds(boxGroupIds);
 
   const allOrders = await db.select().from(orders).where(eq(orders.shipmentId, shipmentId));
   const orderMap = new Map(allOrders.map((o) => [o.orderId, o]));

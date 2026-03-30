@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { shipments, orders, orderItems, packingResults, products, productGroups } from '@/lib/db/schema';
-import { eq, and, desc, inArray } from 'drizzle-orm';
+import { eq, and, desc, inArray, sql } from 'drizzle-orm';
 import { getUserId } from '@/lib/auth';
 import { parseExcelFile } from '@/lib/services/excel';
 import { parseAdjustment } from '@/lib/services/format-parser';
@@ -203,9 +203,16 @@ export async function findSettlementDetail(id: string) {
       : [];
   const productMap = new Map(userProducts.map((p) => [p.sku, p]));
 
+  const itemsByOrderId = new Map<string, typeof itemRows>();
+  for (const item of itemRows) {
+    const arr = itemsByOrderId.get(item.orderId);
+    if (arr) arr.push(item);
+    else itemsByOrderId.set(item.orderId, [item]);
+  }
+
   const orderDetails = orderRows.map((order) => {
     const pr = prMap.get(order.id);
-    const orderItemRows = itemRows.filter((i) => i.orderId === order.id);
+    const orderItemRows = itemsByOrderId.get(order.id) ?? [];
 
     let barcodeCount = 0;
     let aircapCount = 0;
@@ -293,41 +300,40 @@ export async function autoPackUnmatched(settlementId: string): Promise<{ packed:
   const productGroupMap = new Map(allProductGroups.map((pg) => [pg.id, pg]));
 
   const boxGroupIds = [...new Set(allProductGroups.map((pg) => pg.boxGroupId))];
-  const boxesByGroupId = new Map<string, Awaited<ReturnType<typeof boxesService.findByGroupId>>>();
-  for (const bgId of boxGroupIds) {
-    boxesByGroupId.set(bgId, await boxesService.findByGroupId(bgId));
+  const boxesByGroupId = await boxesService.findByGroupIds(boxGroupIds);
+
+  const itemsByOrderId = new Map<string, typeof itemRows>();
+  for (const item of itemRows) {
+    const arr = itemsByOrderId.get(item.orderId);
+    if (arr) arr.push(item);
+    else itemsByOrderId.set(item.orderId, [item]);
   }
 
-  let packed = 0;
+  const successResults: { orderId: string; result: NonNullable<ReturnType<typeof tryAutoPack>> }[] = [];
   let failed = 0;
 
-  await db.transaction(async (tx) => {
-    for (const order of pendingOrders) {
-      const orderItemsList = itemRows
-        .filter((i) => i.orderId === order.id)
-        .map((i) => ({ sku: i.sku, quantity: i.quantity }));
+  for (const order of pendingOrders) {
+    const orderItemsList = (itemsByOrderId.get(order.id) ?? [])
+      .map((i) => ({ sku: i.sku, quantity: i.quantity }));
 
-      const result = tryAutoPack(orderItemsList, productMapBySku, productMapById, productGroupMap, boxesByGroupId);
-      if (result) {
-        await tx
-          .update(packingResults)
-          .set({
-            boxId: result.boxId,
-            packedCount: result.packedCount,
-            efficiency: result.efficiency,
-            totalCBM: result.totalCBM,
-            items: result.items,
-          })
-          .where(and(eq(packingResults.shipmentId, settlementId), eq(packingResults.orderId, order.id)));
-        await tx.update(orders).set({ status: 'PROCESSING' }).where(eq(orders.id, order.id));
-        packed++;
-      } else {
-        failed++;
-      }
+    const result = tryAutoPack(orderItemsList, productMapBySku, productMapById, productGroupMap, boxesByGroupId);
+    if (result) {
+      successResults.push({ orderId: order.id, result });
+    } else {
+      failed++;
     }
-  });
+  }
 
-  return { packed, failed };
+  if (successResults.length > 0) {
+    await db.transaction(async (tx) => {
+      await bulkUpdatePackingResults(tx, settlementId, successResults);
+      await tx.update(orders)
+        .set({ status: 'PROCESSING' })
+        .where(inArray(orders.id, successResults.map((r) => r.orderId)));
+    });
+  }
+
+  return { packed: successResults.length, failed };
 }
 
 export async function calculateSettlementPacking(
@@ -361,41 +367,40 @@ export async function calculateSettlementPacking(
   const productGroupMap = new Map(allProductGroups.map((pg) => [pg.id, pg]));
 
   const boxGroupIds = [...new Set(allProductGroups.map((pg) => pg.boxGroupId))];
-  const boxesByGroupId = new Map<string, Awaited<ReturnType<typeof boxesService.findByGroupId>>>();
-  for (const bgId of boxGroupIds) {
-    boxesByGroupId.set(bgId, await boxesService.findByGroupId(bgId));
+  const boxesByGroupId = await boxesService.findByGroupIds(boxGroupIds);
+
+  const itemsByOrderId = new Map<string, typeof itemRows>();
+  for (const item of itemRows) {
+    const arr = itemsByOrderId.get(item.orderId);
+    if (arr) arr.push(item);
+    else itemsByOrderId.set(item.orderId, [item]);
   }
 
-  let packed = 0;
+  const successResults: { orderId: string; result: NonNullable<ReturnType<typeof tryAutoPack>> }[] = [];
   let failed = 0;
 
-  await db.transaction(async (tx) => {
-    for (const order of pendingOrders) {
-      const orderItemsList = itemRows
-        .filter((i) => i.orderId === order.id)
-        .map((i) => ({ sku: i.sku, quantity: i.quantity }));
+  for (const order of pendingOrders) {
+    const orderItemsList = (itemsByOrderId.get(order.id) ?? [])
+      .map((i) => ({ sku: i.sku, quantity: i.quantity }));
 
-      const result = tryAutoPack(orderItemsList, productMapBySku, productMapById, productGroupMap, boxesByGroupId, strategy);
-      if (result) {
-        await tx
-          .update(packingResults)
-          .set({
-            boxId: result.boxId,
-            packedCount: result.packedCount,
-            efficiency: result.efficiency,
-            totalCBM: result.totalCBM,
-            items: result.items,
-          })
-          .where(and(eq(packingResults.shipmentId, settlementId), eq(packingResults.orderId, order.id)));
-        await tx.update(orders).set({ status: 'PROCESSING' }).where(eq(orders.id, order.id));
-        packed++;
-      } else {
-        failed++;
-      }
+    const result = tryAutoPack(orderItemsList, productMapBySku, productMapById, productGroupMap, boxesByGroupId, strategy);
+    if (result) {
+      successResults.push({ orderId: order.id, result });
+    } else {
+      failed++;
     }
-  });
+  }
 
-  return { packed, failed };
+  if (successResults.length > 0) {
+    await db.transaction(async (tx) => {
+      await bulkUpdatePackingResults(tx, settlementId, successResults);
+      await tx.update(orders)
+        .set({ status: 'PROCESSING' })
+        .where(inArray(orders.id, successResults.map((r) => r.orderId)));
+    });
+  }
+
+  return { packed: successResults.length, failed };
 }
 
 type ProductRow = typeof products.$inferSelect;
@@ -441,4 +446,51 @@ function tryAutoPack(
   const rowStats = buildPackingResultRowStats(recommendation, productMapById);
 
   return { ...rowStats, items };
+}
+
+async function bulkUpdatePackingResults(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  shipmentId: string,
+  results: { orderId: string; result: { boxId: string | null; packedCount: number; efficiency: string; totalCBM: string; items: PackingResultItem[] } }[],
+) {
+  if (results.length === 0) return;
+
+  const BATCH_SIZE = 500;
+  for (let i = 0; i < results.length; i += BATCH_SIZE) {
+    const batch = results.slice(i, i + BATCH_SIZE);
+    const orderIds = batch.map((r) => r.orderId);
+
+    const boxIdCase = sql.join(
+      batch.map((r) => sql`WHEN ${r.orderId} THEN ${r.result.boxId}`),
+      sql` `,
+    );
+    const packedCountCase = sql.join(
+      batch.map((r) => sql`WHEN ${r.orderId} THEN ${r.result.packedCount}`),
+      sql` `,
+    );
+    const efficiencyCase = sql.join(
+      batch.map((r) => sql`WHEN ${r.orderId} THEN ${r.result.efficiency}::numeric`),
+      sql` `,
+    );
+    const totalCBMCase = sql.join(
+      batch.map((r) => sql`WHEN ${r.orderId} THEN ${r.result.totalCBM}::numeric`),
+      sql` `,
+    );
+    const itemsCase = sql.join(
+      batch.map((r) => sql`WHEN ${r.orderId} THEN ${JSON.stringify(r.result.items)}::jsonb`),
+      sql` `,
+    );
+
+    await tx.execute(sql`
+      UPDATE packing_results
+      SET box_id = CASE order_id ${boxIdCase} END,
+          packed_count = CASE order_id ${packedCountCase} END,
+          efficiency = CASE order_id ${efficiencyCase} END,
+          total_cbm = CASE order_id ${totalCBMCase} END,
+          items = CASE order_id ${itemsCase} END,
+          updated_at = NOW()
+      WHERE shipment_id = ${shipmentId}
+        AND order_id IN ${sql`(${sql.join(orderIds.map((id) => sql`${id}`), sql`, `)})`}
+    `);
+  }
 }
