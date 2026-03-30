@@ -144,16 +144,16 @@ export default function SettlementPackingPage() {
     return map;
   }, [productGroups]);
 
-  const orderBoxMap = useMemo(() => {
+  const boxNameMap = useMemo(() => {
     const map = new Map<string, string>();
-    if (!result || !('groups' in result)) return map;
-    for (const group of result.groups) {
-      const orderId = group.groupLabel.replace(/^Order:\s*/, '');
-      const boxName = group.boxes[0]?.box.name ?? '';
-      map.set(orderId, boxName);
+    for (const bg of normalizedBoxes) {
+      map.set(bg.box.id, bg.box.name);
+    }
+    for (const b of availableBoxes) {
+      if (!map.has(b.id)) map.set(b.id, b.name);
     }
     return map;
-  }, [result]);
+  }, [normalizedBoxes, availableBoxes]);
 
   const handleExport = useCallback(() => {
     if (!settlement) return;
@@ -165,7 +165,7 @@ export default function SettlementPackingPage() {
 
       return {
         '주문번호': order.orderId,
-        '박스': orderBoxMap.get(order.orderId) ?? '',
+        '박스': order.boxId ? (boxNameMap.get(order.boxId) ?? '') : '',
         'SKU 구성': skuComposition,
         '상품 그룹': groupNames,
         '총 수량': totalQuantity,
@@ -187,7 +187,7 @@ export default function SettlementPackingPage() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Packing Results');
     XLSX.writeFile(wb, `settlement_packing_${id}.xlsx`);
-  }, [settlement, id, skuToGroupName, orderBoxMap]);
+  }, [settlement, id, skuToGroupName, boxNameMap]);
 
   const handleConfirm = async () => {
     if (!id) return;
