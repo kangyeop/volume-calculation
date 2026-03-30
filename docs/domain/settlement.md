@@ -178,7 +178,7 @@ DB의 `orders.status` 값을 그대로 사용한다.
 
 `calculateSettlementPacking()`, `autoPackUnmatched()` 모두 DB 업데이트를 벌크로 처리한다:
 - boxGroup 로딩: `findByGroupIds()`로 1회 벌크 조회
-- packingResults 업데이트: `CASE WHEN` SQL로 1회 벌크 업데이트
+- packingResults 업데이트: DELETE + bulk INSERT 패턴 (CHUNK_SIZE=500)
 - orders status 업데이트: `inArray`로 1회 벌크 업데이트
 - 패킹 계산(tryAutoPack)은 트랜잭션 밖에서 수행 후, 결과만 트랜잭션 내에서 저장
 

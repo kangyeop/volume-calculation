@@ -53,31 +53,23 @@ await tx.update(orders)
   .where(inArray(orders.id, successIds));
 ```
 
-**CASE WHEN 벌크 업데이트 (row마다 다른 값):**
+**DELETE + bulk INSERT (row마다 다른 값, JSONB 포함):**
+
+CASE WHEN은 JSONB 컬럼이 있으면 쿼리가 거대해져서 타임아웃 발생. DELETE 후 INSERT가 안전:
 
 ```ts
-import { sql } from 'drizzle-orm';
+const CHUNK_SIZE = 500;
+const orderIds = results.map((r) => r.orderId);
 
-const colCase = sql.join(
-  items.map((r) => sql`WHEN ${r.id} THEN ${r.value}`),
-  sql` `,
-);
+for (let i = 0; i < orderIds.length; i += CHUNK_SIZE) {
+  await tx.delete(table).where(
+    and(eq(table.parentId, parentId), inArray(table.id, orderIds.slice(i, i + CHUNK_SIZE))),
+  );
+}
 
-await tx.execute(sql`
-  UPDATE table_name
-  SET col = CASE id ${colCase} END,
-      updated_at = NOW()
-  WHERE id IN ${sql`(${sql.join(ids.map((id) => sql`${id}`), sql`, `)})`}
-`);
-```
-
-BATCH_SIZE(500)로 분할하여 SQL 크기 제한 방지:
-
-```ts
-const BATCH_SIZE = 500;
-for (let i = 0; i < items.length; i += BATCH_SIZE) {
-  const batch = items.slice(i, i + BATCH_SIZE);
-  // ... CASE WHEN 벌크 업데이트
+const newRows = results.map((r) => ({ ...r.data }));
+for (let i = 0; i < newRows.length; i += CHUNK_SIZE) {
+  await tx.insert(table).values(newRows.slice(i, i + CHUNK_SIZE));
 }
 ```
 
