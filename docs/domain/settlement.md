@@ -108,7 +108,7 @@ DB의 `orders.status` 값을 그대로 사용한다.
 - **상품 그룹별 섹션**: 출고 패킹과 동일한 BoxTypeCard 그리드 + 바코드/에어캡 합계 표시
 - **미분류 섹션**: 패킹 미수행(PENDING) 주문 건수를 미분류 섹션에 표시
 - **패킹 계산**: PENDING 주문 대상으로 패킹 알고리즘 실행 (전략 선택: 부피/최장변)
-- **엑셀 내보내기**: 주문 기준 패킹 결과 다운로드 (주문번호, 박스, SKU 구성, 에어캡/바코드 개수)
+- **엑셀 내보내기**: 클라이언트 사이드 xlsx 생성 (주문번호, 박스, SKU 구성, 상품 그룹, 총 수량, 에어캡/바코드 개수)
 - **확정/해제**: PACKING <-> CONFIRMED 상태 전환
 
 ## API
@@ -126,7 +126,6 @@ DB의 `orders.status` 값을 그대로 사용한다.
 | POST | `/api/settlements/{id}/packing/calculate` | 미분류(PENDING) 주문 패킹 계산 (`{ strategy }`) |
 | GET | `/api/settlements/{id}/packing/recommendation` | 저장된 패킹 추천 조회 |
 | PATCH | `/api/settlements/{id}/packing/recommendation` | 박스 변경 (`{ items, newBoxId }`) |
-| GET | `/api/settlements/{id}/packing/export` | 패킹 결과 엑셀 내보내기 |
 
 ### 업로드 응답
 

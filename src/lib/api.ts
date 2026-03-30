@@ -249,22 +249,6 @@ export const api = {
           method: 'PATCH',
           data,
         }),
-      export: (id: string) => {
-        return apiClient
-          .get(`/settlements/${id}/packing/export`, {
-            responseType: 'blob',
-          })
-          .then((response) => {
-            const url = window.URL.createObjectURL(response.data);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `settlement_packing_${id}.xlsx`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-          });
-      },
     },
   },
   boxGroups: {

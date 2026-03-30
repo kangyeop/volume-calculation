@@ -1,15 +1,15 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Download, RefreshCw, Lock, LockOpen, Check, ArrowLeft } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import {
   useSettlementDetail,
   useSettlementPackingRecommendation,
   useCalculateSettlementPacking,
   useUpdateSettlementBoxAssignment,
-  useExportSettlementPacking,
   useConfirmSettlement,
   useUnconfirmSettlement,
   useProductGroups,
@@ -35,7 +35,6 @@ export default function SettlementPackingPage() {
     useSettlementPackingRecommendation(id ?? '');
   const calculatePacking = useCalculateSettlementPacking();
   const updateBoxAssignment = useUpdateSettlementBoxAssignment();
-  const exportPacking = useExportSettlementPacking();
   const { data: productGroups = [] } = useProductGroups();
   const { data: boxGroupList = [] } = useBoxGroups();
   const confirmSettlement = useConfirmSettlement();
@@ -135,15 +134,60 @@ export default function SettlementPackingPage() {
     }
   };
 
-  const handleExport = async () => {
-    if (!id) return;
-    try {
-      await exportPacking.mutateAsync({ id });
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : '엑셀 다운로드에 실패했습니다.';
-      toast.error('내보내기 실패', { description: message });
+  const skuToGroupName = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const group of productGroups) {
+      for (const product of group.products ?? []) {
+        map.set(product.sku, group.name);
+      }
     }
-  };
+    return map;
+  }, [productGroups]);
+
+  const orderBoxMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!result || !('groups' in result)) return map;
+    for (const group of result.groups) {
+      const orderId = group.groupLabel.replace(/^Order:\s*/, '');
+      const boxName = group.boxes[0]?.box.name ?? '';
+      map.set(orderId, boxName);
+    }
+    return map;
+  }, [result]);
+
+  const handleExport = useCallback(() => {
+    if (!settlement) return;
+
+    const rows = settlement.orders.map((order) => {
+      const skuComposition = order.items.map((i) => `${i.sku} x${i.quantity}`).join(', ');
+      const groupNames = [...new Set(order.items.map((i) => skuToGroupName.get(i.sku)).filter(Boolean))].join(', ');
+      const totalQuantity = order.items.reduce((sum, i) => sum + i.quantity, 0);
+
+      return {
+        '주문번호': order.orderId,
+        '박스': orderBoxMap.get(order.orderId) ?? '',
+        'SKU 구성': skuComposition,
+        '상품 그룹': groupNames,
+        '총 수량': totalQuantity,
+        '에어캡 개수': order.aircapCount,
+        '바코드 개수': order.barcodeCount,
+      };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [
+      { wch: 30 },
+      { wch: 15 },
+      { wch: 40 },
+      { wch: 20 },
+      { wch: 10 },
+      { wch: 12 },
+      { wch: 12 },
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Packing Results');
+    XLSX.writeFile(wb, `settlement_packing_${id}.xlsx`);
+  }, [settlement, id, skuToGroupName, orderBoxMap]);
 
   const handleConfirm = async () => {
     if (!id) return;
@@ -217,11 +261,10 @@ export default function SettlementPackingPage() {
           {result && (
             <button
               onClick={handleExport}
-              disabled={exportPacking.isPending}
               className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
             >
               <Download className="h-4 w-4" />
-              {exportPacking.isPending ? '다운로드 중...' : 'Excel 내보내기'}
+              Excel 내보내기
             </button>
           )}
 

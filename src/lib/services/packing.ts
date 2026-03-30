@@ -1,6 +1,5 @@
 import { db } from '@/lib/db';
 import { orderItems, packingResults, orders, products, productGroups, shipments } from '@/lib/db/schema';
-export { exportPackingResults } from '@/lib/services/excel';
 import { eq, and, inArray } from 'drizzle-orm';
 import { getUserId } from '@/lib/auth';
 import { calculatePacking, calculateOrderPackingUnified } from '@/lib/algorithms/packing';

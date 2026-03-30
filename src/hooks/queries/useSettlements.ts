@@ -137,8 +137,3 @@ export function useUpdateSettlementBoxAssignment() {
   });
 }
 
-export function useExportSettlementPacking() {
-  return useMutation({
-    mutationFn: ({ id }: { id: string }) => api.settlements.packing.export(id),
-  });
-}
