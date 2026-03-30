@@ -72,9 +72,9 @@ export const useProductUpload = (projectId: string) => {
         );
       } else {
         const barcodeRaw = String(item['바코드'] || '').trim().toLowerCase();
-        const barcode = barcodeRaw === 'true' || barcodeRaw === 'o' || barcodeRaw === 'yes' || barcodeRaw === '1';
+        const barcode = ['true', 'o', 'yes', '1', 'ㅇ', '○'].includes(barcodeRaw);
         const aircapRaw = String(item['에어캡'] || '').trim().toLowerCase();
-        const aircap = aircapRaw === 'o' || aircapRaw === 'true' || aircapRaw === 'yes' || aircapRaw === '1';
+        const aircap = ['true', 'o', 'yes', '1', 'ㅇ', '○'].includes(aircapRaw);
 
         validData.push({
           sku: productName,

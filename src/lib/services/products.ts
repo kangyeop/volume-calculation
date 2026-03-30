@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { products, productGroups } from '@/lib/db/schema';
-import { eq, and, inArray, desc } from 'drizzle-orm';
+import { eq, and, inArray, desc, sql } from 'drizzle-orm';
 import { getUserId } from '@/lib/auth';
 export type CreateProductDto = {
   sku: string;
@@ -114,12 +114,12 @@ export async function createBulk(productGroupId: string, dtos: CreateProductDto[
     .onConflictDoUpdate({
       target: [products.userId, products.sku],
       set: {
-        name: products.name,
-        width: products.width,
-        length: products.length,
-        height: products.height,
-        barcode: products.barcode,
-        aircap: products.aircap,
+        name: sql`excluded.name`,
+        width: sql`excluded.width`,
+        length: sql`excluded.length`,
+        height: sql`excluded.height`,
+        barcode: sql`excluded.barcode`,
+        aircap: sql`excluded.aircap`,
       },
     })
     .returning();

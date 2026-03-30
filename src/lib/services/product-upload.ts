@@ -47,10 +47,10 @@ export function parseFile(
     }
 
     const barcodeRaw = String(row[COLUMN_BARCODE] || '').trim().toLowerCase();
-    const barcode = barcodeRaw === 'true' || barcodeRaw === 'o' || barcodeRaw === 'yes' || barcodeRaw === '1';
+    const barcode = ['true', 'o', 'yes', '1', 'ㅇ', '○'].includes(barcodeRaw);
 
     const aircapRaw = String(row[COLUMN_AIRCAP] || '').trim().toLowerCase();
-    const aircap = aircapRaw === 'o' || aircapRaw === 'true' || aircapRaw === 'yes' || aircapRaw === '1';
+    const aircap = ['true', 'o', 'yes', '1', 'ㅇ', '○'].includes(aircapRaw);
 
     products.push({
       sku,
