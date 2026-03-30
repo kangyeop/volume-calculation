@@ -37,7 +37,7 @@ export function useCreateProducts(
   return useMutation({
     mutationFn: (data) => api.products.createBulk(projectId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: products.all._def });
+      queryClient.invalidateQueries({ queryKey: products.all(projectId).queryKey });
     },
   });
 }
@@ -60,8 +60,8 @@ export function useUpdateProduct(): UseMutationResult<Product, Error, UpdateProd
         queryClient.setQueryData(products.byGroup(groupId).queryKey, context.previous);
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: products.all._def });
+    onSettled: (_data, _err, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: products.byGroup(groupId).queryKey });
     },
   });
 }
@@ -72,7 +72,7 @@ export function useDeleteProduct(): UseMutationResult<void, Error, string> {
   return useMutation({
     mutationFn: (id: string) => api.products.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: products.all._def });
+      queryClient.invalidateQueries({ queryKey: products.listAll.queryKey });
     },
   });
 }
@@ -83,7 +83,7 @@ export function useDeleteProducts(projectId: string): UseMutationResult<void, Er
   return useMutation({
     mutationFn: (ids: string[]) => api.products.deleteBulk(projectId, ids),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: products.all._def });
+      queryClient.invalidateQueries({ queryKey: products.all(projectId).queryKey });
     },
   });
 }

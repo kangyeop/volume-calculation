@@ -35,7 +35,7 @@ export function useCalculatePacking(): UseMutationResult<
     mutationFn: ({ batchId, strategy }) =>
       api.packing.calculate(batchId, strategy),
     onSuccess: (_, { batchId }) => {
-      queryClient.invalidateQueries({ queryKey: packing.history._def });
+      queryClient.invalidateQueries({ queryKey: packing.history(batchId).queryKey });
       queryClient.invalidateQueries({ queryKey: packing.recommendation(batchId).queryKey });
     },
   });
@@ -51,8 +51,8 @@ export function useCalculateOrderPacking(): UseMutationResult<
   return useMutation({
     mutationFn: ({ batchId, orderId, groupLabel }) =>
       api.packing.calculateOrder(batchId, orderId, groupLabel),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: packing.history._def });
+    onSuccess: (_, { batchId }) => {
+      queryClient.invalidateQueries({ queryKey: packing.historyByBatch(batchId).queryKey });
     },
   });
 }

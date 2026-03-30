@@ -4,7 +4,6 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Download, RefreshCw, Lock, LockOpen, Check, ArrowLeft } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import {
   useSettlementDetail,
   useSettlementPackingRecommendation,
@@ -155,8 +154,9 @@ export default function SettlementPackingPage() {
     return map;
   }, [normalizedBoxes, availableBoxes]);
 
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback(async () => {
     if (!settlement) return;
+    const XLSX = await import('xlsx');
 
     const rows = settlement.orders.map((order) => {
       const skuComposition = order.items.map((i) => `${i.sku} x${i.quantity}`).join(', ');

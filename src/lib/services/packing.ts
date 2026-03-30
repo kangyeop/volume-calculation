@@ -123,24 +123,25 @@ export async function calculate(
     targetOrderUuids = pendingOrders.map((o) => o.id);
   }
 
-  const allItems = await db.query.orderItems.findMany({
-    where: targetOrderUuids
-      ? and(eq(orderItems.shipmentId, shipmentId), inArray(orderItems.orderId, targetOrderUuids))
-      : eq(orderItems.shipmentId, shipmentId),
-    with: { product: true },
-  });
+  const [allItems, allProducts, allProductGroups, allOrders] = await Promise.all([
+    db.query.orderItems.findMany({
+      where: targetOrderUuids
+        ? and(eq(orderItems.shipmentId, shipmentId), inArray(orderItems.orderId, targetOrderUuids))
+        : eq(orderItems.shipmentId, shipmentId),
+      with: { product: true },
+    }),
+    db.select().from(products).where(eq(products.userId, userId)),
+    db.select().from(productGroups).where(eq(productGroups.userId, userId)),
+    db.select().from(orders).where(eq(orders.shipmentId, shipmentId)),
+  ]);
 
-  const allProducts = await db.select().from(products).where(eq(products.userId, userId));
   const productMapById = new Map(allProducts.map((p) => [p.id, p]));
   const productMapBySku = new Map(allProducts.map((p) => [p.sku, p]));
 
-  const allProductGroups = await db.select().from(productGroups).where(eq(productGroups.userId, userId));
   const productGroupMap = new Map(allProductGroups.map((pg) => [pg.id, pg]));
 
   const boxGroupIds = [...new Set(allProductGroups.map((pg) => pg.boxGroupId))];
   const boxesByGroupId = await boxesService.findByGroupIds(boxGroupIds);
-
-  const allOrders = await db.select().from(orders).where(eq(orders.shipmentId, shipmentId));
   const orderMap = new Map(allOrders.map((o) => [o.orderId, o]));
 
   const groupedItems = groupOrderItems(allItems);

@@ -27,7 +27,9 @@ export const productGroups = pgTable('product_groups', {
   boxGroupId: uuid('box_group_id').notNull().references(() => boxGroups.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
-});
+}, (table) => [
+  index('product_groups_user_id_idx').on(table.userId),
+]);
 
 export const products = pgTable('products', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -44,6 +46,7 @@ export const products = pgTable('products', {
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
 }, (table) => [
   uniqueIndex('products_user_sku_unique').on(table.userId, table.sku),
+  index('products_user_id_idx').on(table.userId),
 ]);
 
 export const boxGroups = pgTable('box_groups', {
@@ -52,7 +55,9 @@ export const boxGroups = pgTable('box_groups', {
   name: varchar('name', { length: 255 }).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
-});
+}, (table) => [
+  index('box_groups_user_id_idx').on(table.userId),
+]);
 
 export const boxes = pgTable('boxes', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -66,7 +71,10 @@ export const boxes = pgTable('boxes', {
   stock: integer('stock').notNull().default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
-});
+}, (table) => [
+  index('boxes_user_id_idx').on(table.userId),
+  index('boxes_box_group_id_idx').on(table.boxGroupId),
+]);
 
 export const boxStockHistories = pgTable('box_stock_histories', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -90,7 +98,10 @@ export const shipments = pgTable('shipments', {
   lastBoxGroupId: uuid('last_box_group_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
-});
+}, (table) => [
+  index('shipments_user_id_idx').on(table.userId),
+  index('shipments_user_type_idx').on(table.userId, table.type),
+]);
 
 export const orders = pgTable('orders', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -102,6 +113,7 @@ export const orders = pgTable('orders', {
 }, (table) => [
   uniqueIndex('orders_shipment_order_unique').on(table.shipmentId, table.orderId),
   index('orders_order_id_idx').on(table.orderId),
+  index('orders_shipment_id_idx').on(table.shipmentId),
 ]);
 
 export const orderItems = pgTable('order_items', {

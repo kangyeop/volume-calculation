@@ -185,11 +185,11 @@ export async function findSettlementDetail(id: string) {
   });
   if (!shipment) throw new Error('Settlement not found');
 
-  const orderRows = await db.select().from(orders).where(eq(orders.shipmentId, id));
-  const prRows = await db.select().from(packingResults).where(eq(packingResults.shipmentId, id));
-  const itemRows = await db.query.orderItems.findMany({
-    where: eq(orderItems.shipmentId, id),
-  });
+  const [orderRows, prRows, itemRows] = await Promise.all([
+    db.select().from(orders).where(eq(orders.shipmentId, id)),
+    db.select().from(packingResults).where(eq(packingResults.shipmentId, id)),
+    db.query.orderItems.findMany({ where: eq(orderItems.shipmentId, id) }),
+  ]);
 
   const prMap = new Map(prRows.map((pr) => [pr.orderId, pr]));
 

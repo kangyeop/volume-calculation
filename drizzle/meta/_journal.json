@@ -120,6 +120,13 @@
       "when": 1775020800000,
       "tag": "0016_aircap_boolean",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1774870642150,
+      "tag": "0017_superb_guardsmen",
+      "breakpoints": true
     }
   ]
 }

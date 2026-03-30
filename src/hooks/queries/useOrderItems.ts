@@ -24,7 +24,7 @@ export function useCreateOrderItem(
   return useMutation({
     mutationFn: (data) => api.orderItems.create(projectId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: orderItems.all._def });
+      queryClient.invalidateQueries({ queryKey: orderItems.all(projectId).queryKey });
     },
   });
 }
@@ -37,7 +37,7 @@ export function useCreateOrderItems(
   return useMutation({
     mutationFn: (data) => api.orderItems.createBulk(projectId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: orderItems.all._def });
+      queryClient.invalidateQueries({ queryKey: orderItems.all(projectId).queryKey });
     },
   });
 }
@@ -55,7 +55,7 @@ export function useCreateOrderItemsWithFile(
     mutationFn: ({ file, createOrderItemDtos }) =>
       api.orderItems.createBulkWithFile(projectId, file, createOrderItemDtos),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: orderItems.all._def });
+      queryClient.invalidateQueries({ queryKey: orderItems.all(projectId).queryKey });
     },
   });
 }
@@ -66,7 +66,7 @@ export function useDeleteOrderItems(projectId: string): UseMutationResult<void, 
   return useMutation({
     mutationFn: () => api.orderItems.deleteAll(projectId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: orderItems.all._def });
+      queryClient.invalidateQueries({ queryKey: orderItems.all(projectId).queryKey });
     },
   });
 }

@@ -94,23 +94,31 @@ export async function mapProducts(shipmentId: string, orderId: string) {
       ),
     );
 
-  let mappedCount = 0;
-
-  await db.transaction(async (tx) => {
-    for (const item of items) {
-      const [product] = await tx
+  const uniqueSkus = [...new Set(items.map((i) => i.sku))];
+  const matchedProducts = uniqueSkus.length > 0
+    ? await db
         .select()
         .from(products)
-        .where(and(eq(products.sku, item.sku), eq(products.userId, userId)))
-        .limit(1);
+        .where(and(eq(products.userId, userId), inArray(products.sku, uniqueSkus)))
+    : [];
+  const skuToProductId = new Map(matchedProducts.map((p) => [p.sku, p.id]));
 
-      if (product) {
-        await tx
-          .update(orderItems)
-          .set({ productId: product.id })
-          .where(eq(orderItems.id, item.id));
+  let mappedCount = 0;
+  await db.transaction(async (tx) => {
+    for (const item of items) {
+      const productId = skuToProductId.get(item.sku);
+      if (productId) {
         mappedCount++;
       }
+    }
+    const itemsToUpdate = items.filter((item) => skuToProductId.has(item.sku));
+    if (itemsToUpdate.length > 0) {
+      const updatePromises = itemsToUpdate.map((item) =>
+        tx.update(orderItems)
+          .set({ productId: skuToProductId.get(item.sku)! })
+          .where(eq(orderItems.id, item.id))
+      );
+      await Promise.all(updatePromises);
     }
   });
 

@@ -33,30 +33,22 @@ export function usePackingGroups({
   searchParams: URLSearchParams | { get: (key: string) => string | null; toString: () => string };
   router: { push: (url: string) => void };
 }) {
-  const skuDimensionsMap = useMemo(() => {
-    const map = new Map<string, { width: number; length: number; height: number; name: string }>();
+  const { skuDimensionsMap, skuToGroupId } = useMemo(() => {
+    const dims = new Map<string, { width: number; length: number; height: number; name: string }>();
+    const groups = new Map<string, string>();
     for (const group of productGroups) {
       for (const product of group.products ?? []) {
-        map.set(product.id, {
+        dims.set(product.id, {
           width: product.width,
           length: product.length,
           height: product.height,
           name: product.name,
         });
+        groups.set(product.id, group.id);
+        groups.set(product.sku, group.id);
       }
     }
-    return map;
-  }, [productGroups]);
-
-  const skuToGroupId = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const group of productGroups) {
-      for (const product of group.products ?? []) {
-        map.set(product.id, group.id);
-        map.set(product.sku, group.id);
-      }
-    }
-    return map;
+    return { skuDimensionsMap: dims, skuToGroupId: groups };
   }, [productGroups]);
 
   const activeGroupIds = useMemo(() => {

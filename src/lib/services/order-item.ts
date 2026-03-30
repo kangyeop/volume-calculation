@@ -1,7 +1,6 @@
 import { db } from '@/lib/db';
-import { orderItems, orders, shipments, products } from '@/lib/db/schema';
+import { orderItems, orders, shipments } from '@/lib/db/schema';
 import { eq, and, inArray, asc, sql } from 'drizzle-orm';
-import { getUserId } from '@/lib/auth';
 
 type CreateOrderItemDto = {
   orderId: string;
@@ -149,14 +148,11 @@ export async function getConfigurationSummary(shipmentId: string) {
     with: { product: true },
   });
 
-  const userId = await getUserId();
-  const allSkus = [...new Set(allItems.map((i) => i.sku))];
-  const userProducts = allSkus.length > 0
-    ? await db.select().from(products).where(and(eq(products.userId, userId), inArray(products.sku, allSkus)))
-    : [];
   const skuToGroupId = new Map<string, string | null>();
-  for (const p of userProducts) {
-    skuToGroupId.set(p.sku, p.productGroupId);
+  for (const item of allItems) {
+    if (item.product && !skuToGroupId.has(item.sku)) {
+      skuToGroupId.set(item.sku, item.product.productGroupId);
+    }
   }
 
   const orderMap = new Map<string, { sku: string; productName?: string; quantity: number }[]>();
@@ -197,9 +193,10 @@ export async function getConfigurationSummary(shipmentId: string) {
         productName?: string;
       } | null = null;
 
+      const orderIdSet = new Set(orderIds);
       for (const item of allItems) {
         const orderKey = item.orderIdentifier || item.orderId;
-        if (!orderIds.includes(orderKey)) continue;
+        if (!orderIdSet.has(orderKey)) continue;
         if (!item.product) continue;
 
         const width = Number(item.product.width);

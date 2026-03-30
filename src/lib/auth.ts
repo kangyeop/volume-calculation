@@ -1,6 +1,7 @@
+import { cache } from 'react';
 import { createSupabaseServer } from '@/lib/supabase/server';
 
-export async function getUserId(): Promise<string> {
+export const getUserId = cache(async (): Promise<string> => {
   const supabase = await createSupabaseServer();
   const { data: { user }, error } = await supabase.auth.getUser();
 
@@ -9,4 +10,4 @@ export async function getUserId(): Promise<string> {
   }
 
   return user.id;
-}
+});
