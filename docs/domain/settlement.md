@@ -174,13 +174,13 @@ DB의 `orders.status` 값을 그대로 사용한다.
 - **바코드**: `product.barcode = true`인 상품의 수량 합계
 - **에어캡**: `product.aircap = true`인 상품의 수량 합계
 
-### 패킹 계산 벌크 처리
+### 패킹 계산 통합
 
-`calculateSettlementPacking()`, `autoPackUnmatched()` 모두 DB 업데이트를 벌크로 처리한다:
-- boxGroup 로딩: `findByGroupIds()`로 1회 벌크 조회
-- packingResults 업데이트: DELETE + bulk INSERT 패턴 (CHUNK_SIZE=500)
-- orders status 업데이트: `inArray`로 1회 벌크 업데이트
-- 패킹 계산(tryAutoPack)은 트랜잭션 밖에서 수행 후, 결과만 트랜잭션 내에서 저장
+정산 패킹 계산은 출고와 동일한 `packing.calculate()` 함수를 `{ onlyPending: true }` 옵션으로 호출한다:
+- PENDING 주문만 대상으로 패킹 계산
+- 동일 Configuration(SKU 조합)의 주문은 1회만 계산 후 결과 복제
+- 성공한 주문의 orders.status를 PROCESSING으로 업데이트
+- packingResults는 DELETE + bulk INSERT 패턴 (CHUNK_SIZE=500)
 
 ### Type Guard (assertSettlement)
 
@@ -219,7 +219,7 @@ DB의 `orders.status` 값을 그대로 사용한다.
 
 | 파일 | 역할 |
 |------|------|
-| `src/lib/services/settlement.ts` | 업로드, 상세 조회, 박스 지정 |
+| `src/lib/services/settlement.ts` | 업로드, 상세 조회, 박스 지정 (패킹 계산은 packing.ts로 통합) |
 | `src/lib/services/shipment.ts` | create/findAll에 type 파라미터 (SETTLEMENT 지원) |
 | `src/app/api/settlements/` | 정산 API 라우트 (목록, 상세, 삭제, 확정, 박스 지정, 패킹) |
 | `src/app/api/upload/settlement/` | 정산 업로드 API |

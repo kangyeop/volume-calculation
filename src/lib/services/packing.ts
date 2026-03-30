@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 import { orderItems, packingResults, orders, products, productGroups, shipments } from '@/lib/db/schema';
 export { exportPackingResults } from '@/lib/services/excel';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { getUserId } from '@/lib/auth';
 import { calculatePacking, calculateOrderPackingUnified } from '@/lib/algorithms/packing';
 import type {
@@ -102,14 +102,32 @@ type OrderItemRow = typeof orderItems.$inferSelect & {
   product?: (typeof products.$inferSelect & { productGroupId: string }) | null;
 };
 
+type CalculateOptions = {
+  onlyPending?: boolean;
+};
+
 export async function calculate(
   shipmentId: string,
   strategy: BoxSortStrategy = 'volume',
-): Promise<PackingRecommendation> {
+  options: CalculateOptions = {},
+): Promise<PackingRecommendation & { packed: number; failed: number }> {
   await assertNotConfirmed(shipmentId);
   const userId = await getUserId();
+
+  let targetOrderUuids: string[] | undefined;
+  if (options.onlyPending) {
+    const pendingOrders = await db.select().from(orders)
+      .where(and(eq(orders.shipmentId, shipmentId), eq(orders.status, 'PENDING')));
+    if (pendingOrders.length === 0) {
+      return { groups: [], totalCBM: 0, totalEfficiency: 0, unpackedItems: [], packed: 0, failed: 0 };
+    }
+    targetOrderUuids = pendingOrders.map((o) => o.id);
+  }
+
   const allItems = await db.query.orderItems.findMany({
-    where: eq(orderItems.shipmentId, shipmentId),
+    where: targetOrderUuids
+      ? and(eq(orderItems.shipmentId, shipmentId), inArray(orderItems.orderId, targetOrderUuids))
+      : eq(orderItems.shipmentId, shipmentId),
     with: { product: true },
   });
 
@@ -128,16 +146,19 @@ export async function calculate(
 
   const groupedItems = groupOrderItems(allItems);
 
-  const groups: PackingGroup[] = [];
-  let grandTotalCBM = 0;
-  let grandTotalUsedVolume = 0;
-  let grandTotalAvailableVolume = 0;
+  type PreparedOrder = {
+    group: OrderItemRow[];
+    orderRecord: typeof allOrders[0];
+    groupOrderId: string;
+    skus: SKU[];
+    skuKey: string;
+    availableBoxes: Awaited<ReturnType<typeof boxesService.findByGroupId>>;
+    skuToItemSku: Map<string, string>;
+  };
 
-  const allResultRows: (typeof packingResults.$inferInsert)[] = [];
+  const preparedOrders: PreparedOrder[] = [];
+  let failed = 0;
 
-  await db.delete(packingResults).where(eq(packingResults.shipmentId, shipmentId));
-
-  let groupIdx = 0;
   for (const group of groupedItems) {
     if (group.length === 0) continue;
 
@@ -148,13 +169,14 @@ export async function calculate(
       )
       .find((p) => p != null);
 
-    if (!firstProduct) continue;
+    if (!firstProduct) { if (options.onlyPending) { failed++; continue; } else continue; }
 
     const pg = productGroupMap.get(firstProduct.productGroupId);
-    if (!pg) continue;
+    if (!pg) { if (options.onlyPending) { failed++; continue; } else continue; }
 
     const availableBoxes = boxesByGroupId.get(pg.boxGroupId);
     if (!availableBoxes || availableBoxes.length === 0) {
+      if (options.onlyPending) { failed++; continue; }
       throw new Error(`상품 그룹 "${pg.name}"에 연결된 박스 그룹에 등록된 박스가 없습니다. 박스 관리 메뉴에서 박스를 먼저 등록해주세요.`);
     }
 
@@ -175,23 +197,64 @@ export async function calculate(
       })
       .filter((s): s is SKU => s !== null);
 
-    if (skus.length === 0) continue;
+    if (skus.length === 0) { if (options.onlyPending) { failed++; continue; } else continue; }
 
-    const recommendation = calculatePacking(skus, availableBoxes, strategy);
     const groupOrderId = group[0].orderIdentifier || group[0].orderId;
-    const groupLabel = `Order: ${groupOrderId}`;
+    const orderRecord = orderMap.get(groupOrderId);
+    if (!orderRecord) continue;
+
+    const skuKey = [...skus]
+      .sort((a, b) => a.id.localeCompare(b.id) || a.quantity - b.quantity)
+      .map((s) => `${s.id}:${s.quantity}`)
+      .join('|');
+
+    const skuToItemSku = new Map<string, string>();
+    for (const item of group) {
+      const product =
+        (item.productId ? productMapById.get(item.productId) : undefined) ??
+        productMapBySku.get(item.sku);
+      if (product && !skuToItemSku.has(product.id)) {
+        skuToItemSku.set(product.id, item.sku);
+      }
+    }
+
+    preparedOrders.push({ group, orderRecord, groupOrderId, skus, skuKey, availableBoxes, skuToItemSku });
+  }
+
+  const configMap = new Map<string, { skus: SKU[]; availableBoxes: PreparedOrder['availableBoxes']; orders: PreparedOrder[] }>();
+  for (const prep of preparedOrders) {
+    if (!configMap.has(prep.skuKey)) {
+      configMap.set(prep.skuKey, { skus: prep.skus, availableBoxes: prep.availableBoxes, orders: [] });
+    }
+    configMap.get(prep.skuKey)!.orders.push(prep);
+  }
+
+  const groups: PackingGroup[] = [];
+  let grandTotalCBM = 0;
+  let grandTotalUsedVolume = 0;
+  let grandTotalAvailableVolume = 0;
+  const allResultRows: (typeof packingResults.$inferInsert)[] = [];
+  const packedOrderUuids: string[] = [];
+  let groupIdx = 0;
+
+  for (const [, config] of configMap) {
+    const recommendation = calculatePacking(config.skus, config.availableBoxes, strategy);
+
+    const isUnassigned = recommendation.boxes.length === 0 || recommendation.boxes[0].box.id === 'unassigned';
+    if (options.onlyPending && isUnassigned) {
+      failed += config.orders.length;
+      continue;
+    }
 
     let groupUsedVolume = 0;
     let groupAvailableVolume = 0;
-
     for (const rb of recommendation.boxes) {
       const boxVol = rb.box.width * rb.box.length * rb.box.height;
       groupAvailableVolume += boxVol * rb.count;
       for (const packedSku of rb.packedSKUs) {
         const product = productMapById.get(packedSku.skuId);
         if (product) {
-          groupUsedVolume +=
-            Number(product.width) * Number(product.length) * Number(product.height) * packedSku.quantity;
+          groupUsedVolume += Number(product.width) * Number(product.length) * Number(product.height) * packedSku.quantity;
         }
       }
     }
@@ -209,64 +272,71 @@ export async function calculate(
       return { ...item, name: product ? product.name : 'Unknown Product' };
     });
 
-    const skuToItemSku = new Map<string, string>();
-    for (const item of group) {
-      const product =
-        (item.productId ? productMapById.get(item.productId) : undefined) ??
-        productMapBySku.get(item.sku);
-      if (product && !skuToItemSku.has(product.id)) {
-        skuToItemSku.set(product.id, item.sku);
-      }
-    }
-
-    const items = buildPackingResultItems(recommendation, productMapById, skuToItemSku);
-
-    groups.push({
-      groupLabel,
-      boxes: boxesWithNames,
-      unpackedItems: unpackedWithNames,
-      totalCBM: recommendation.totalCBM,
-      totalEfficiency: groupAvailableVolume > 0 ? groupUsedVolume / groupAvailableVolume : 0,
-    });
-
-    grandTotalCBM += recommendation.totalCBM;
-    grandTotalUsedVolume += groupUsedVolume;
-    grandTotalAvailableVolume += groupAvailableVolume;
-
-    const orderRecord = orderMap.get(groupOrderId);
-    if (!orderRecord) continue;
-
     const rowStats = buildPackingResultRowStats(recommendation, productMapById);
 
-    allResultRows.push({
-      shipmentId,
-      orderId: orderRecord.id,
-      ...rowStats,
-      groupLabel,
-      groupIndex: groupIdx,
-      items,
-    });
+    for (const prep of config.orders) {
+      const groupLabel = `Order: ${prep.groupOrderId}`;
+      const items = buildPackingResultItems(recommendation, productMapById, prep.skuToItemSku);
 
-    groupIdx++;
+      groups.push({
+        groupLabel,
+        boxes: boxesWithNames,
+        unpackedItems: unpackedWithNames,
+        totalCBM: recommendation.totalCBM,
+        totalEfficiency: groupAvailableVolume > 0 ? groupUsedVolume / groupAvailableVolume : 0,
+      });
+
+      grandTotalCBM += recommendation.totalCBM;
+      grandTotalUsedVolume += groupUsedVolume;
+      grandTotalAvailableVolume += groupAvailableVolume;
+
+      allResultRows.push({
+        shipmentId,
+        orderId: prep.orderRecord.id,
+        ...rowStats,
+        groupLabel,
+        groupIndex: groupIdx,
+        items,
+      });
+
+      packedOrderUuids.push(prep.orderRecord.id);
+      groupIdx++;
+    }
   }
 
-  if (allResultRows.length > 0) {
-    for (let i = 0; i < allResultRows.length; i += CHUNK_SIZE) {
-      await db.insert(packingResults).values(allResultRows.slice(i, i + CHUNK_SIZE));
+  if (options.onlyPending) {
+    if (allResultRows.length > 0) {
+      await db.transaction(async (tx) => {
+        for (let i = 0; i < packedOrderUuids.length; i += CHUNK_SIZE) {
+          await tx.delete(packingResults).where(
+            and(eq(packingResults.shipmentId, shipmentId), inArray(packingResults.orderId, packedOrderUuids.slice(i, i + CHUNK_SIZE))),
+          );
+        }
+        for (let i = 0; i < allResultRows.length; i += CHUNK_SIZE) {
+          await tx.insert(packingResults).values(allResultRows.slice(i, i + CHUNK_SIZE));
+        }
+        await tx.update(orders).set({ status: 'PROCESSING' }).where(inArray(orders.id, packedOrderUuids));
+      });
+    }
+  } else {
+    await db.delete(packingResults).where(eq(packingResults.shipmentId, shipmentId));
+    if (allResultRows.length > 0) {
+      for (let i = 0; i < allResultRows.length; i += CHUNK_SIZE) {
+        await db.insert(packingResults).values(allResultRows.slice(i, i + CHUNK_SIZE));
+      }
     }
   }
 
   const allUnpackedItems = groups.flatMap((g) => g.unpackedItems || []);
 
-  const result: PackingRecommendation = {
+  return {
     groups,
     totalCBM: grandTotalCBM,
-    totalEfficiency:
-      grandTotalAvailableVolume > 0 ? grandTotalUsedVolume / grandTotalAvailableVolume : 0,
+    totalEfficiency: grandTotalAvailableVolume > 0 ? grandTotalUsedVolume / grandTotalAvailableVolume : 0,
     unpackedItems: allUnpackedItems,
+    packed: packedOrderUuids.length,
+    failed,
   };
-
-  return result;
 }
 
 function groupOrderItems(
