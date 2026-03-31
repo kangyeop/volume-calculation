@@ -59,12 +59,26 @@ export default function EstimateViewerPage() {
             </div>
           </div>
         ) : (
-          <iframe
-            src={data.url}
+          <object
+            data={data.url}
+            type="application/pdf"
             className="w-full h-full"
-            title="PDF Viewer"
-            sandbox="allow-same-origin"
-          />
+          >
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-sm font-medium text-gray-500">브라우저에서 PDF를 표시할 수 없습니다.</p>
+                <a
+                  href={data.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 inline-block rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
+                >
+                  PDF 다운로드
+                </a>
+              </div>
+            </div>
+          </object>
         )}
       </div>
     </div>
