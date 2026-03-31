@@ -281,6 +281,17 @@ export interface ApiErrorResponse {
   message?: string;
 }
 
+export interface Estimate {
+  id: string;
+  userId: string;
+  name: string;
+  fileName: string;
+  storagePath: string;
+  fileSize: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ProjectBoxStat {
   boxName: string;
   boxCount: number;

@@ -37,6 +37,7 @@ volume-calculator/
 │   │   │   ├── products/             # 상품 관리 페이지
 │   │   │   ├── shipments/            # 출고 관리 페이지
 │   │   │   ├── settlements/          # 정산 관리 페이지 (목록, 업로드, 상세)
+│   │   │   ├── estimates/             # 견적서 관리 페이지 (목록, PDF 뷰어)
 │   │   │   ├── boxes/                # 박스 독립 목록 페이지
 │   │   │   └── box-groups/           # 박스 그룹 관리 페이지
 │   │   │
@@ -55,6 +56,9 @@ volume-calculator/
 │   │       │   └── [id]/
 │   │       │       ├── assign-box/   # 수동 박스 배정
 │   │       │       └── confirm/      # 정산 확정/해제
+│   │       ├── estimates/             # 견적서 CRUD + PDF 업로드 + Signed URL
+│   │       │   └── [id]/
+│   │       │       └── signed-url/   # PDF signed URL 발급
 │   │       ├── order-items/          # 주문 아이템 개별 조작
 │   │       ├── upload/               # 출고 및 정산 엑셀 업로드
 │   │       │   ├── shipment/         # 출고 엑셀 업로드
@@ -83,6 +87,7 @@ volume-calculator/
 │   │   │   ├── useBoxes.ts
 │   │   │   ├── useBoxStockHistories.ts
 │   │   │   ├── useShipments.ts
+│   │   │   ├── useEstimates.ts       # 견적서 쿼리 훅
 │   │   │   ├── useSettlements.ts     # 정산 쿼리 훅
 │   │   │   ├── useOrderItems.ts
 │   │   │   ├── usePacking.ts
@@ -127,6 +132,7 @@ volume-calculator/
 │   │   │   ├── orders.ts             # Order 서비스
 │   │   │   ├── order-item.ts        # 주문 아이템(OrderItem) CRUD
 │   │   │   ├── dashboard.ts          # 대시보드 통계
+│   │   │   ├── estimates.ts          # 견적서 CRUD + PDF Storage
 │   │   │   ├── file-storage.ts       # 파일 저장소 (Supabase Storage)
 │   │   │   ├── upload.ts            # 출고 업로드 핵심 로직
 │   │   │   ├── format-parser.ts    # 고정 양식 파서 (정산/매핑전/매핑후)
@@ -231,6 +237,8 @@ API Route Handler
 | `/settlements` | 정산 목록 |
 | `/settlements/new` | 정산 엑셀 업로드 |
 | `/settlements/[id]` | 정산 상세 (주문/아이템 목록) |
+| `/estimates` | 견적서 목록, 검색, PDF 업로드 |
+| `/estimates/[id]` | 견적서 PDF 뷰어 |
 | `/boxes` | 박스 독립 목록 (미배정 박스 포함) |
 | `/box-groups` | 박스 그룹 목록 |
 | `/box-groups/new` | 새 박스 그룹 생성 |

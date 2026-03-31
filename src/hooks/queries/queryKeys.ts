@@ -58,6 +58,12 @@ export const upload = createQueryKeys('upload', {
   session: (sessionId: string) => [sessionId],
 });
 
+export const estimates = createQueryKeys('estimates', {
+  all: null,
+  search: (query: string) => [query],
+  signedUrl: (id: string) => [id, 'signed-url'],
+});
+
 export const dashboard = createQueryKeys('dashboard', {
   stats: null,
 });

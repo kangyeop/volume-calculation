@@ -140,6 +140,17 @@ erDiagram
         timestamp createdAt
         timestamp updatedAt
     }
+
+    Estimate {
+        uuid id PK
+        uuid userId
+        varchar name
+        varchar fileName
+        text storagePath
+        integer fileSize
+        timestamp createdAt
+        timestamp updatedAt
+    }
 ```
 
 ## Enum 타입
@@ -165,6 +176,7 @@ erDiagram
 | `box_stock_histories` | INDEX | `(box_id)` |
 | `packing_results` | UNIQUE | `order_id` |
 | `packing_results` | INDEX | `shipment_id` |
+| `estimates` | INDEX | `user_id` |
 
 ## 관계 요약
 

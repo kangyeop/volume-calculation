@@ -249,6 +249,19 @@ export const outboundsRelations = relations(outbounds, ({ one }) => ({
   }),
 }));
 
+export const estimates = pgTable('estimates', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  fileName: varchar('file_name', { length: 255 }).notNull(),
+  storagePath: text('storage_path').notNull(),
+  fileSize: integer('file_size').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
+}, (table) => [
+  index('estimates_user_id_idx').on(table.userId),
+]);
+
 export const packingResultsRelations = relations(packingResults, ({ one }) => ({
   shipment: one(shipments, {
     fields: [packingResults.shipmentId],

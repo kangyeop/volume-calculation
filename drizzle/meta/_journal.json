@@ -127,6 +127,13 @@
       "when": 1774870642150,
       "tag": "0017_superb_guardsmen",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1774953605823,
+      "tag": "0018_blushing_roulette",
+      "breakpoints": true
     }
   ]
 }
