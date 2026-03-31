@@ -12,6 +12,7 @@ import {
   PackingResult3D,
   ApiResponse,
   ProjectStats,
+  Estimate,
 } from '@/types';
 import type { StockChangeType } from '@/types';
 
@@ -330,6 +331,22 @@ export const api = {
       }
       return response.data.data;
     },
+  },
+  estimates: {
+    list: (search?: string) => {
+      const params = search ? `?search=${encodeURIComponent(search)}` : '';
+      return fetchApi<Estimate[]>(`/estimates${params}`);
+    },
+    upload: async (name: string, file: File): Promise<Estimate> => {
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('file', file);
+      const response = await apiClient.post<Estimate>('/estimates', formData);
+      return response.data;
+    },
+    delete: (id: string) => fetchApi<void>(`/estimates/${id}`, { method: 'DELETE' }),
+    getSignedUrl: (id: string) =>
+      fetchApi<{ url: string; estimate: Estimate }>(`/estimates/${id}/signed-url`),
   },
   dashboard: {
     stats: () => fetchApi<DashboardStats>('/dashboard/stats'),
