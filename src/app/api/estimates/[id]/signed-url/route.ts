@@ -9,7 +9,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     if (!result) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
-    return NextResponse.json(result);
+    return NextResponse.json(result, {
+      headers: { 'Cache-Control': 'no-store, max-age=0' },
+    });
   } catch (error) {
     return handleApiError(error, 'GET /estimates/[id]/signed-url');
   }

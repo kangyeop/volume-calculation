@@ -9,7 +9,8 @@
 - 업로드한 사용자만 해당 견적서를 열람/삭제할 수 있다
 - PDF 파일은 Supabase Storage의 private 버킷에 저장
 - 모든 접근은 서버 사이드 Admin Client signed URL을 통해 이루어짐 (300초 TTL)
-- Storage에 RLS 정책을 사용하지 않으며, 서비스 레이어에서 userId 필터링으로 접근 제어 (기존 프로젝트 패턴 준수)
+- DB 테이블에 RLS 활성화 + 서비스 레이어에서 userId 필터링으로 이중 접근 제어
+- signed URL 응답에 `Cache-Control: no-store` 적용하여 프록시/브라우저 캐시 방지
 
 ### 파일 검증
 

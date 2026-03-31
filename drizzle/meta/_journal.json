@@ -134,6 +134,13 @@
       "when": 1775020800002,
       "tag": "0018_blushing_roulette",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1774959796590,
+      "tag": "0019_sloppy_hammerhead",
+      "breakpoints": true
     }
   ]
 }

@@ -260,7 +260,7 @@ export const estimates = pgTable('estimates', {
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
 }, (table) => [
   index('estimates_user_id_idx').on(table.userId),
-]);
+]).enableRLS();
 
 export const packingResultsRelations = relations(packingResults, ({ one }) => ({
   shipment: one(shipments, {
