@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
-import { orderItems, orders, shipments } from '@/lib/db/schema';
+import { orderItems, orders } from '@/lib/db/schema';
 import { eq, and, inArray, asc, sql } from 'drizzle-orm';
+import { assertOwnership } from '@/lib/services/shipment';
 
 type CreateOrderItemDto = {
   orderId: string;
@@ -12,6 +13,7 @@ type CreateOrderItemDto = {
 const CHUNK_SIZE = 500;
 
 export async function create(shipmentId: string, dto: CreateOrderItemDto) {
+  await assertOwnership(shipmentId);
   return db.transaction(async (tx) => {
     let order = await tx.query.orders.findFirst({
       where: and(eq(orders.shipmentId, shipmentId), eq(orders.orderId, dto.orderId)),
@@ -42,6 +44,7 @@ export async function create(shipmentId: string, dto: CreateOrderItemDto) {
 }
 
 export async function findAll(shipmentId: string) {
+  await assertOwnership(shipmentId);
   return db.query.orderItems.findMany({
     where: eq(orderItems.shipmentId, shipmentId),
     with: { product: true },
@@ -53,6 +56,7 @@ export async function findPaginated(
   page: number,
   limit: number,
 ): Promise<{ items: (typeof orderItems.$inferSelect)[]; totalOrders: number; page: number; limit: number }> {
+  await assertOwnership(shipmentId);
   const [totalRow] = await db
     .select({ totalOrders: sql<number>`COUNT(DISTINCT ${orderItems.orderIdentifier})` })
     .from(orderItems)
@@ -85,11 +89,15 @@ export async function findPaginated(
 }
 
 export async function remove(id: string): Promise<boolean> {
+  const item = await db.query.orderItems.findFirst({ where: eq(orderItems.id, id) });
+  if (!item) return false;
+  await assertOwnership(item.shipmentId);
   const [row] = await db.delete(orderItems).where(eq(orderItems.id, id)).returning();
   return !!row;
 }
 
 export async function removeAll(shipmentId: string): Promise<void> {
+  await assertOwnership(shipmentId);
   await db.delete(orderItems).where(eq(orderItems.shipmentId, shipmentId));
 }
 
@@ -97,6 +105,7 @@ export async function createBulk(
   shipmentId: string,
   dtos: CreateOrderItemDto[],
 ): Promise<{ outbounds: (typeof orderItems.$inferSelect)[] }> {
+  await assertOwnership(shipmentId);
   return db.transaction(async (tx) => {
     const uniqueOrderIds = [...new Set(dtos.map((d) => d.orderId))];
 
@@ -143,6 +152,7 @@ export async function createBulk(
 }
 
 export async function getConfigurationSummary(shipmentId: string) {
+  await assertOwnership(shipmentId);
   const allItems = await db.query.orderItems.findMany({
     where: eq(orderItems.shipmentId, shipmentId),
     with: { product: true },
@@ -235,6 +245,7 @@ export async function createOrderItemsWithOrder(
   shipmentId: string,
   dtos: { orderId: string; sku: string; quantity: number; productId?: string | null }[],
 ): Promise<{ outbounds: (typeof orderItems.$inferSelect)[] }> {
+  await assertOwnership(shipmentId);
   return db.transaction(async (tx) => {
     const uniqueOrderIds = [...new Set(dtos.map((d) => d.orderId))];
 

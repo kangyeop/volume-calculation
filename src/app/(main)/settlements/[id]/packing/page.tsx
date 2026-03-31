@@ -156,9 +156,11 @@ export default function SettlementPackingPage() {
 
   const handleExport = useCallback(async () => {
     if (!settlement) return;
-    const XLSX = await import('xlsx');
+    const ExcelJS = (await import('exceljs')).default;
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Packing Results');
 
-    const rows = settlement.orders.map((order) => {
+    const data = settlement.orders.map((order) => {
       const skuComposition = order.items.map((i) => `${i.sku} x${i.quantity}`).join(', ');
       const groupNames = [...new Set(order.items.map((i) => skuToGroupName.get(i.sku)).filter(Boolean))].join(', ');
       const totalQuantity = order.items.reduce((sum, i) => sum + i.quantity, 0);
@@ -174,19 +176,27 @@ export default function SettlementPackingPage() {
       };
     });
 
-    const ws = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = [
-      { wch: 30 },
-      { wch: 15 },
-      { wch: 40 },
-      { wch: 20 },
-      { wch: 10 },
-      { wch: 12 },
-      { wch: 12 },
+    worksheet.columns = [
+      { key: '주문번호', width: 30 },
+      { key: '박스', width: 15 },
+      { key: 'SKU 구성', width: 40 },
+      { key: '상품 그룹', width: 20 },
+      { key: '총 수량', width: 10 },
+      { key: '에어캡 개수', width: 12 },
+      { key: '바코드 개수', width: 12 },
     ];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Packing Results');
-    XLSX.writeFile(wb, `settlement_packing_${id}.xlsx`);
+
+    worksheet.addRow(Object.keys(data[0] ?? {}));
+    data.forEach((item) => worksheet.addRow(Object.values(item)));
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `settlement_packing_${id}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
   }, [settlement, id, skuToGroupName, boxNameMap]);
 
   const handleConfirm = async () => {

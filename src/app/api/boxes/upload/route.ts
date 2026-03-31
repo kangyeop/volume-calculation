@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as boxesService from '@/lib/services/boxes';
-import * as XLSX from 'xlsx';
+import { parseExcelFile } from '@/lib/services/excel';
 import { handleApiError } from '@/lib/api-error';
+import { validateUploadFile } from '@/lib/upload-validation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,12 +16,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File is required' }, { status: 400 });
     }
 
+    const validationError = validateUploadFile(file);
+    if (validationError) {
+      return NextResponse.json({ error: validationError }, { status: 400 });
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
-    const workbook = XLSX.read(buffer, { type: 'buffer' });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
-    const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
+    const { rows, headers } = await parseExcelFile(buffer, file.name);
 
     const result = await boxesService.uploadBoxes(groupId, { headers, rows });
     return NextResponse.json({ success: true, data: result });

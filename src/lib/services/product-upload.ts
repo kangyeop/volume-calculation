@@ -23,11 +23,11 @@ function parseDimensions(raw: string): { width: number; length: number; height: 
   return { width, length, height };
 }
 
-export function parseFile(
+export async function parseFile(
   buffer: Buffer,
   originalName: string,
-): ParseProductResult {
-  const parseResult = parseExcelFile(buffer, originalName);
+): Promise<ParseProductResult> {
+  const parseResult = await parseExcelFile(buffer, originalName);
   const products: CreateProductDto[] = [];
   const errors: string[] = [];
 

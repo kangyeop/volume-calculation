@@ -13,10 +13,11 @@ export type CreateProductDto = {
 };
 
 export async function findAll(productGroupId: string) {
+  const userId = await getUserId();
   const rows = await db
     .select()
     .from(products)
-    .where(eq(products.productGroupId, productGroupId))
+    .where(and(eq(products.productGroupId, productGroupId), eq(products.userId, userId)))
     .orderBy(desc(products.createdAt));
   return rows.map(parseProduct);
 }
@@ -57,7 +58,8 @@ export async function findAllWithGroup() {
 }
 
 export async function findOne(id: string) {
-  const row = await db.query.products.findFirst({ where: eq(products.id, id) });
+  const userId = await getUserId();
+  const row = await db.query.products.findFirst({ where: and(eq(products.id, id), eq(products.userId, userId)) });
   return row ? parseProduct(row) : null;
 }
 

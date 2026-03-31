@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { orders, orderItems, products } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { getUserId } from '@/lib/auth';
+import { assertOwnership } from '@/lib/services/shipment';
 
 type CreateOrderDto = {
   shipmentId: string;
@@ -12,6 +13,7 @@ export async function findOrCreate(
   shipmentId: string,
   orderId: string,
 ) {
+  await assertOwnership(shipmentId);
   const existing = await db.query.orders.findFirst({
     where: and(eq(orders.shipmentId, shipmentId), eq(orders.orderId, orderId)),
   });
@@ -26,12 +28,14 @@ export async function findOrCreate(
 }
 
 export async function findOne(shipmentId: string, orderId: string) {
+  await assertOwnership(shipmentId);
   return db.query.orders.findFirst({
     where: and(eq(orders.shipmentId, shipmentId), eq(orders.orderId, orderId)),
   });
 }
 
 export async function findOneWithItems(shipmentId: string, orderId: string) {
+  await assertOwnership(shipmentId);
   return db.query.orders.findFirst({
     where: and(eq(orders.shipmentId, shipmentId), eq(orders.orderId, orderId)),
     with: {
@@ -44,6 +48,7 @@ export async function findOneWithItems(shipmentId: string, orderId: string) {
 
 export async function createBulk(dtos: CreateOrderDto[]) {
   if (dtos.length === 0) return [];
+  await assertOwnership(dtos[0].shipmentId);
   const CHUNK_SIZE = 500;
   const saved: (typeof orders.$inferSelect)[] = [];
   for (let i = 0; i < dtos.length; i += CHUNK_SIZE) {
@@ -55,6 +60,7 @@ export async function createBulk(dtos: CreateOrderDto[]) {
 }
 
 export async function calculateVolume(shipmentId: string, orderId: string): Promise<number> {
+  await assertOwnership(shipmentId);
   const items = await db
     .select({
       width: products.width,
@@ -78,6 +84,7 @@ export async function calculateVolume(shipmentId: string, orderId: string): Prom
 }
 
 export async function mapProducts(shipmentId: string, orderId: string) {
+  await assertOwnership(shipmentId);
   const userId = await getUserId();
   const order = await findOne(shipmentId, orderId);
   if (!order) {

@@ -29,9 +29,6 @@ export async function PATCH(
     );
     return NextResponse.json(result);
   } catch (error) {
-    if (error instanceof Error && error.message === 'SHIPMENT_CONFIRMED') {
-      return NextResponse.json({ error: '확정된 정산건은 박스를 변경할 수 없습니다.' }, { status: 409 });
-    }
     return handleApiError(error, 'PATCH /settlements/[id]/packing/recommendation');
   }
 }

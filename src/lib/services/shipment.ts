@@ -24,8 +24,9 @@ export async function findAll(type?: 'SHIPMENT' | 'SETTLEMENT') {
 }
 
 export async function findOne(id: string) {
+  const userId = await getUserId();
   return db.query.shipments.findFirst({
-    where: eq(shipments.id, id),
+    where: and(eq(shipments.id, id), eq(shipments.userId, userId)),
     with: {
       orders: true,
       orderItems: true,
@@ -90,4 +91,13 @@ export async function updateNote(id: string, note: string | null) {
 export async function remove(id: string): Promise<void> {
   const userId = await getUserId();
   await db.delete(shipments).where(and(eq(shipments.id, id), eq(shipments.userId, userId)));
+}
+
+export async function assertOwnership(id: string) {
+  const userId = await getUserId();
+  const shipment = await db.query.shipments.findFirst({
+    where: and(eq(shipments.id, id), eq(shipments.userId, userId)),
+  });
+  if (!shipment) throw new Error('Shipment not found');
+  return shipment;
 }

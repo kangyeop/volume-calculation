@@ -33,25 +33,28 @@ export async function findAll() {
 }
 
 export async function findOne(id: string) {
-  const row = await db.query.boxes.findFirst({ where: eq(boxes.id, id) });
+  const userId = await getUserId();
+  const row = await db.query.boxes.findFirst({ where: and(eq(boxes.id, id), eq(boxes.userId, userId)) });
   return row ? parseBox(row) : null;
 }
 
 export async function findByGroupId(groupId: string) {
+  const userId = await getUserId();
   const rows = await db
     .select()
     .from(boxes)
-    .where(eq(boxes.boxGroupId, groupId))
+    .where(and(eq(boxes.boxGroupId, groupId), eq(boxes.userId, userId)))
     .orderBy(desc(boxes.createdAt));
   return rows.map(parseBox);
 }
 
 export async function findByGroupIds(groupIds: string[]) {
   if (groupIds.length === 0) return new Map<string, ReturnType<typeof parseBox>[]>();
+  const userId = await getUserId();
   const rows = await db
     .select()
     .from(boxes)
-    .where(inArray(boxes.boxGroupId, groupIds))
+    .where(and(inArray(boxes.boxGroupId, groupIds), eq(boxes.userId, userId)))
     .orderBy(desc(boxes.createdAt));
   const map = new Map<string, ReturnType<typeof parseBox>[]>();
   for (const row of rows) {

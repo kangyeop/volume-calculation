@@ -6,17 +6,18 @@ import { parseExcelFile } from '@/lib/services/excel';
 import { parseAdjustment } from '@/lib/services/format-parser';
 import * as shipmentService from '@/lib/services/shipment';
 import type { PackingResultItem } from '@/types';
+import { AppError } from '@/lib/api-error';
 
 export async function uploadSettlement(
   buffer: Buffer,
   originalName: string,
 ): Promise<{ imported: number; unmatched: number; shipmentId: string; shipmentName: string }> {
-  const parseResult = parseExcelFile(buffer, originalName);
+  const parseResult = await parseExcelFile(buffer, originalName);
   const items = parseAdjustment(parseResult.rows);
 
   const uniqueOrderIds = [...new Set(items.map((i) => i.orderId))];
   if (uniqueOrderIds.length === 0) {
-    throw new Error('업로드된 파일에서 유효한 주문을 찾을 수 없습니다.');
+    throw new AppError('업로드된 파일에서 유효한 주문을 찾을 수 없습니다.', 400);
   }
   const userId = await getUserId();
 
@@ -268,7 +269,7 @@ export async function assignBox(settlementId: string, orderUuid: string, boxId: 
     )
     .returning();
 
-  if (!updated) throw new Error('해당 주문의 패킹 결과를 찾을 수 없습니다.');
+  if (!updated) throw new AppError('해당 주문의 패킹 결과를 찾을 수 없습니다.', 404);
   return updated;
 }
 

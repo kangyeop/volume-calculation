@@ -10,7 +10,7 @@ export async function uploadShipment(
   originalName: string,
   format: ShipmentFormat,
 ): Promise<ShipmentUploadResult> {
-  const parseResult = parseExcelFile(buffer, originalName);
+  const parseResult = await parseExcelFile(buffer, originalName);
   const fileName = originalName;
 
   const items = parseByFormat(format, parseResult.rows);

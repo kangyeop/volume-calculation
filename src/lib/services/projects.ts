@@ -12,7 +12,8 @@ export async function findAll() {
 }
 
 export async function findOne(id: string) {
-  return db.query.projects.findFirst({ where: eq(projects.id, id) });
+  const userId = await getUserId();
+  return db.query.projects.findFirst({ where: and(eq(projects.id, id), eq(projects.userId, userId)) });
 }
 
 export async function create(dto: CreateProjectDto) {

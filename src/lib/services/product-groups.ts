@@ -9,8 +9,9 @@ export async function findAll() {
 }
 
 export async function findOne(id: string) {
+  const userId = await getUserId();
   return db.query.productGroups.findFirst({
-    where: eq(productGroups.id, id),
+    where: and(eq(productGroups.id, id), eq(productGroups.userId, userId)),
     with: { products: true },
   });
 }

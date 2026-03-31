@@ -29,7 +29,7 @@ export const productGroups = pgTable('product_groups', {
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
 }, (table) => [
   index('product_groups_user_id_idx').on(table.userId),
-]);
+]).enableRLS();
 
 export const products = pgTable('products', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -47,7 +47,7 @@ export const products = pgTable('products', {
 }, (table) => [
   uniqueIndex('products_user_sku_unique').on(table.userId, table.sku),
   index('products_user_id_idx').on(table.userId),
-]);
+]).enableRLS();
 
 export const boxGroups = pgTable('box_groups', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -57,7 +57,7 @@ export const boxGroups = pgTable('box_groups', {
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
 }, (table) => [
   index('box_groups_user_id_idx').on(table.userId),
-]);
+]).enableRLS();
 
 export const boxes = pgTable('boxes', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -74,7 +74,7 @@ export const boxes = pgTable('boxes', {
 }, (table) => [
   index('boxes_user_id_idx').on(table.userId),
   index('boxes_box_group_id_idx').on(table.boxGroupId),
-]);
+]).enableRLS();
 
 export const boxStockHistories = pgTable('box_stock_histories', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -86,7 +86,7 @@ export const boxStockHistories = pgTable('box_stock_histories', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   index('box_stock_histories_box_id_idx').on(table.boxId),
-]);
+]).enableRLS();
 
 export const shipments = pgTable('shipments', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -101,7 +101,7 @@ export const shipments = pgTable('shipments', {
 }, (table) => [
   index('shipments_user_id_idx').on(table.userId),
   index('shipments_user_type_idx').on(table.userId, table.type),
-]);
+]).enableRLS();
 
 export const orders = pgTable('orders', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -114,7 +114,7 @@ export const orders = pgTable('orders', {
   uniqueIndex('orders_shipment_order_unique').on(table.shipmentId, table.orderId),
   index('orders_order_id_idx').on(table.orderId),
   index('orders_shipment_id_idx').on(table.shipmentId),
-]);
+]).enableRLS();
 
 export const orderItems = pgTable('order_items', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -129,7 +129,7 @@ export const orderItems = pgTable('order_items', {
 }, (table) => [
   index('order_items_shipment_product_idx').on(table.shipmentId, table.productId),
   index('order_items_shipment_order_idx').on(table.shipmentId, table.orderId),
-]);
+]).enableRLS();
 
 export const projects = pgTable('projects', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -137,7 +137,7 @@ export const projects = pgTable('projects', {
   name: varchar('name', { length: 255 }).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
-});
+}).enableRLS();
 
 export const outbounds = pgTable('outbounds', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -152,7 +152,7 @@ export const outbounds = pgTable('outbounds', {
 }, (table) => [
   index('outbounds_project_product_idx').on(table.projectId, table.productId),
   index('outbounds_project_order_idx').on(table.projectId, table.orderId),
-]);
+]).enableRLS();
 
 export const packingResults = pgTable('packing_results', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -171,7 +171,7 @@ export const packingResults = pgTable('packing_results', {
 }, (table) => [
   uniqueIndex('packing_results_order_id_unique').on(table.orderId),
   index('packing_results_shipment_id_idx').on(table.shipmentId),
-]);
+]).enableRLS();
 
 export const productGroupsRelations = relations(productGroups, ({ one, many }) => ({
   products: many(products),

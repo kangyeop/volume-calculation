@@ -9,8 +9,9 @@ export async function findAll() {
 }
 
 export async function findOne(id: string) {
+  const userId = await getUserId();
   return db.query.boxGroups.findFirst({
-    where: eq(boxGroups.id, id),
+    where: and(eq(boxGroups.id, id), eq(boxGroups.userId, userId)),
     with: { boxes: true },
   });
 }

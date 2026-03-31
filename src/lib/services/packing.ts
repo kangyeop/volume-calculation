@@ -1,7 +1,8 @@
 import { db } from '@/lib/db';
-import { orderItems, packingResults, orders, products, productGroups, shipments } from '@/lib/db/schema';
+import { orderItems, packingResults, orders, products, productGroups } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { getUserId } from '@/lib/auth';
+import { assertOwnership } from '@/lib/services/shipment';
 import { calculatePacking, calculateOrderPackingUnified } from '@/lib/algorithms/packing';
 import type {
   SKU,
@@ -87,16 +88,6 @@ export function buildPackingResultRowStats(
   };
 }
 
-async function assertNotConfirmed(shipmentId: string) {
-  const shipment = await db.query.shipments.findFirst({
-    where: eq(shipments.id, shipmentId),
-    columns: { status: true },
-  });
-  if (shipment?.status === 'CONFIRMED') {
-    throw new Error('SHIPMENT_CONFIRMED');
-  }
-}
-
 type OrderItemRow = typeof orderItems.$inferSelect & {
   product?: (typeof products.$inferSelect & { productGroupId: string }) | null;
 };
@@ -110,7 +101,8 @@ export async function calculate(
   strategy: BoxSortStrategy = 'volume',
   options: CalculateOptions = {},
 ): Promise<PackingRecommendation & { packed: number; failed: number }> {
-  await assertNotConfirmed(shipmentId);
+  const shipment = await assertOwnership(shipmentId);
+  if (shipment.status === 'CONFIRMED') throw new Error('SHIPMENT_CONFIRMED');
   const userId = await getUserId();
 
   let targetOrderUuids: string[] | undefined;
@@ -354,6 +346,7 @@ function groupOrderItems(
 }
 
 export async function findAll(shipmentId: string) {
+  await assertOwnership(shipmentId);
   return db.query.packingResults.findMany({
     where: eq(packingResults.shipmentId, shipmentId),
     with: { box: true, order: true },
@@ -361,6 +354,7 @@ export async function findAll(shipmentId: string) {
 }
 
 export async function findByOrderId(shipmentId: string, orderIdStr: string) {
+  await assertOwnership(shipmentId);
   const order = await db.query.orders.findFirst({
     where: and(eq(orders.shipmentId, shipmentId), eq(orders.orderId, orderIdStr)),
   });
@@ -372,6 +366,7 @@ export async function findByOrderId(shipmentId: string, orderIdStr: string) {
 }
 
 export async function getRecommendation(shipmentId: string): Promise<PackingRecommendation | null> {
+  await assertOwnership(shipmentId);
   const results = await db.query.packingResults.findMany({
     where: eq(packingResults.shipmentId, shipmentId),
     with: { box: true, order: true },
@@ -475,7 +470,8 @@ export async function updateBoxAssignment(
   items: { groupIndex: number; boxIndex: number }[],
   newBoxId: string,
 ): Promise<PackingRecommendation> {
-  await assertNotConfirmed(shipmentId);
+  const shipment = await assertOwnership(shipmentId);
+  if (shipment.status === 'CONFIRMED') throw new Error('SHIPMENT_CONFIRMED');
   const results = await db.query.packingResults.findMany({
     where: eq(packingResults.shipmentId, shipmentId),
     with: { box: true },
@@ -531,6 +527,7 @@ export async function calculateOrderPacking(
   orderId: string,
   groupLabel?: string,
 ): Promise<PackingResult3D> {
+  await assertOwnership(shipmentId);
   const order = await db.query.orders.findFirst({
     where: and(eq(orders.shipmentId, shipmentId), eq(orders.orderId, orderId)),
     with: {

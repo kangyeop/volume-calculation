@@ -24,9 +24,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to create stock history';
-    console.error('[API] POST /boxes/[id]/stock-histories:', message);
-    const status = message.includes('찾을 수 없') ? 404 : message.includes('부족') ? 400 : 500;
-    return NextResponse.json({ error: message }, { status });
+    return handleApiError(error, 'POST /boxes/[id]/stock-histories');
   }
 }
