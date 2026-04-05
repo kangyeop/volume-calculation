@@ -133,26 +133,55 @@ export default function SettlementPackingPage() {
     }
   };
 
-  const skuToGroupName = useMemo(() => {
+  const productIdToSku = useMemo(() => {
     const map = new Map<string, string>();
     for (const group of productGroups) {
       for (const product of group.products ?? []) {
-        map.set(product.sku, group.name);
+        map.set(product.id, product.sku);
       }
     }
     return map;
   }, [productGroups]);
 
-  const boxNameMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const bg of normalizedBoxes) {
-      map.set(bg.box.id, bg.box.name);
-    }
-    for (const b of availableBoxes) {
-      if (!map.has(b.id)) map.set(b.id, b.name);
+  const recByOrderId = useMemo(() => {
+    const map = new Map<string, {
+      boxName: string;
+      groupName: string;
+      packedSKUs: { sku: string; name: string; quantity: number }[];
+      totalQuantity: number;
+    }>();
+    if (!result) return map;
+    for (const group of result.groups) {
+      const orderId = group.groupLabel.replace(/^Order:\s*/, '');
+      const allSKUs = group.boxes.flatMap((b) => b.packedSKUs);
+      const skuAgg = new Map<string, { sku: string; name: string; quantity: number }>();
+      for (const s of allSKUs) {
+        const sku = productIdToSku.get(s.skuId) ?? s.skuId;
+        if (skuAgg.has(sku)) {
+          skuAgg.get(sku)!.quantity += s.quantity;
+        } else {
+          skuAgg.set(sku, { sku, name: s.name ?? sku, quantity: s.quantity });
+        }
+      }
+      const packedSKUs = [...skuAgg.values()];
+      const groupIds = new Set<string>();
+      for (const s of allSKUs) {
+        const gid = skuToGroupId.get(s.skuId);
+        if (gid) groupIds.add(gid);
+      }
+      const groupName = [...groupIds]
+        .map((gid) => productGroups.find((g) => g.id === gid)?.name)
+        .filter(Boolean)
+        .join(', ');
+      map.set(orderId, {
+        boxName: group.boxes[0]?.box?.name ?? '',
+        groupName,
+        packedSKUs,
+        totalQuantity: packedSKUs.reduce((sum, s) => sum + s.quantity, 0),
+      });
     }
     return map;
-  }, [normalizedBoxes, availableBoxes]);
+  }, [result, productIdToSku, skuToGroupId, productGroups]);
 
   const handleExport = useCallback(async () => {
     if (!settlement) return;
@@ -161,13 +190,18 @@ export default function SettlementPackingPage() {
     const worksheet = workbook.addWorksheet('Packing Results');
 
     const data = settlement.orders.map((order) => {
-      const skuComposition = order.items.map((i) => `${i.sku} x${i.quantity}`).join(', ');
-      const groupNames = [...new Set(order.items.map((i) => skuToGroupName.get(i.sku)).filter(Boolean))].join(', ');
-      const totalQuantity = order.items.reduce((sum, i) => sum + i.quantity, 0);
+      const rec = recByOrderId.get(order.orderId);
+      const skuComposition = rec
+        ? rec.packedSKUs.map((s) => `${s.sku} x${s.quantity}`).join(', ')
+        : order.items.map((i) => `${i.sku} x${i.quantity}`).join(', ');
+      const groupNames = rec?.groupName ?? '';
+      const totalQuantity = rec?.totalQuantity
+        ?? order.items.reduce((sum, i) => sum + i.quantity, 0);
+      const boxName = rec?.boxName ?? '';
 
       return {
         '주문번호': order.orderId,
-        '박스': order.boxId ? (boxNameMap.get(order.boxId) ?? '') : '',
+        '박스': boxName,
         'SKU 구성': skuComposition,
         '상품 그룹': groupNames,
         '총 수량': totalQuantity,
@@ -197,7 +231,7 @@ export default function SettlementPackingPage() {
     a.download = `settlement_packing_${id}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [settlement, id, skuToGroupName, boxNameMap]);
+  }, [settlement, id, recByOrderId]);
 
   const handleConfirm = async () => {
     if (!id) return;
