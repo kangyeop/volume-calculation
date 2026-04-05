@@ -133,26 +133,8 @@ export default function SettlementPackingPage() {
     }
   };
 
-  const skuToGroupName = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const group of productGroups) {
-      for (const product of group.products ?? []) {
-        map.set(product.sku, group.name);
-      }
-    }
-    return map;
-  }, [productGroups]);
-
-  const boxNameMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const bg of normalizedBoxes) {
-      map.set(bg.box.id, bg.box.name);
-    }
-    for (const b of availableBoxes) {
-      if (!map.has(b.id)) map.set(b.id, b.name);
-    }
-    return map;
-  }, [normalizedBoxes, availableBoxes]);
+  const totalBarcodeCount = settlement?.orders.reduce((sum, o) => sum + o.barcodeCount, 0) ?? 0;
+  const totalAircapCount = settlement?.orders.reduce((sum, o) => sum + o.aircapCount, 0) ?? 0;
 
   const handleExport = useCallback(async () => {
     if (!settlement) return;
@@ -160,34 +142,88 @@ export default function SettlementPackingPage() {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Packing Results');
 
-    const data = settlement.orders.map((order) => {
-      const skuComposition = order.items.map((i) => `${i.sku} x${i.quantity}`).join(', ');
-      const groupNames = [...new Set(order.items.map((i) => skuToGroupName.get(i.sku)).filter(Boolean))].join(', ');
-      const totalQuantity = order.items.reduce((sum, i) => sum + i.quantity, 0);
-
-      return {
-        '주문번호': order.orderId,
-        '박스': order.boxId ? (boxNameMap.get(order.boxId) ?? '') : '',
-        'SKU 구성': skuComposition,
-        '상품 그룹': groupNames,
-        '총 수량': totalQuantity,
-        '에어캡 개수': order.aircapCount,
-        '바코드 개수': order.barcodeCount,
-      };
-    });
+    const fill = (argb: string) => ({ type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb } });
+    const headerFill = fill('FF4472C4');
+    const headerFont = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+    const sectionFill = fill('FFD9E2F3');
+    const sectionFont = { bold: true, size: 12 };
+    const subHeaderFill = fill('FFF2F2F2');
 
     worksheet.columns = [
-      { key: '주문번호', width: 30 },
-      { key: '박스', width: 15 },
-      { key: 'SKU 구성', width: 40 },
-      { key: '상품 그룹', width: 20 },
-      { key: '총 수량', width: 10 },
-      { key: '에어캡 개수', width: 12 },
-      { key: '바코드 개수', width: 12 },
+      { width: 25 },
+      { width: 15 },
+      { width: 15 },
+      { width: 15 },
     ];
 
-    worksheet.addRow(Object.keys(data[0] ?? {}));
-    data.forEach((item) => worksheet.addRow(Object.values(item)));
+    const addSectionHeader = (title: string, extra?: string) => {
+      const row = worksheet.addRow([title, extra ?? '', '', '']);
+      row.getCell(1).font = sectionFont;
+      row.getCell(1).fill = sectionFill;
+      row.getCell(2).fill = sectionFill;
+      row.getCell(3).fill = sectionFill;
+      row.getCell(4).fill = sectionFill;
+      if (extra) row.getCell(2).font = { bold: true, size: 11 };
+    };
+
+    const addTableHeader = (cols: string[]) => {
+      const row = worksheet.addRow(cols);
+      cols.forEach((_, i) => {
+        row.getCell(i + 1).font = headerFont;
+        row.getCell(i + 1).fill = headerFill;
+        row.getCell(i + 1).alignment = { horizontal: 'center' };
+      });
+    };
+
+    const addBoxRows = (boxes: typeof normalizedBoxes) => {
+      addTableHeader(['박스', '수량', 'CBM', '효율(%)']);
+      for (const bg of boxes) {
+        worksheet.addRow([
+          bg.box.name,
+          bg.count,
+          Math.round(bg.totalCBM * 1000) / 1000,
+          Math.round(bg.efficiency * 100) / 100,
+        ]);
+      }
+    };
+
+    addSectionHeader('박스별 사용 현황');
+    addBoxRows(normalizedBoxes);
+
+    for (const { group, filteredBoxes, barcodeCount, aircapCount } of groupSections) {
+      worksheet.addRow([]);
+      const statParts = [];
+      if (barcodeCount > 0) statParts.push(`바코드: ${barcodeCount}`);
+      if (aircapCount > 0) statParts.push(`에어캡: ${aircapCount}`);
+      addSectionHeader(group.name, statParts.join('  '));
+      addBoxRows(filteredBoxes);
+    }
+
+    if (unclassifiedBoxes.length > 0 || pendingCount > 0) {
+      worksheet.addRow([]);
+      const extra = pendingCount > 0 ? `${pendingCount}건 미계산` : '';
+      addSectionHeader('미분류', extra);
+      if (unclassifiedBoxes.length > 0) {
+        addBoxRows(unclassifiedBoxes);
+      }
+    }
+
+    if (totalBarcodeCount > 0 || totalAircapCount > 0) {
+      worksheet.addRow([]);
+      const summaryRow = worksheet.addRow([
+        '전체 합계',
+        '',
+        `바코드: ${totalBarcodeCount}`,
+        `에어캡: ${totalAircapCount}`,
+      ]);
+      summaryRow.getCell(1).font = { bold: true, size: 11 };
+      summaryRow.getCell(1).fill = subHeaderFill;
+      summaryRow.getCell(2).fill = subHeaderFill;
+      summaryRow.getCell(3).fill = subHeaderFill;
+      summaryRow.getCell(3).font = { bold: true };
+      summaryRow.getCell(4).fill = subHeaderFill;
+      summaryRow.getCell(4).font = { bold: true };
+    }
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -197,7 +233,7 @@ export default function SettlementPackingPage() {
     a.download = `settlement_packing_${id}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [settlement, id, skuToGroupName, boxNameMap]);
+  }, [settlement, id, normalizedBoxes, groupSections, unclassifiedBoxes, pendingCount, totalBarcodeCount, totalAircapCount]);
 
   const handleConfirm = async () => {
     if (!id) return;
@@ -218,9 +254,6 @@ export default function SettlementPackingPage() {
       toast.error('확정 해제 실패');
     }
   };
-
-  const totalBarcodeCount = settlement?.orders.reduce((sum, o) => sum + o.barcodeCount, 0) ?? 0;
-  const totalAircapCount = settlement?.orders.reduce((sum, o) => sum + o.aircapCount, 0) ?? 0;
 
   return (
     <PageContainer>
