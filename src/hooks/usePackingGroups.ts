@@ -1,7 +1,7 @@
 import { useMemo, useCallback } from 'react';
 import type { NormalizedBoxGroup } from '@/hooks/usePackingNormalizer';
 import type { ProductGroup } from '@/lib/api';
-import type { Box, BoxGroup } from '@/types';
+import type { Box, BoxGroup, PackingRecommendation } from '@/types';
 
 export interface DetailView {
   type: 'box';
@@ -20,22 +20,32 @@ export interface GroupSection {
   stats: { totalBoxes: number; totalCBM: number; avgEfficiency: number };
 }
 
+export interface OrderExportData {
+  boxName: string;
+  groupName: string;
+  packedSKUs: { sku: string; name: string; quantity: number }[];
+  totalQuantity: number;
+}
+
 export function usePackingGroups({
   normalizedBoxes,
   productGroups,
   boxGroupList,
+  recommendation,
   searchParams,
   router,
 }: {
   normalizedBoxes: NormalizedBoxGroup[];
   productGroups: ProductGroup[];
   boxGroupList: BoxGroup[];
+  recommendation?: PackingRecommendation | null;
   searchParams: URLSearchParams | { get: (key: string) => string | null; toString: () => string };
   router: { push: (url: string) => void };
 }) {
-  const { skuDimensionsMap, skuToGroupId } = useMemo(() => {
+  const { skuDimensionsMap, skuToGroupId, productIdToSku } = useMemo(() => {
     const dims = new Map<string, { width: number; length: number; height: number; name: string }>();
     const groups = new Map<string, string>();
+    const idToSku = new Map<string, string>();
     for (const group of productGroups) {
       for (const product of group.products ?? []) {
         dims.set(product.id, {
@@ -46,9 +56,10 @@ export function usePackingGroups({
         });
         groups.set(product.id, group.id);
         groups.set(product.sku, group.id);
+        idToSku.set(product.id, product.sku);
       }
     }
-    return { skuDimensionsMap: dims, skuToGroupId: groups };
+    return { skuDimensionsMap: dims, skuToGroupId: groups, productIdToSku: idToSku };
   }, [productGroups]);
 
   const activeGroupIds = useMemo(() => {
@@ -173,6 +184,41 @@ export function usePackingGroups({
     return boxGroupList.flatMap((g) => g.boxes ?? []);
   }, [boxGroupList]);
 
+  const orderExportMap = useMemo(() => {
+    const map = new Map<string, OrderExportData>();
+    if (!recommendation) return map;
+    for (const group of recommendation.groups) {
+      const orderId = group.groupLabel.replace(/^Order:\s*/, '');
+      const allSKUs = group.boxes.flatMap((b) => b.packedSKUs);
+      const skuAgg = new Map<string, { sku: string; name: string; quantity: number }>();
+      for (const s of allSKUs) {
+        const sku = productIdToSku.get(s.skuId) ?? s.skuId;
+        if (skuAgg.has(sku)) {
+          skuAgg.get(sku)!.quantity += s.quantity;
+        } else {
+          skuAgg.set(sku, { sku, name: s.name ?? sku, quantity: s.quantity });
+        }
+      }
+      const packedSKUs = [...skuAgg.values()];
+      const groupIds = new Set<string>();
+      for (const s of allSKUs) {
+        const gid = skuToGroupId.get(s.skuId);
+        if (gid) groupIds.add(gid);
+      }
+      const groupName = [...groupIds]
+        .map((gid) => productGroups.find((g) => g.id === gid)?.name)
+        .filter(Boolean)
+        .join(', ');
+      map.set(orderId, {
+        boxName: group.boxes[0]?.box?.name ?? '',
+        groupName,
+        packedSKUs,
+        totalQuantity: packedSKUs.reduce((sum, s) => sum + s.quantity, 0),
+      });
+    }
+    return map;
+  }, [recommendation, productIdToSku, skuToGroupId, productGroups]);
+
   return {
     skuDimensionsMap,
     skuToGroupId,
@@ -186,5 +232,6 @@ export function usePackingGroups({
     availableBoxes,
     getShipmentGroupId,
     buildBoxGroups,
+    orderExportMap,
   };
 }
