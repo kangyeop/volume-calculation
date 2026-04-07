@@ -416,13 +416,21 @@ export async function getRecommendation(shipmentId: string): Promise<PackingReco
       }
     }
 
-    const boxesArray = boxObj
-      ? [{
-          box: boxObj,
-          count: 1,
-          packedSKUs: [...packedSKUsMap.values()],
-        }]
-      : [];
+    const resolvedBox = boxObj ?? {
+      id: 'unassigned',
+      name: '미지정',
+      width: 0,
+      length: 0,
+      height: 0,
+      stock: 0,
+      boxGroupId: null,
+    };
+
+    const boxesArray = [{
+      box: resolvedBox,
+      count: 1,
+      packedSKUs: [...packedSKUsMap.values()],
+    }];
 
     const mappedUnpacked = unpackedItems.map((item) => {
       const product = productBySku.get(item.sku);
