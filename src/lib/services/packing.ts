@@ -81,7 +81,7 @@ export function buildPackingResultRowStats(
       }, 0)
     : 0;
   return {
-    boxId: firstBox ? firstBox.box.id : null,
+    boxId: firstBox && firstBox.box.id !== 'unassigned' ? firstBox.box.id : null,
     packedCount: firstBox ? firstBox.packedSKUs.reduce((a, s) => a + s.quantity, 0) : 0,
     efficiency: String(boxVol > 0 ? usedVol / boxVol : 0),
     totalCBM: String(firstBox ? boxVol / 1_000_000 : 0),
