@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProductGroups, useDeleteProductGroup } from '@/hooks/queries';
-import { Plus, Package, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Package, Trash2, Loader2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePrefetchProductGroup } from '@/hooks/usePrefetch';
 import { ListTableSkeleton } from '@/components/skeletons';
@@ -18,6 +18,40 @@ export default function ProductGroupList() {
   const deleteGroup = useDeleteProductGroup();
   const prefetch = usePrefetchProductGroup();
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
+  type SortKey = 'name' | 'productCount' | 'createdAt';
+  type SortDirection = 'asc' | 'desc';
+  const [sortKey, setSortKey] = useState<SortKey>('createdAt');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  const sorted = useMemo(() => {
+    return [...groups].sort((a, b) => {
+      const dir = sortDirection === 'asc' ? 1 : -1;
+      const valA = a[sortKey] ?? '';
+      const valB = b[sortKey] ?? '';
+      if (valA < valB) return -1 * dir;
+      if (valA > valB) return 1 * dir;
+      return 0;
+    });
+  }, [groups, sortKey, sortDirection]);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDirection('asc');
+    }
+  };
+
+  const SortIcon = ({ column }: { column: SortKey }) => {
+    if (sortKey !== column) return <ArrowUpDown className="h-3.5 w-3.5 text-gray-400" />;
+    return sortDirection === 'asc' ? (
+      <ArrowUp className="h-3.5 w-3.5 text-indigo-600" />
+    ) : (
+      <ArrowDown className="h-3.5 w-3.5 text-indigo-600" />
+    );
+  };
 
   const handleDeleteClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -77,14 +111,29 @@ export default function ProductGroupList() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">그룹명</th>
-                    <th className="px-4 py-3 text-right font-medium text-gray-600">상품 수</th>
-                    <th className="px-4 py-3 text-right font-medium text-gray-600">생성일</th>
+                    <th
+                      className="px-4 py-3 text-left font-medium text-gray-600 cursor-pointer hover:text-gray-900 select-none"
+                      onClick={() => handleSort('name')}
+                    >
+                      <span className="inline-flex items-center gap-1">그룹명 <SortIcon column="name" /></span>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-right font-medium text-gray-600 cursor-pointer hover:text-gray-900 select-none"
+                      onClick={() => handleSort('productCount')}
+                    >
+                      <span className="inline-flex items-center gap-1 justify-end">상품 수 <SortIcon column="productCount" /></span>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-right font-medium text-gray-600 cursor-pointer hover:text-gray-900 select-none"
+                      onClick={() => handleSort('createdAt')}
+                    >
+                      <span className="inline-flex items-center gap-1 justify-end">생성일 <SortIcon column="createdAt" /></span>
+                    </th>
                     <th className="px-4 py-3 w-12"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {groups.map((group) => (
+                  {sorted.map((group) => (
                     <tr
                       key={group.id}
                       onClick={() => router.push(`/products/${group.id}`)}
