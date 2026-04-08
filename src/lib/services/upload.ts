@@ -2,18 +2,18 @@ import * as shipmentService from '@/lib/services/shipment';
 import * as orderItemService from '@/lib/services/order-item';
 import * as productsService from '@/lib/services/products';
 import { parseExcelFile } from '@/lib/services/excel';
-import { parseByFormat, type ShipmentFormat } from '@/lib/services/format-parser';
-import type { ShipmentUploadResult, UnmatchedItem } from '@/types';
+import { applyColumnMapping } from '@/lib/services/column-mapper';
+import type { ShipmentUploadResult, UnmatchedItem, ColumnMapping } from '@/types';
 
 export async function uploadShipment(
   buffer: Buffer,
   originalName: string,
-  format: ShipmentFormat,
+  mapping: ColumnMapping,
 ): Promise<ShipmentUploadResult> {
   const parseResult = await parseExcelFile(buffer, originalName);
   const fileName = originalName;
 
-  const items = parseByFormat(format, parseResult.rows);
+  const items = applyColumnMapping(parseResult.rows, mapping);
 
   const orderMap = new Map<string, { sku: string; quantity: number }[]>();
   for (const item of items) {

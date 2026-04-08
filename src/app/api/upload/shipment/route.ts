@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadShipment } from '@/lib/services/upload';
-import type { ShipmentFormat } from '@/lib/services/format-parser';
 import { handleApiError } from '@/lib/api-error';
 import { validateUploadFile } from '@/lib/upload-validation';
-
-const VALID_FORMATS: ShipmentFormat[] = ['adjustment', 'beforeMapping', 'afterMapping'];
+import type { ColumnMapping } from '@/types';
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const format = formData.get('format') as string;
+    const mappingRaw = formData.get('mapping') as string;
 
     if (!file) {
       return NextResponse.json({ error: 'File is required' }, { status: 400 });
@@ -21,12 +19,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
-    if (!format || !VALID_FORMATS.includes(format as ShipmentFormat)) {
-      return NextResponse.json({ error: 'Invalid format' }, { status: 400 });
+    if (!mappingRaw) {
+      return NextResponse.json({ error: 'mapping is required' }, { status: 400 });
+    }
+
+    const mapping: ColumnMapping = JSON.parse(mappingRaw);
+    if (!mapping.orderIdColumn || !mapping.skuColumn) {
+      return NextResponse.json({ error: 'orderIdColumn and skuColumn are required' }, { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const result = await uploadShipment(buffer, file.name, format as ShipmentFormat);
+    const result = await uploadShipment(buffer, file.name, mapping);
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
     return handleApiError(error, 'POST /upload/shipment');

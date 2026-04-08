@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as productUploadService from '@/lib/services/product-upload';
 import { handleApiError } from '@/lib/api-error';
 import { validateUploadFile } from '@/lib/upload-validation';
+import type { ColumnMapping } from '@/types';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,8 +25,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
+    const mappingRaw = formData.get('mapping') as string;
+    if (!mappingRaw) {
+      return NextResponse.json({ error: 'mapping is required' }, { status: 400 });
+    }
+    const mapping: ColumnMapping = JSON.parse(mappingRaw);
+
     const buffer = Buffer.from(await file.arrayBuffer());
-    const result = await productUploadService.parseFile(buffer, file.name);
+    const result = await productUploadService.parseFile(buffer, file.name, mapping);
 
     if (result.errors.length > 0 && result.products.length === 0) {
       return NextResponse.json(

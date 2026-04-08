@@ -3,17 +3,18 @@ import { shipments, orders, orderItems, packingResults, products } from '@/lib/d
 import { eq, and, desc, inArray } from 'drizzle-orm';
 import { getUserId } from '@/lib/auth';
 import { parseExcelFile } from '@/lib/services/excel';
-import { parseAdjustment } from '@/lib/services/format-parser';
+import { applyColumnMapping } from '@/lib/services/column-mapper';
 import * as shipmentService from '@/lib/services/shipment';
-import type { PackingResultItem } from '@/types';
+import type { PackingResultItem, ColumnMapping } from '@/types';
 import { AppError } from '@/lib/api-error';
 
 export async function uploadSettlement(
   buffer: Buffer,
   originalName: string,
+  mapping: ColumnMapping,
 ): Promise<{ imported: number; unmatched: number; shipmentId: string; shipmentName: string }> {
   const parseResult = await parseExcelFile(buffer, originalName);
-  const items = parseAdjustment(parseResult.rows);
+  const items = applyColumnMapping(parseResult.rows, mapping);
 
   const uniqueOrderIds = [...new Set(items.map((i) => i.orderId))];
   if (uniqueOrderIds.length === 0) {
