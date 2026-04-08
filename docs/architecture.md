@@ -60,7 +60,10 @@ volume-calculator/
 │   │       │   └── [id]/
 │   │       │       └── signed-url/   # PDF signed URL 발급
 │   │       ├── order-items/          # 주문 아이템 개별 조작
+│   │       ├── column-mapping-templates/ # 컬럼 매핑 템플릿 CRUD
+│   │       │   └── [id]/             # 템플릿 수정/삭제
 │   │       ├── upload/               # 출고 및 정산 엑셀 업로드
+│   │       │   ├── preview/          # 엑셀 미리보기 (헤더 + 샘플)
 │   │       │   ├── shipment/         # 출고 엑셀 업로드
 │   │       │   └── settlement/       # 정산 엑셀 업로드
 │   │       ├── product-upload/       # 상품 엑셀 업로드
@@ -73,6 +76,7 @@ volume-calculator/
 │   │   ├── batch/                    # 출고/정산 공통 컴포넌트 (BatchListPage, ConfigurationList, SummaryStatCard)
 │   │   ├── packing/                  # 패킹 관련 컴포넌트
 │   │   ├── products/                 # 상품 관련 컴포넌트
+│   │   ├── upload/                   # 업로드 컴포넌트 (ColumnMappingUpload, ColumnMappingForm, MappingPreviewTable)
 │   │   ├── ErrorBoundary.tsx         # 에러 바운더리
 │   │   ├── ExcelUpload.tsx           # 엑셀 업로드 공통 컴포넌트
 │   │   ├── PackingResult.tsx         # 패킹 결과 표시
@@ -88,6 +92,8 @@ volume-calculator/
 │   │   │   ├── useBoxStockHistories.ts
 │   │   │   ├── useShipments.ts
 │   │   │   ├── useEstimates.ts       # 견적서 쿼리 훅
+│   │   │   ├── useColumnMappingTemplates.ts # 매핑 템플릿 쿼리 훅
+│   │   │   ├── useExcelPreview.ts   # 엑셀 미리보기 훅
 │   │   │   ├── useSettlements.ts     # 정산 쿼리 훅
 │   │   │   ├── useOrderItems.ts
 │   │   │   ├── usePacking.ts
@@ -135,7 +141,8 @@ volume-calculator/
 │   │   │   ├── estimates.ts          # 견적서 CRUD + PDF Storage
 │   │   │   ├── file-storage.ts       # 파일 저장소 (Supabase Storage)
 │   │   │   ├── upload.ts            # 출고 업로드 핵심 로직
-│   │   │   ├── format-parser.ts    # 고정 양식 파서 (정산/매핑전/매핑후)
+│   │   │   ├── column-mapper.ts     # 범용 컬럼 매핑 엔진
+│   │   │   ├── column-mapping-templates.ts # 매핑 템플릿 CRUD 서비스
 │   │   │   └── excel.ts             # 엑셀 파싱/생성
 │   │
 │   └── types/                        # TypeScript 타입 정의

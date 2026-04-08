@@ -151,6 +151,17 @@ erDiagram
         timestamp createdAt
         timestamp updatedAt
     }
+
+    ColumnMappingTemplate {
+        uuid id PK
+        uuid userId
+        varchar name
+        mapping_type type
+        jsonb mapping "ColumnMapping"
+        boolean isDefault "default false"
+        timestamp createdAt
+        timestamp updatedAt
+    }
 ```
 
 ## Enum 타입
@@ -161,6 +172,7 @@ erDiagram
 | `shipment_status` | `PACKING`, `CONFIRMED` | 출고건 패킹 상태 |
 | `shipment_type` | `SHIPMENT`, `SETTLEMENT` | Shipment 유형 (출고/정산) |
 | `stock_change_type` | `INBOUND`, `OUTBOUND`, `INITIAL`, `ADJUSTMENT` | 재고 변동 유형 (입고/출고/초기등록/수정) |
+| `mapping_type` | `shipment`, `settlement`, `product` | 컬럼 매핑 템플릿 유형 |
 
 ## 인덱스
 
@@ -177,6 +189,8 @@ erDiagram
 | `packing_results` | UNIQUE | `order_id` |
 | `packing_results` | INDEX | `shipment_id` |
 | `estimates` | INDEX | `user_id` |
+| `column_mapping_templates` | INDEX | `user_id` |
+| `column_mapping_templates` | INDEX | `(user_id, type)` |
 
 ## 관계 요약
 
