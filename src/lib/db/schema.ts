@@ -19,6 +19,7 @@ export const orderStatusEnum = pgEnum('order_status', ['PENDING', 'PROCESSING', 
 export const shipmentStatusEnum = pgEnum('shipment_status', ['PACKING', 'CONFIRMED']);
 export const shipmentTypeEnum = pgEnum('shipment_type', ['SHIPMENT', 'SETTLEMENT']);
 export const stockChangeTypeEnum = pgEnum('stock_change_type', ['INBOUND', 'OUTBOUND', 'INITIAL', 'ADJUSTMENT']);
+export const mappingTypeEnum = pgEnum('mapping_type', ['shipment', 'settlement', 'product']);
 
 export const productGroups = pgTable('product_groups', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -260,6 +261,20 @@ export const estimates = pgTable('estimates', {
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
 }, (table) => [
   index('estimates_user_id_idx').on(table.userId),
+]).enableRLS();
+
+export const columnMappingTemplates = pgTable('column_mapping_templates', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  type: mappingTypeEnum('type').notNull(),
+  mapping: jsonb('mapping').$type<import('@/types').ColumnMapping>().notNull(),
+  isDefault: boolean('is_default').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
+}, (table) => [
+  index('column_mapping_templates_user_id_idx').on(table.userId),
+  index('column_mapping_templates_user_type_idx').on(table.userId, table.type),
 ]).enableRLS();
 
 export const packingResultsRelations = relations(packingResults, ({ one }) => ({

@@ -141,6 +141,13 @@
       "when": 1774959796590,
       "tag": "0019_sloppy_hammerhead",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1775628336171,
+      "tag": "0020_regular_solo",
+      "breakpoints": true
     }
   ]
 }

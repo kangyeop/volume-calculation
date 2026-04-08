@@ -210,6 +210,39 @@ export interface ShipmentUploadResult {
   totalRows: number;
 }
 
+export type MappingType = 'shipment' | 'settlement' | 'product';
+
+export type CompoundMode = 'none' | 'slash_separated' | 'newline_separated';
+export type CompoundQuantityPattern = 'bracket' | 'slash_ea' | 'none';
+
+export interface ColumnMapping {
+  orderIdColumn?: string;
+  skuColumn?: string;
+  quantityColumn?: string;
+  compoundMode?: CompoundMode;
+  compoundQuantityPattern?: CompoundQuantityPattern;
+  skuNameColumn?: string;
+  dimensionsColumn?: string;
+  barcodeColumn?: string;
+  aircapColumn?: string;
+}
+
+export interface ColumnMappingTemplate {
+  id: string;
+  name: string;
+  type: MappingType;
+  mapping: ColumnMapping;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExcelPreviewResult {
+  headers: string[];
+  sampleRows: Record<string, unknown>[];
+  totalRows: number;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
