@@ -2,19 +2,20 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import { ExcelUpload } from '@/components/ExcelUpload';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { ColumnMappingUpload } from '@/components/upload/ColumnMappingUpload';
 import { useUploadSettlement } from '@/hooks/queries';
+import type { ColumnMapping } from '@/types';
 
 export default function SettlementCreate() {
   const router = useRouter();
   const upload = useUploadSettlement();
 
-  const handleFileSelect = async (file: File) => {
+  const handleConfirm = async (file: File, mapping: ColumnMapping) => {
     try {
-      const resultPromise = upload.mutateAsync(file);
+      const resultPromise = upload.mutateAsync({ file, mapping });
       router.prefetch('/settlements');
       const result = await resultPromise;
       toast.success('업로드 완료', { description: `${result.imported}건 처리 완료` });
@@ -52,17 +53,11 @@ export default function SettlementCreate() {
           </div>
         )}
 
-        {upload.isPending ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
-            <p className="text-sm text-gray-500">데이터를 처리하고 있습니다...</p>
-          </div>
-        ) : (
-          <ExcelUpload
-            onUpload={handleFileSelect}
-            title="클릭하거나 정산 엑셀 파일을 여기에 드래그하세요"
-          />
-        )}
+        <ColumnMappingUpload
+          type="settlement"
+          onConfirm={handleConfirm}
+          isPending={upload.isPending}
+        />
       </div>
     </PageContainer>
   );

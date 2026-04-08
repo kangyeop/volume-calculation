@@ -67,3 +67,7 @@ export const estimates = createQueryKeys('estimates', {
 export const dashboard = createQueryKeys('dashboard', {
   stats: null,
 });
+
+export const columnMappingTemplates = createQueryKeys('columnMappingTemplates', {
+  byType: (type: string) => [type],
+});

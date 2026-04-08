@@ -13,8 +13,10 @@ import {
   ApiResponse,
   ProjectStats,
   Estimate,
+  ExcelPreviewResult,
+  ColumnMappingTemplate,
 } from '@/types';
-import type { StockChangeType } from '@/types';
+import type { StockChangeType, ColumnMapping, MappingType } from '@/types';
 
 const API_BASE = '/api';
 
@@ -185,10 +187,10 @@ export const api = {
     unconfirm: (id: string) => fetchApi<{ success: boolean }>(`/shipments/${id}/confirm`, { method: 'DELETE' }),
     updateNote: (id: string, note: string | null) =>
       fetchApi<Shipment>(`/shipments/${id}`, { method: 'PATCH', data: { note } }),
-    upload: (file: File, format: 'adjustment' | 'beforeMapping' | 'afterMapping'): Promise<ShipmentUploadResult> => {
+    upload: (file: File, mapping: ColumnMapping): Promise<ShipmentUploadResult> => {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('format', format);
+      formData.append('mapping', JSON.stringify(mapping));
       return apiClient
         .post<ApiResponse<ShipmentUploadResult>>('/upload/shipment', formData)
         .then(unwrapResponse);
@@ -222,9 +224,10 @@ export const api = {
     list: () => fetchApi<Shipment[]>('/settlements'),
     get: (id: string) => fetchApi<SettlementDetail>(`/settlements/${id}`),
     delete: (id: string) => fetchApi<void>(`/settlements/${id}`, { method: 'DELETE' }),
-    upload: (file: File): Promise<SettlementUploadResult> => {
+    upload: (file: File, mapping: ColumnMapping): Promise<SettlementUploadResult> => {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('mapping', JSON.stringify(mapping));
       return apiClient
         .post<ApiResponse<SettlementUploadResult>>('/upload/settlement', formData)
         .then(unwrapResponse);
@@ -318,9 +321,11 @@ export const api = {
     parse: async (
       file: File,
       groupId: string,
+      mapping: ColumnMapping,
     ): Promise<{ imported: number; rowCount: number; errors: string[]; fileName: string }> => {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('mapping', JSON.stringify(mapping));
 
       const response = await apiClient.post<
         ApiResponse<{ imported: number; rowCount: number; errors: string[]; fileName: string }>
@@ -331,6 +336,33 @@ export const api = {
       }
       return response.data.data;
     },
+  },
+  upload: {
+    preview: (file: File): Promise<ExcelPreviewResult> => {
+      const formData = new FormData();
+      formData.append('file', file);
+      return apiClient
+        .post<ApiResponse<ExcelPreviewResult>>('/upload/preview', formData)
+        .then(unwrapResponse);
+    },
+  },
+  columnMappingTemplates: {
+    list: (type: MappingType) =>
+      fetchApi<ColumnMappingTemplate[]>(`/column-mapping-templates?type=${type}`).then(
+        (res) => (res as unknown as { data: ColumnMappingTemplate[] }).data ?? res,
+      ),
+    create: (data: { name: string; type: MappingType; mapping: ColumnMapping; isDefault?: boolean }) =>
+      fetchApi<{ data: ColumnMappingTemplate }>('/column-mapping-templates', {
+        method: 'POST',
+        data,
+      }).then((res) => res.data),
+    update: (id: string, data: { name?: string; mapping?: ColumnMapping; isDefault?: boolean }) =>
+      fetchApi<{ data: ColumnMappingTemplate }>(`/column-mapping-templates/${id}`, {
+        method: 'PATCH',
+        data,
+      }).then((res) => res.data),
+    delete: (id: string) =>
+      fetchApi<void>(`/column-mapping-templates/${id}`, { method: 'DELETE' }),
   },
   estimates: {
     list: (search?: string) => {

@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { api, type Shipment, type SettlementUploadResult } from '@/lib/api';
 import { settlements } from './queryKeys';
+import type { ColumnMapping } from '@/types';
 
 export function useSettlements() {
   return useQuery({
@@ -22,11 +23,12 @@ export function useSettlementDetail(id: string) {
   });
 }
 
-export function useUploadSettlement(): UseMutationResult<SettlementUploadResult, Error, File> {
+export function useUploadSettlement(): UseMutationResult<SettlementUploadResult, Error, { file: File; mapping: ColumnMapping }> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (file: File) => api.settlements.upload(file),
+    mutationFn: ({ file, mapping }: { file: File; mapping: ColumnMapping }) =>
+      api.settlements.upload(file, mapping),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: settlements.all.queryKey });
     },

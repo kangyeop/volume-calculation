@@ -6,7 +6,7 @@ import { useProductGroup, useBoxGroups, useUpdateProductGroup } from '@/hooks/qu
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { products as productsKey } from '@/hooks/queries/queryKeys';
-import { ExcelUpload } from '@/components/ExcelUpload';
+import { ColumnMappingUpload } from '@/components/upload/ColumnMappingUpload';
 import { toast } from 'sonner';
 import { ArrowLeft, Trash2, Loader2, AlertCircle, Check, X, Pencil } from 'lucide-react';
 import { ProductDetailSkeleton } from '@/components/skeletons';
@@ -107,11 +107,11 @@ export default function ProductGroupDetail() {
     }
   };
 
-  const handleUpload = async (file: File) => {
+  const handleUpload = async (file: File, mapping: import('@/types').ColumnMapping) => {
     if (!groupId) return;
     setIsUploading(true);
     try {
-      const result = await api.productUpload.parse(file, groupId);
+      const result = await api.productUpload.parse(file, groupId, mapping);
       if (result.errors.length > 0) {
         toast.warning('일부 행 오류', {
           description: `${result.errors.length}건의 오류가 있습니다.`,
@@ -225,7 +225,7 @@ export default function ProductGroupDetail() {
               <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
             </div>
           ) : (
-            <ExcelUpload onUpload={handleUpload} title="상품 파일 추가" />
+            <ColumnMappingUpload type="product" onConfirm={handleUpload} isPending={isUploading} />
           )}
           <div className="p-4 bg-blue-50 rounded-lg text-xs text-blue-700">
             <strong>엑셀 컬럼 매핑:</strong>

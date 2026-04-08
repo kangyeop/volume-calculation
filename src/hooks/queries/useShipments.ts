@@ -44,11 +44,11 @@ export function useInfiniteShipmentOrderItems(shipmentId: string) {
   });
 }
 
-export function useUploadShipment(): UseMutationResult<ShipmentUploadResult, Error, { file: File; format: 'adjustment' | 'beforeMapping' | 'afterMapping' }> {
+export function useUploadShipment(): UseMutationResult<ShipmentUploadResult, Error, { file: File; mapping: import('@/types').ColumnMapping }> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ file, format }) => api.shipments.upload(file, format),
+    mutationFn: ({ file, mapping }) => api.shipments.upload(file, mapping),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: shipments.all.queryKey });
     },

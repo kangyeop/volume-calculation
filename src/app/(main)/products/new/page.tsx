@@ -3,11 +3,12 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCreateProductGroup, useBoxGroups } from '@/hooks/queries';
-import { ExcelUpload } from '@/components/ExcelUpload';
 import { toast } from 'sonner';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { ColumnMappingUpload } from '@/components/upload/ColumnMappingUpload';
 import { api } from '@/lib/api';
+import type { ColumnMapping } from '@/types';
 
 export default function ProductGroupCreate() {
   const router = useRouter();
@@ -30,11 +31,11 @@ export default function ProductGroupCreate() {
     }
   };
 
-  const handleUpload = async (file: File) => {
+  const handleConfirm = async (file: File, mapping: ColumnMapping) => {
     if (!createdGroupId) return;
     setIsUploading(true);
     try {
-      const resultPromise = api.productUpload.parse(file, createdGroupId);
+      const resultPromise = api.productUpload.parse(file, createdGroupId, mapping);
       router.prefetch(`/products/${createdGroupId}`);
       const result = await resultPromise;
       if (result.errors.length > 0) {
@@ -115,17 +116,11 @@ export default function ProductGroupCreate() {
 
           <div className="bg-white border rounded-xl shadow-sm p-6 space-y-4">
             <h2 className="font-semibold text-gray-900">상품 파일 업로드 (선택)</h2>
-            {isUploading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
-                <span className="ml-3 text-sm text-gray-600">처리 중...</span>
-              </div>
-            ) : (
-              <ExcelUpload onUpload={handleUpload} title="엑셀 파일을 업로드하세요" />
-            )}
-            <div className="p-3 bg-blue-50 rounded-lg text-xs text-blue-700">
-              <strong>엑셀 컬럼:</strong> 상품명, 체적정보 (예: 10x20x30)
-            </div>
+            <ColumnMappingUpload
+              type="product"
+              onConfirm={handleConfirm}
+              isPending={isUploading}
+            />
           </div>
 
           <button

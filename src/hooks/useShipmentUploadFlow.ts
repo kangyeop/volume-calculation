@@ -3,16 +3,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, type Shipment } from '@/lib/api';
 import { shipments } from './queries/queryKeys';
-import type { ShipmentUploadResult } from '@/types';
-
-type ShipmentFormat = 'adjustment' | 'beforeMapping' | 'afterMapping';
+import type { ShipmentUploadResult, ColumnMapping } from '@/types';
 
 export function useShipmentUploadFlow() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ file, format }: { file: File; format: ShipmentFormat }) =>
-      api.shipments.upload(file, format),
+    mutationFn: ({ file, mapping }: { file: File; mapping: ColumnMapping }) =>
+      api.shipments.upload(file, mapping),
     onSuccess: (result: ShipmentUploadResult) => {
       queryClient.setQueryData<Shipment[]>(shipments.all.queryKey, (old) => [
         ...(old ?? []),

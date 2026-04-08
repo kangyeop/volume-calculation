@@ -1,28 +1,21 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import { ExcelUpload } from '@/components/ExcelUpload';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { ColumnMappingUpload } from '@/components/upload/ColumnMappingUpload';
 import { useShipmentUploadFlow } from '@/hooks/useShipmentUploadFlow';
-
-type ShipmentFormat = 'adjustment' | 'beforeMapping' | 'afterMapping';
-
-const FORMAT_OPTIONS: { value: ShipmentFormat; label: string }[] = [
-  { value: 'beforeMapping', label: '매핑 전' },
-  { value: 'afterMapping', label: '매핑 후' },
-];
+import type { ColumnMapping } from '@/types';
 
 export default function OutboundCreate() {
   const router = useRouter();
   const flow = useShipmentUploadFlow();
-  const [format, setFormat] = useState<ShipmentFormat>('beforeMapping');
 
-  const handleFileSelect = async (file: File) => {
+  const handleConfirm = async (file: File, mapping: ColumnMapping) => {
     try {
-      const resultPromise = flow.mutateAsync({ file, format });
+      const resultPromise = flow.mutateAsync({ file, mapping });
       router.prefetch('/shipments');
       const result = await resultPromise;
       toast.success('업로드 완료', { description: `${result.imported}건이 등록되었습니다.` });
@@ -60,33 +53,11 @@ export default function OutboundCreate() {
           </div>
         )}
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">양식 선택</label>
-          <select
-            value={format}
-            onChange={(e) => setFormat(e.target.value as ShipmentFormat)}
-            disabled={flow.isPending}
-            className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
-          >
-            {FORMAT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {flow.isPending ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
-            <p className="text-sm text-gray-500">데이터를 처리하고 있습니다...</p>
-          </div>
-        ) : (
-          <ExcelUpload
-            onUpload={handleFileSelect}
-            title="클릭하거나 엑셀 파일을 여기에 드래그하세요"
-          />
-        )}
+        <ColumnMappingUpload
+          type="shipment"
+          onConfirm={handleConfirm}
+          isPending={flow.isPending}
+        />
       </div>
     </PageContainer>
   );
