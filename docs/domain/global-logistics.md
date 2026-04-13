@@ -11,7 +11,7 @@
 | **목적** | 수출 출고 건의 팔레트 필요 수량 추정 및 최적화 |
 | **팔레트 규격** | 110 × 110 × 165 cm (고정, 사용자 정의 불가) |
 | **계산 단위** | 출고 건 단위, SKU별 독립 계산 |
-| **알고리즘** | 보수적 2D-footprint 하한선 추정 (v1) |
+| **알고리즘** | 완전 탐색 2D 코너 포인트 DFS (pinwheel 포함 non-guillotine 배치 발견) |
 | **특징** | 상품 그룹, 상품, 출고, 주문, 주문 아이템, 팔레트 계산 결과 테이블 6개 신규 추가 |
 
 ## 데이터 모델
@@ -174,7 +174,17 @@ EXPORT_PALLET = {
 
 ### 계산 알고리즘
 
-**보수적 2D-footprint 하한선.** 카톤 회전을 가로/세로 방향으로만 허용하며, 한 방향 고정으로 전체 팔레트 계산. 혼합 배향 선반 패킹이나 혼합 SKU 팔레트 최적화는 v1에서 비목표.
+**완전 탐색 2D 코너 포인트 DFS.** 카톤은 upright(H축 회전 불가)로 고정하고, 바닥 면에서 `W×L` / `L×W` 두 방향을 혼합 배치 가능. 단일 층 내에서 **비-guillotine 배치(pinwheel 등)까지 발견**하는 완전 탐색 패커.
+
+**탐색 구조:**
+1. **면적 상한:** `U = floor((110 × 110) / (W × L))`
+2. **반복 심화:** `n = U` 부터 `0`까지 감소시키며 "n개 배치가 존재하는가?" DFS 검사. 첫 성공이 최적.
+3. **코너 포인트 열거:** 이미 배치된 카톤들의 `x + width`, `y + height` 값과 `{0}`의 곱집합이 다음 배치 후보 좌표. `(y, x)` 정렬로 결정론 + bottom-left-first 휴리스틱.
+4. **분기:** 각 후보 좌표에서 `[W, L]`, `[L, W]` 두 방향 시도.
+5. **가지치기:**
+   - 면적 프루닝: `(target - placed) × W × L > 110² − usedArea` 이면 실패
+   - 대칭 브레이킹: 첫 카톤은 `(0, 0)` 고정
+   - 스텝 예산: 200,000 노드 초과 시 legacy guillotine 폴백(과거 결과 보장)
 
 **Oversize guard (비대칭):** 임의 축에서 초과 여부 확인
 - `width > 110` **OR** `length > 110` **OR** `height > 165` → `unpackable = true`, 후속 필드 영전
@@ -184,8 +194,8 @@ EXPORT_PALLET = {
 1. **카톤 수:** `cartonCount = ceil(totalUnits / innerQuantity)`
    - `innerQuantity < 1` → 업스트림 validation 오류
 
-2. **한 층 카톤 수:** `itemsPerLayer = max(floor(110/W) * floor(110/L), floor(110/L) * floor(110/W))`
-   - 정사각형 팔레트(110×110)에서 두 식은 수학적으로 동일; `max` 형식은 미래 비정사각형 팔레트 대비
+2. **한 층 카톤 수:** `itemsPerLayer = maxCartonsInLayer(110, 110, W, L)`
+   - DFS 완전 탐색 결과. 균일 그리드, strip-split, pinwheel 등 모든 배치 탐색
 
 3. **층 수:** `layersPerPallet = floor(165 / H)`
 
@@ -199,10 +209,13 @@ EXPORT_PALLET = {
 
 ### 정확성 및 한계
 
-- **Type:** 보수적 하한선 추정 (실제 필요 수량 ≤ 추정값)
-- **오버스티메이트:** 일부 치수에서 실제 필요 팔레트 대비 최대 ~30% 초과 추정 가능
-- **미보장:** 혼합 배향 선반 패킹, 혼합 SKU 동일 팔레트 최적화
-- **v2 개선:** 사용자 피드백 시 개선; 현재는 수출 계획용으로 수용 가능
+- **Type:** 단일 층 · 단일 SKU · upright 전제 하에서 **최적(optimal)**. 면적 상한에서 반복 심화로 첫 성공이 증명된 최적해.
+- **결정론:** 동일 입력에 대해 항상 동일한 `itemsPerLayer` 반환. 코너 후보 정렬 및 방향 순서 고정.
+- **성능:** 전형적 팔레트/카톤 조합은 <100ms. 스텝 예산 200k로 최악 케이스 안전망.
+- **미보장:**
+  - **H축 회전(카톤 눕히기)**: 현재 전제상 upright만 허용
+  - **혼합 SKU 동일 팔레트 최적화**: 단일 SKU 기준으로만 계산
+- **폴백:** 스텝 예산 초과 시 legacy guillotine 결과로 폴백 (`console.warn` 로그). 결과 품질이 저하될 수 있으나 기존 수준은 보장.
 
 ### 단위 테스트 (Vitest)
 
@@ -212,13 +225,15 @@ EXPORT_PALLET = {
 
 | 케이스 | 카톤(cm) | innerQty | 총개수 | 예상 결과 | 검증 포인트 |
 |--------|---------|---------|-------|---------|-----------|
-| 정확 적합 | 50×50×55 | 1 | 24 | itemsPerLayer=4, layersPerPallet=3, cartonsPerPallet=12, palletCount=2, lastPalletCartons=12, lastPalletIsFull=true | 정확 배치 |
+| 정확 적합 | 50×50×55 | 1 | 24 | itemsPerLayer=4, layersPerPallet=3, cartonsPerPallet=12, palletCount=2, lastPalletCartons=12, lastPalletIsFull=true | 균일 그리드 |
 | 부분 마지막 | 50×50×55 | 1 | 13 | cartonCount=13, palletCount=2, lastPalletCartons=1, lastPalletIsFull=false | 미완성 팔레트 |
 | Oversize width | 120×40×50 | 1 | 10 | unpackable=true, palletCount=0 | 가로 초과 |
 | Oversize length | 40×120×50 | 1 | 10 | unpackable=true | 세로 초과 |
 | Oversize height | 40×40×200 | 1 | 10 | unpackable=true | 높이 초과 |
-| 단일 카톤 | 60×40×55 | 100 | 50 | cartonCount=1, palletCount=1, lastPalletIsFull=false | 1 팔레트 미만 |
-| 내입 수량 커버 | 60×40×55 | 10 | 250 | cartonCount=25, palletCount=5, lastPalletCartons=1 | innerQuantity 합산 |
+| 단일 카톤 | 60×40×55 | 100 | 50 | cartonCount=1, itemsPerLayer=4, cartonsPerPallet=12, palletCount=1 | 1 팔레트 미만 |
+| 혼합 배향 | 40×30×50 | 1 | 24 | itemsPerLayer=8, cartonsPerPallet=24, palletCount=1, lastPalletIsFull=true | 균일 그리드 초과 (6 → 8) |
+| **Pinwheel** | **59×46×36** | **1** | **152** | **itemsPerLayer=4, layersPerPallet=4, cartonsPerPallet=16, palletCount=10** | **non-guillotine 배치 발견 (3 → 4)** |
+| 내입 수량 커버 | 60×40×55 | 10 | 250 | cartonCount=25, itemsPerLayer=4, cartonsPerPallet=12, palletCount=3, lastPalletCartons=1 | innerQuantity 합산 |
 
 ## 엑셀 업로드 및 집계
 
