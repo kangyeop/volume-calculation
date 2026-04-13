@@ -6,6 +6,22 @@ interface ParseResult {
   rowCount: number;
 }
 
+export function cellToString(value: unknown): string {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'object') {
+    const v = value as { richText?: { text?: string }[]; text?: unknown; result?: unknown };
+    if (Array.isArray(v.richText)) {
+      return v.richText.map((r) => r?.text ?? '').join('');
+    }
+    if (v.text != null) return cellToString(v.text);
+    if (v.result != null) return cellToString(v.result);
+  }
+  return String(value);
+}
+
 export async function parseExcelFile(buffer: Buffer, filename: string): Promise<ParseResult> {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer);
@@ -21,7 +37,7 @@ export async function parseExcelFile(buffer: Buffer, filename: string): Promise<
   worksheet.eachRow((row, rowNumber) => {
     if (rowNumber === 1) {
       row.eachCell((cell) => {
-        headers.push(String(cell.value ?? ''));
+        headers.push(cellToString(cell.value));
       });
       return;
     }
@@ -30,7 +46,7 @@ export async function parseExcelFile(buffer: Buffer, filename: string): Promise<
     row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
       const header = headers[colNumber - 1];
       if (header) {
-        rowData[header] = cell.value != null ? String(cell.value) : '';
+        rowData[header] = cellToString(cell.value);
       }
     });
     rows.push(rowData);

@@ -14,7 +14,21 @@ import { PageContainer } from '@/components/layout/PageContainer';
 
 const COLUMN_SKU = '상품명';
 const COLUMN_DIMENSIONS = '체적정보';
-const COLUMN_INNER_QUANTITY = '내입수량';
+const COLUMN_INNER_QUANTITY = '단품수량';
+
+function cellToString(value: unknown): string {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'object') {
+    const v = value as { richText?: { text?: string }[]; text?: unknown; result?: unknown };
+    if (Array.isArray(v.richText)) return v.richText.map((r) => r?.text ?? '').join('');
+    if (v.text != null) return cellToString(v.text);
+    if (v.result != null) return cellToString(v.result);
+  }
+  return String(value);
+}
 
 function parseDimensions(raw: string): { width: number; length: number; height: number } | null {
   const cleaned = raw.replace(/(cm|mm|m|in|inch)$/i, '').trim();
@@ -40,7 +54,7 @@ async function parseExcelClientSide(
   const headerRow = worksheet.getRow(1);
   const headerMap: Record<string, number> = {};
   headerRow.eachCell((cell, colNumber) => {
-    const key = String(cell.value ?? '').trim();
+    const key = cellToString(cell.value).trim();
     if (key) headerMap[key] = colNumber;
   });
 
@@ -68,10 +82,10 @@ async function parseExcelClientSide(
 
   for (let i = 2; i <= worksheet.rowCount; i++) {
     const row = worksheet.getRow(i);
-    const sku = String(row.getCell(skuCol).value ?? '').trim();
+    const sku = cellToString(row.getCell(skuCol).value).trim();
     if (!sku) continue;
 
-    const dimsRaw = String(row.getCell(dimsCol).value ?? '').trim();
+    const dimsRaw = cellToString(row.getCell(dimsCol).value).trim();
     const dims = dimsRaw ? parseDimensions(dimsRaw) : null;
     if (!dims) {
       errors.push(`행 ${i} (${sku}): 체적정보가 없거나 형식이 올바르지 않습니다.`);
@@ -199,7 +213,7 @@ export default function GlobalProductGroupCreate() {
               <ExcelUpload onUpload={handleUpload} title="엑셀 파일을 업로드하세요" />
             )}
             <div className="p-3 bg-blue-50 rounded-lg text-xs text-blue-700">
-              <strong>엑셀 컬럼:</strong> 상품명, 체적정보 (예: 10x20x30), 내입수량
+              <strong>엑셀 컬럼:</strong> 상품명, 체적정보 (예: 10x20x30), 단품수량
             </div>
           </div>
 
