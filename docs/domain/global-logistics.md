@@ -224,28 +224,30 @@ EXPORT_PALLET = {
 
 ### 포맷 및 파서
 
-- **파서:** `src/lib/services/global-format-parser.ts` (v1 placeholder)
-- **전략:** 국내 포맷 파서 (`src/lib/services/format-parser.ts`)를 재사용 (thin passthrough)
-- **v2 목표:** 글로벌 전용 형식 파서로 교체; 현재는 국내와 동일 구조
+- **파서:** `src/lib/services/global-format-parser.ts` — 글로벌 전용 구현
+- **포맷:** `globalStandard` (단일 포맷)
+- **엑셀 컬럼:** `상품명`, `출고수량` (필수), `유통기한`·`로트번호`·`순번` 등 기타 컬럼은 존재해도 무시
+- **주문번호:** 엑셀에 주문번호 컬럼이 없으므로 모든 행을 고정 더미 주문번호 `DEFAULT` 하나로 묶음
+- **richText 대응:** `src/lib/services/excel.ts`의 `cellToString`이 ExcelJS richText 객체를 평탄화해 한/영 혼용 폰트 상품명도 정상 파싱
 
 ### 업로드 흐름
 
 ```
-엑셀 파일 업로드 + 포맷 선택 (매핑전 / 매핑후)
+엑셀 파일 업로드 (globalStandard)
        │
        ▼
-  엑셀 파싱 (ExcelJS)
+  엑셀 파싱 (ExcelJS) + richText 평탄화
        │
        ▼
-  고정 포맷 기반 컬럼 매핑
+  상품명 / 출고수량 컬럼 매핑
        │
        ▼
-  GlobalShipment + GlobalOrder + GlobalOrderItem 생성
+  GlobalShipment + GlobalOrder(orderNumber='DEFAULT') + GlobalOrderItem 생성
 ```
 
 ### 주문 그룹핑 및 멱등성
 
-- **그룹핑 기준:** `orderNumber` 기준으로 행 그룹핑
+- **그룹핑 기준:** `orderNumber` 기준으로 행 그룹핑 (`globalStandard`는 모든 행이 `DEFAULT` 단일 주문)
 - **중복 행 사전 집계:** 동일 `(orderNumber, sku)` 조합 행들의 `quantity` 합산
 - **재업로드 멱등성:** UNIQUE INDEX `(global_order_id, sku)` + `ON CONFLICT ... DO UPDATE` 또는 선삭제
   ```
@@ -364,7 +366,7 @@ EXPORT_PALLET = {
 | `src/lib/services/global-products.ts` | GlobalProduct CRUD |
 | `src/lib/services/global-shipment.ts` | GlobalShipment CRUD |
 | `src/lib/services/global-order-item.ts` | GlobalOrderItem CRUD + 자동 Order 생성 |
-| `src/lib/services/global-format-parser.ts` | 엑셀 파서 (v1 placeholder) |
+| `src/lib/services/global-format-parser.ts` | 엑셀 파서 (`globalStandard`) |
 | `src/lib/services/global-upload.ts` | 출고 엑셀 업로드 파이프라인 |
 | `src/lib/services/global-packing.ts` | 팔레트 계산 + 결과 저장 |
 
