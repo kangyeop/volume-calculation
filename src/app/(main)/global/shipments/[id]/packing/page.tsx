@@ -94,7 +94,7 @@ export default function GlobalPackingCalculator() {
                 적재 불가 SKU ({unpackableRows.length}개)
               </div>
               <div className="text-sm text-red-800 mt-1">
-                카톤 치수가 팔레트 규격을 초과하여 적재할 수 없습니다.
+                박스 치수가 팔레트 규격을 초과하여 적재할 수 없습니다.
               </div>
               <ul className="mt-3 space-y-1.5">
                 {unpackableRows.map((row) => (
@@ -183,6 +183,11 @@ export default function GlobalPackingCalculator() {
                     <div className="min-w-0 flex-1">
                       <div className="font-semibold text-gray-900 truncate">{row.productName}</div>
                       <div className="text-xs font-mono text-muted-foreground mt-0.5">{row.sku}</div>
+                      {row.width != null && row.length != null && row.height != null && (
+                        <div className="text-xs text-gray-600 mt-1">
+                          박스 체적 <span className="font-mono">{row.width} × {row.length} × {row.height}</span>
+                        </div>
+                      )}
                     </div>
                     <span className="inline-flex items-center px-2 py-1 text-xs font-semibold bg-indigo-100 text-indigo-700 rounded">
                       {row.palletCount} pallets
@@ -195,11 +200,11 @@ export default function GlobalPackingCalculator() {
                       <div className="text-sm font-semibold">{row.totalUnits.toLocaleString()}</div>
                     </div>
                     <div className="p-2 bg-gray-50 rounded-lg">
-                      <div className="text-xs text-muted-foreground">카톤 수</div>
+                      <div className="text-xs text-muted-foreground">박스 수</div>
                       <div className="text-sm font-semibold">{row.cartonCount.toLocaleString()}</div>
                     </div>
                     <div className="p-2 bg-gray-50 rounded-lg">
-                      <div className="text-xs text-muted-foreground">입수</div>
+                      <div className="text-xs text-muted-foreground">박스당 수량</div>
                       <div className="text-sm font-semibold">{row.innerQuantity}</div>
                     </div>
                   </div>

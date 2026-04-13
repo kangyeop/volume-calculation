@@ -21,6 +21,9 @@ export interface GlobalPackingResultRow {
   palletCount: number;
   lastPalletCartons: number;
   unpackable: boolean;
+  width: number | null;
+  length: number | null;
+  height: number | null;
   createdAt: string;
   updatedAt: string;
 }

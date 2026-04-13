@@ -6,7 +6,11 @@ import { calculatePalletization } from '@/lib/algorithms/pallet';
 
 const CHUNK_SIZE = 500;
 
-export type GlobalPackingResultRow = typeof globalPackingResults.$inferSelect;
+export type GlobalPackingResultRow = typeof globalPackingResults.$inferSelect & {
+  width: number | null;
+  length: number | null;
+  height: number | null;
+};
 
 export type GlobalPackingCalculateResult = {
   totalPallets: number;
@@ -94,7 +98,15 @@ export async function calculate(
     for (let i = 0; i < inserts.length; i += CHUNK_SIZE) {
       const chunk = inserts.slice(i, i + CHUNK_SIZE);
       const inserted = await tx.insert(globalPackingResults).values(chunk).returning();
-      saved.push(...inserted);
+      for (const row of inserted) {
+        const product = row.sku ? productBySku.get(row.sku) : undefined;
+        saved.push({
+          ...row,
+          width: product ? Number(product.width) : null,
+          length: product ? Number(product.length) : null,
+          height: product ? Number(product.height) : null,
+        });
+      }
     }
     return saved;
   });
@@ -109,9 +121,22 @@ export async function getRecommendation(
   globalShipmentId: string,
 ): Promise<GlobalPackingResultRow[]> {
   await assertOwnership(globalShipmentId);
-  return db
-    .select()
+  const rows = await db
+    .select({
+      result: globalPackingResults,
+      width: globalProducts.width,
+      length: globalProducts.length,
+      height: globalProducts.height,
+    })
     .from(globalPackingResults)
+    .leftJoin(globalProducts, eq(globalPackingResults.globalProductId, globalProducts.id))
     .where(eq(globalPackingResults.globalShipmentId, globalShipmentId))
     .orderBy(desc(globalPackingResults.palletCount), asc(globalPackingResults.sku));
+
+  return rows.map((r) => ({
+    ...r.result,
+    width: r.width != null ? Number(r.width) : null,
+    length: r.length != null ? Number(r.length) : null,
+    height: r.height != null ? Number(r.height) : null,
+  }));
 }
