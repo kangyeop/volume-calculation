@@ -1,27 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ExcelUpload } from '@/components/ExcelUpload';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { useUploadGlobalShipment } from '@/hooks/queries';
-import type { GlobalShipmentFormat } from '@/hooks/queries/useGlobalShipments';
-
-const FORMAT_OPTIONS: { value: GlobalShipmentFormat; label: string }[] = [
-  { value: 'beforeMapping', label: '매핑 전' },
-  { value: 'afterMapping', label: '매핑 후' },
-];
 
 export default function GlobalShipmentCreate() {
   const router = useRouter();
   const upload = useUploadGlobalShipment();
-  const [format, setFormat] = useState<GlobalShipmentFormat>('beforeMapping');
 
   const handleFileSelect = async (file: File) => {
     try {
-      const resultPromise = upload.mutateAsync({ file, format });
+      const resultPromise = upload.mutateAsync({ file, format: 'globalStandard' });
       router.prefetch('/global/shipments');
       const result = await resultPromise;
       const unmatchedCount = result.unmatched?.length ?? 0;
@@ -73,20 +66,8 @@ export default function GlobalShipmentCreate() {
           </div>
         )}
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">양식 선택</label>
-          <select
-            value={format}
-            onChange={(e) => setFormat(e.target.value as GlobalShipmentFormat)}
-            disabled={upload.isPending}
-            className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
-          >
-            {FORMAT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+        <div className="p-3 bg-blue-50 rounded-lg text-xs text-blue-700">
+          <strong>엑셀 컬럼:</strong> 상품명, 출고수량 (유통기한 · 로트번호는 있어도 무시됩니다)
         </div>
 
         {upload.isPending ? (

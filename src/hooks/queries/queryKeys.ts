@@ -81,7 +81,6 @@ export const globalShipments = createQueryKeys('globalShipments', {
   all: null,
   detail: (id: string) => [id],
   orderItems: (shipmentId: string) => [shipmentId, 'order-items'],
-  configurationSummary: (shipmentId: string) => [shipmentId, 'configuration-summary'],
 });
 
 export const globalPacking = createQueryKeys('globalPacking', {

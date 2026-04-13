@@ -4,7 +4,7 @@ import type { GlobalShipmentFormat } from '@/lib/services/global-format-parser';
 import { handleApiError } from '@/lib/api-error';
 import { validateUploadFile } from '@/lib/upload-validation';
 
-const VALID_FORMATS: GlobalShipmentFormat[] = ['adjustment', 'beforeMapping', 'afterMapping'];
+const VALID_FORMATS: GlobalShipmentFormat[] = ['globalStandard'];
 
 export async function POST(request: NextRequest) {
   try {
