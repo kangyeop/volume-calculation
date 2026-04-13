@@ -325,6 +325,7 @@ EXPORT_PALLET = {
   - 총 개수 + 카톤 수 (innerQuantity 표시)
   - `팔레트 수`, `한 층 적재 수량`, `한 팔레트 적재 수량`, `마지막 팔레트 수량`
   - 마지막 팔레트 미완성 시 강조 표시 (예: `3/12 칸`)
+  - **3D 뷰 모달:** 카드의 `3D로 보기` 버튼으로 팔레트 한 대의 실제 박스 배치를 react-three-fiber 기반 인터랙티브 뷰(OrbitControls)로 확인. 각 층은 `computeLayerLayout`가 반환하는 동일한 Rect 레이아웃을 `layersPerPallet` 만큼 수직 반복해 렌더.
 
 ## API
 
@@ -389,8 +390,11 @@ EXPORT_PALLET = {
 
 | 파일 | 역할 |
 |------|------|
-| `src/lib/algorithms/pallet.ts` | 팔레트 계산 알고리즘 |
+| `src/lib/algorithms/pallet.ts` | 팔레트 계산 알고리즘 (`computeLayerLayout`은 개수 + Rect 좌표 반환, `maxCartonsInLayer`는 개수만 반환하는 얇은 래퍼) |
+| `src/lib/algorithms/pallet-layout.ts` | 3D 뷰 전용 헬퍼 (`buildPalletLayout3D`) — `computeLayerLayout` 결과를 층 수까지 합쳐 반환 |
 | `src/lib/algorithms/__tests__/pallet.test.ts` | 팔레트 알고리즘 테스트 (Vitest) |
+| `src/components/global/PalletPacking3DView.tsx` | react-three-fiber 기반 팔레트 3D 캔버스 |
+| `src/components/global/PalletPacking3DModal.tsx` | 3D 뷰 모달 래퍼 (`next/dynamic`으로 Canvas 번들 지연 로드) |
 
 ### React Query & Hooks
 

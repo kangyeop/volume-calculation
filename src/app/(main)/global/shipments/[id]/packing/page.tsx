@@ -1,15 +1,16 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { ArrowLeft, RefreshCw, AlertTriangle, AlertCircle, Package } from 'lucide-react';
+import { ArrowLeft, RefreshCw, AlertTriangle, AlertCircle, Package, Box } from 'lucide-react';
 import {
   useGlobalPackingRecommendation,
   useCalculateGlobalPacking,
   type GlobalPackingResultRow,
 } from '@/hooks/queries';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { PalletPacking3DModal } from '@/components/global/PalletPacking3DModal';
 
 export default function GlobalPackingCalculator() {
   const params = useParams<{ id: string }>();
@@ -18,6 +19,7 @@ export default function GlobalPackingCalculator() {
 
   const { data: recommendation, isLoading } = useGlobalPackingRecommendation(shipmentId);
   const calculateMutation = useCalculateGlobalPacking(shipmentId);
+  const [view3dRow, setView3dRow] = useState<GlobalPackingResultRow | null>(null);
 
   const isCalculating = calculateMutation.isPending;
   const result = recommendation ?? null;
@@ -194,6 +196,16 @@ export default function GlobalPackingCalculator() {
                     </span>
                   </div>
 
+                  {row.width != null && row.length != null && row.height != null && (
+                    <button
+                      onClick={() => setView3dRow(row)}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+                    >
+                      <Box className="h-3.5 w-3.5" />
+                      3D로 보기
+                    </button>
+                  )}
+
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div className="p-2 bg-gray-50 rounded-lg">
                       <div className="text-xs text-muted-foreground">총 수량</div>
@@ -237,6 +249,26 @@ export default function GlobalPackingCalculator() {
           </div>
         </div>
       )}
+
+      <PalletPacking3DModal
+        open={view3dRow !== null}
+        onClose={() => setView3dRow(null)}
+        sku={
+          view3dRow &&
+          view3dRow.width != null &&
+          view3dRow.length != null &&
+          view3dRow.height != null
+            ? {
+                sku: view3dRow.sku,
+                productName: view3dRow.productName,
+                width: view3dRow.width,
+                length: view3dRow.length,
+                height: view3dRow.height,
+                innerQuantity: view3dRow.innerQuantity,
+              }
+            : null
+        }
+      />
     </PageContainer>
   );
 }

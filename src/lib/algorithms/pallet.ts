@@ -37,11 +37,16 @@ export interface PalletizationResult {
   unpackable: boolean;
 }
 
-interface Rect {
+export interface Rect {
   x: number;
   y: number;
   w: number;
   h: number;
+}
+
+export interface LayerLayout {
+  count: number;
+  rects: Rect[];
 }
 
 const UNPACKABLE: Omit<PalletizationResult, 'cartonCount'> = {
@@ -56,17 +61,34 @@ const UNPACKABLE: Omit<PalletizationResult, 'cartonCount'> = {
 
 const STEP_BUDGET = 200_000;
 
-function grid(PW: number, PL: number, w: number, l: number): number {
-  if (w <= 0 || l <= 0 || w > PW || l > PL) return 0;
-  return Math.floor(PW / w) * Math.floor(PL / l);
+function gridRects(
+  PW: number,
+  PL: number,
+  w: number,
+  l: number,
+  offsetX = 0,
+  offsetY = 0,
+): Rect[] {
+  if (w <= 0 || l <= 0 || w > PW || l > PL) return [];
+  const cols = Math.floor(PW / w);
+  const rows = Math.floor(PL / l);
+  const out: Rect[] = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      out.push({ x: offsetX + c * w, y: offsetY + r * l, w, h: l });
+    }
+  }
+  return out;
 }
 
-function bestGrid(PW: number, PL: number, w: number, l: number): number {
-  return Math.max(grid(PW, PL, w, l), grid(PW, PL, l, w));
+function bestGridLayout(PW: number, PL: number, w: number, l: number): Rect[] {
+  const a = gridRects(PW, PL, w, l);
+  const b = gridRects(PW, PL, l, w);
+  return a.length >= b.length ? a : b;
 }
 
-function computeGuillotineLayer(PW: number, PL: number, w: number, l: number): number {
-  let best = bestGrid(PW, PL, w, l);
+function computeGuillotineLayout(PW: number, PL: number, w: number, l: number): LayerLayout {
+  let best: Rect[] = bestGridLayout(PW, PL, w, l);
 
   for (const [aw, al] of [
     [w, l],
@@ -74,34 +96,46 @@ function computeGuillotineLayer(PW: number, PL: number, w: number, l: number): n
   ] as const) {
     const maxCols = Math.floor(PW / aw);
     for (let k = 1; k <= maxCols; k++) {
-      const zone1 = k * Math.floor(PL / al);
-      const zone2 = bestGrid(PW - k * aw, PL, w, l);
-      if (zone1 + zone2 > best) best = zone1 + zone2;
+      const zone1 = gridRects(k * aw, PL, aw, al);
+      const zone2 = bestGridLayout(PW - k * aw, PL, w, l).map((r) => ({
+        ...r,
+        x: r.x + k * aw,
+      }));
+      if (zone1.length + zone2.length > best.length) best = [...zone1, ...zone2];
     }
     const maxRows = Math.floor(PL / al);
     for (let k = 1; k <= maxRows; k++) {
-      const zone1 = Math.floor(PW / aw) * k;
-      const zone2 = bestGrid(PW, PL - k * al, w, l);
-      if (zone1 + zone2 > best) best = zone1 + zone2;
+      const zone1 = gridRects(PW, k * al, aw, al);
+      const zone2 = bestGridLayout(PW, PL - k * al, w, l).map((r) => ({
+        ...r,
+        y: r.y + k * al,
+      }));
+      if (zone1.length + zone2.length > best.length) best = [...zone1, ...zone2];
     }
   }
 
-  return best;
+  return { count: best.length, rects: best };
 }
 
-export function maxCartonsInLayer(PW: number, PL: number, w: number, l: number): number {
-  if (w <= 0 || l <= 0) return 0;
-  if ((w > PW || l > PL) && (l > PW || w > PL)) return 0;
+export function computeLayerLayout(
+  PW: number,
+  PL: number,
+  w: number,
+  l: number,
+): LayerLayout {
+  if (w <= 0 || l <= 0) return { count: 0, rects: [] };
+  if ((w > PW || l > PL) && (l > PW || w > PL)) return { count: 0, rects: [] };
 
   const cartonArea = w * l;
   const palletArea = PW * PL;
   const upperBound = Math.floor(palletArea / cartonArea);
-  if (upperBound === 0) return 0;
+  if (upperBound === 0) return { count: 0, rects: [] };
 
-  const guillotineFallback = computeGuillotineLayer(PW, PL, w, l);
+  const guillotineFallback = computeGuillotineLayout(PW, PL, w, l);
 
   let steps = 0;
   let budgetExceeded = false;
+  let bestLayout: Rect[] = [];
 
   function overlaps(a: Rect, placed: Rect[]): boolean {
     for (const b of placed) {
@@ -135,7 +169,10 @@ export function maxCartonsInLayer(PW: number, PL: number, w: number, l: number):
   ];
 
   function search(placed: Rect[], usedArea: number, target: number): boolean {
-    if (placed.length === target) return true;
+    if (placed.length === target) {
+      bestLayout = placed.map((r) => ({ ...r }));
+      return true;
+    }
     if (steps++ > STEP_BUDGET) {
       budgetExceeded = true;
       return false;
@@ -160,23 +197,27 @@ export function maxCartonsInLayer(PW: number, PL: number, w: number, l: number):
     return false;
   }
 
-  let bestFound = 0;
   for (let n = upperBound; n >= 1; n--) {
     steps = 0;
     budgetExceeded = false;
     if (search([], 0, n)) {
-      bestFound = n;
       break;
     }
     if (budgetExceeded) {
       console.warn(
-        `[pallet] maxCartonsInLayer step budget exceeded for PW=${PW} PL=${PL} w=${w} l=${l} target=${n}; falling back to guillotine`,
+        `[pallet] computeLayerLayout step budget exceeded for PW=${PW} PL=${PL} w=${w} l=${l} target=${n}; falling back to guillotine`,
       );
-      return Math.max(bestFound, guillotineFallback);
+      if (guillotineFallback.count > bestLayout.length) return guillotineFallback;
+      return { count: bestLayout.length, rects: bestLayout };
     }
   }
 
-  return Math.max(bestFound, guillotineFallback);
+  if (guillotineFallback.count > bestLayout.length) return guillotineFallback;
+  return { count: bestLayout.length, rects: bestLayout };
+}
+
+export function maxCartonsInLayer(PW: number, PL: number, w: number, l: number): number {
+  return computeLayerLayout(PW, PL, w, l).count;
 }
 
 export function calculatePalletization(
