@@ -4,17 +4,39 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Package, Truck, Box, Layers, LogOut, Calculator, FileText } from 'lucide-react';
+import {
+  Package,
+  Truck,
+  Box,
+  Layers,
+  LogOut,
+  Calculator,
+  FileText,
+  PackageOpen,
+  Container,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createSupabaseBrowser } from '@/lib/supabase/client';
 
-const navItems = [
-  { to: '/products', label: '상품', icon: Package },
-  { to: '/shipments', label: '출고', icon: Truck },
-  { to: '/settlements', label: '정산', icon: Calculator },
-  { to: '/estimates', label: '견적서', icon: FileText },
-  { to: '/boxes', label: '박스 관리', icon: Box },
-  { to: '/box-groups', label: '박스 그룹', icon: Layers },
+const navGroups = [
+  {
+    label: '국내 물류',
+    items: [
+      { to: '/products', label: '상품', icon: Package },
+      { to: '/shipments', label: '출고', icon: Truck },
+      { to: '/settlements', label: '정산', icon: Calculator },
+      { to: '/estimates', label: '견적서', icon: FileText },
+      { to: '/boxes', label: '박스 관리', icon: Box },
+      { to: '/box-groups', label: '박스 그룹', icon: Layers },
+    ],
+  },
+  {
+    label: '글로벌 물류',
+    items: [
+      { to: '/global/products', label: '상품 그룹', icon: PackageOpen },
+      { to: '/global/shipments', label: '글로벌 출고', icon: Container },
+    ],
+  },
 ];
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
@@ -43,23 +65,30 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           <Image src="/logo.png" alt="큐브" width={36} height={36} />
           <span className="text-xl font-bold tracking-tight">도넛 큐브</span>
         </div>
-        <nav className="flex-1 p-4 space-y-1">
-          {navItems.map((item) => {
-            const isActive = pathname === item.to || pathname.startsWith(item.to + '/');
-            return (
-              <Link
-                key={item.to}
-                href={item.to}
-                className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100',
-                  isActive ? 'bg-gray-100 text-primary' : 'text-muted-foreground',
-                )}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 p-4 space-y-4">
+          {navGroups.map((group) => (
+            <div key={group.label} className="space-y-1">
+              <div className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+                {group.label}
+              </div>
+              {group.items.map((item) => {
+                const isActive = pathname === item.to || pathname.startsWith(item.to + '/');
+                return (
+                  <Link
+                    key={item.to}
+                    href={item.to}
+                    className={cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100',
+                      isActive ? 'bg-gray-100 text-primary' : 'text-muted-foreground',
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
         <div className="border-t p-4">
           <div className="flex items-center justify-between gap-2">
