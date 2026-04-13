@@ -67,3 +67,23 @@ export const estimates = createQueryKeys('estimates', {
 export const dashboard = createQueryKeys('dashboard', {
   stats: null,
 });
+
+export const globalProductGroups = createQueryKeys('globalProductGroups', {
+  all: null,
+  detail: (id: string) => [id],
+});
+
+export const globalProducts = createQueryKeys('globalProducts', {
+  byGroup: (groupId: string) => [groupId, 'group'],
+});
+
+export const globalShipments = createQueryKeys('globalShipments', {
+  all: null,
+  detail: (id: string) => [id],
+  orderItems: (shipmentId: string) => [shipmentId, 'order-items'],
+  configurationSummary: (shipmentId: string) => [shipmentId, 'configuration-summary'],
+});
+
+export const globalPacking = createQueryKeys('globalPacking', {
+  recommendation: (shipmentId: string) => [shipmentId, 'recommendation'],
+});
