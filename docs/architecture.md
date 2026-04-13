@@ -93,7 +93,11 @@ volume-calculator/
 │   │   │   ├── usePacking.ts
 │   │   │   ├── useProductGroups.ts
 │   │   │   ├── useProducts.ts
-│   │   │   └── useProjects.ts
+│   │   │   ├── useProjects.ts
+│   │   │   ├── useGlobalProductGroups.ts  # 글로벌 상품 그룹 쿼리
+│   │   │   ├── useGlobalProducts.ts       # 글로벌 상품 쿼리
+│   │   │   ├── useGlobalShipments.ts      # 글로벌 출고 쿼리
+│   │   │   └── useGlobalPacking.ts        # 글로벌 팔레트 계산 쿼리
 │   │   ├── useShipmentFilters.ts     # 출고 필터링
 │   │   ├── useShipmentUploadFlow.ts  # 출고 업로드 플로우 관리
 │   │   ├── usePackingNormalizer.ts   # 패킹 데이터 정규화
@@ -117,7 +121,10 @@ volume-calculator/
 │   │   │   ├── server.ts            # Supabase 서버 클라이언트 + Admin 클라이언트
 │   │   │   └── middleware.ts        # 미들웨어 세션 갱신 헬퍼
 │   │   ├── algorithms/
-│   │   │   └── packing.ts           # 패킹 알고리즘
+│   │   │   ├── packing.ts           # 패킹 알고리즘 (국내 박스)
+│   │   │   ├── pallet.ts            # 팔레트 계산 알고리즘 (글로벌)
+│   │   │   └── __tests__/
+│   │   │       └── pallet.test.ts   # 팔레트 계산 테스트 (Vitest)
 │   │   ├── services/                 # 비즈니스 로직 서비스
 │   │   │   ├── products.ts
 │   │   │   ├── product-groups.ts
@@ -136,7 +143,14 @@ volume-calculator/
 │   │   │   ├── file-storage.ts       # 파일 저장소 (Supabase Storage)
 │   │   │   ├── upload.ts            # 출고 업로드 핵심 로직
 │   │   │   ├── format-parser.ts    # 고정 양식 파서 (정산/매핑전/매핑후)
-│   │   │   └── excel.ts             # 엑셀 파싱/생성
+│   │   │   ├── excel.ts             # 엑셀 파싱/생성
+│   │   │   ├── global-product-groups.ts  # 글로벌 상품 그룹 CRUD
+│   │   │   ├── global-products.ts        # 글로벌 상품 CRUD
+│   │   │   ├── global-shipment.ts        # 글로벌 출고 CRUD
+│   │   │   ├── global-order-item.ts      # 글로벌 주문 아이템 CRUD
+│   │   │   ├── global-format-parser.ts   # 글로벌 엑셀 파서 (v1 placeholder)
+│   │   │   ├── global-upload.ts          # 글로벌 출고 업로드 파이프라인
+│   │   │   └── global-packing.ts         # 글로벌 팔레트 계산
 │   │
 │   └── types/                        # TypeScript 타입 정의
 │       └── index.ts                  # 주요 도메인 타입
@@ -222,6 +236,8 @@ API Route Handler
 
 ## 프론트엔드 라우트
 
+### 국내 물류 (Domestic)
+
 | 경로 | 기능 |
 |------|------|
 | `/login` | 로그인 페이지 |
@@ -243,6 +259,49 @@ API Route Handler
 | `/box-groups` | 박스 그룹 목록 |
 | `/box-groups/new` | 새 박스 그룹 생성 |
 | `/box-groups/[id]` | 박스 그룹 상세 (박스 선택·배정) |
+
+### 글로벌 물류 (Global Logistics)
+
+| 경로 | 기능 |
+|------|------|
+| `/global/products` | 상품 그룹 목록 |
+| `/global/products/new` | 새 상품 그룹 생성 (엑셀 업로드 포함) |
+| `/global/products/[id]` | 상품 그룹 상세 (상품 목록, 엑셀 업로드) |
+| `/global/shipments` | 글로벌 출고 목록, 엑셀 업로드 |
+| `/global/shipments/new` | 새 글로벌 출고 생성 |
+| `/global/shipments/[id]` | 글로벌 출고 상세 (주문/아이템 목록) |
+| `/global/shipments/[id]/packing` | 팔레트 계산 및 결과 |
+
+## API 라우트
+
+### 국내 물류 (Domestic)
+
+| 엔드포인트 | 메서드 | 기능 |
+|-----------|--------|------|
+| `/api/product-groups` | GET, POST | 상품 그룹 목록·생성 |
+| `/api/product-groups/[groupId]` | PATCH, DELETE | 상품 그룹 수정·삭제 |
+| `/api/product-groups/[groupId]/products` | GET, POST | 상품 목록·생성 |
+| `/api/products/[id]` | PATCH, DELETE | 상품 수정·삭제 |
+| `/api/shipments` | GET, POST | 출고 목록·생성 |
+| `/api/shipments/[id]` | GET, DELETE | 출고 상세·삭제 |
+| `/api/shipments/[id]/packing/calculate` | POST | 패킹 계산 |
+| `/api/shipments/[id]/packing/recommendation` | GET | 패킹 결과 조회 |
+| `/api/upload/shipment` | POST | 출고 엑셀 업로드 |
+| 기타 | - | 박스, 정산, 견적서, 주문 아이템 등 |
+
+### 글로벌 물류 (Global Logistics)
+
+| 엔드포인트 | 메서드 | 기능 |
+|-----------|--------|------|
+| `/api/global/product-groups` | GET, POST | 글로벌 상품 그룹 목록·생성 |
+| `/api/global/product-groups/[groupId]` | PATCH, DELETE | 글로벌 상품 그룹 수정·삭제 |
+| `/api/global/product-groups/[groupId]/products` | GET, POST | 글로벌 상품 목록·생성 |
+| `/api/global/products/[id]` | PATCH, DELETE | 글로벌 상품 수정·삭제 |
+| `/api/global/shipments` | GET, POST | 글로벌 출고 목록·생성 |
+| `/api/global/shipments/[id]` | GET, DELETE | 글로벌 출고 상세·삭제 |
+| `/api/global/shipments/[id]/packing/calculate` | POST | 팔레트 계산 |
+| `/api/global/shipments/[id]/packing/recommendation` | GET | 팔레트 결과 조회 |
+| `/api/global/upload/shipment` | POST | 글로벌 출고 엑셀 업로드 |
 
 ## 상태 관리
 
