@@ -10,6 +10,8 @@ export type CreateGlobalOrderItemDto = {
   sku: string;
   quantity: number;
   globalProductId?: string | null;
+  lotNumber?: string | null;
+  expirationDate?: string | null;
 };
 
 export async function findAll(globalShipmentId: string) {
@@ -75,7 +77,9 @@ export async function createOrderItemsWithOrder(
       const orderNumber = dto.orderNumber.trim();
       const sku = dto.sku.trim();
       if (!orderNumber || !sku) continue;
-      const key = `${orderNumber}::${sku}`;
+      const lotNumber = dto.lotNumber ?? null;
+      const expirationDate = dto.expirationDate ?? null;
+      const key = `${orderNumber}::${sku}::${lotNumber ?? ''}::${expirationDate ?? ''}`;
       const existing = aggregated.get(key);
       if (existing) {
         existing.quantity += dto.quantity;
@@ -85,6 +89,8 @@ export async function createOrderItemsWithOrder(
           sku,
           quantity: dto.quantity,
           globalProductId: dto.globalProductId ?? null,
+          lotNumber,
+          expirationDate,
         });
       }
     }
@@ -129,6 +135,8 @@ export async function createOrderItemsWithOrder(
         sku: dto.sku,
         quantity: dto.quantity,
         globalProductId: dto.globalProductId ?? null,
+        lotNumber: dto.lotNumber ?? null,
+        expirationDate: dto.expirationDate ?? null,
       };
     });
 

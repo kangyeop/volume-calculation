@@ -38,6 +38,8 @@ export interface GlobalOrderItem {
   globalOrderId: string;
   sku: string;
   quantity: number;
+  lotNumber: string | null;
+  expirationDate: string | null;
   globalShipmentId: string;
   globalProductId?: string | null;
   product?: {

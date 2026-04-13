@@ -34,6 +34,43 @@ export async function calculate(
     .where(eq(globalOrderItems.globalShipmentId, globalShipmentId))
     .groupBy(globalOrderItems.sku);
 
+  const lotRows = await db
+    .select({
+      sku: globalOrderItems.sku,
+      lotNumber: globalOrderItems.lotNumber,
+      expirationDate: globalOrderItems.expirationDate,
+      quantity: sum(globalOrderItems.quantity).mapWith(Number),
+    })
+    .from(globalOrderItems)
+    .where(eq(globalOrderItems.globalShipmentId, globalShipmentId))
+    .groupBy(
+      globalOrderItems.sku,
+      globalOrderItems.lotNumber,
+      globalOrderItems.expirationDate,
+    );
+
+  const lotsBySku = new Map<
+    string,
+    Array<{ lotNumber: string | null; expirationDate: string | null; quantity: number }>
+  >();
+  for (const r of lotRows) {
+    const list = lotsBySku.get(r.sku) ?? [];
+    list.push({
+      lotNumber: r.lotNumber,
+      expirationDate: r.expirationDate,
+      quantity: r.quantity,
+    });
+    lotsBySku.set(r.sku, list);
+  }
+  for (const list of lotsBySku.values()) {
+    list.sort((a, b) => {
+      const ae = a.expirationDate ?? '';
+      const be = b.expirationDate ?? '';
+      if (ae !== be) return ae < be ? -1 : 1;
+      return (a.lotNumber ?? '').localeCompare(b.lotNumber ?? '');
+    });
+  }
+
   if (aggregated.length === 0) {
     await db
       .delete(globalPackingResults)
@@ -84,6 +121,7 @@ export async function calculate(
       palletCount: result.palletCount,
       lastPalletCartons: result.lastPalletCartons,
       unpackable: result.unpackable,
+      lots: lotsBySku.get(sku) ?? [],
     });
   }
 

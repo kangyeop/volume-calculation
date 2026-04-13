@@ -8,6 +8,7 @@ import {
   integer,
   boolean,
   jsonb,
+  date,
   uniqueIndex,
   index,
   pgEnum,
@@ -333,12 +334,19 @@ export const globalOrderItems = pgTable('global_order_items', {
   globalOrderId: uuid('global_order_id').notNull().references(() => globalOrders.id, { onDelete: 'cascade' }),
   sku: varchar('sku', { length: 255 }).notNull(),
   quantity: integer('quantity').notNull(),
+  lotNumber: varchar('lot_number', { length: 100 }),
+  expirationDate: date('expiration_date'),
   globalShipmentId: uuid('global_shipment_id').notNull().references(() => globalShipments.id, { onDelete: 'cascade' }),
   globalProductId: uuid('global_product_id').references(() => globalProducts.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
 }, (table) => [
-  uniqueIndex('global_order_items_order_sku_unique').on(table.globalOrderId, table.sku),
+  uniqueIndex('global_order_items_order_sku_lot_unique').on(
+    table.globalOrderId,
+    table.sku,
+    table.lotNumber,
+    table.expirationDate,
+  ),
   index('global_order_items_shipment_sku_idx').on(table.globalShipmentId, table.sku),
   index('global_order_items_shipment_product_idx').on(table.globalShipmentId, table.globalProductId),
 ]).enableRLS();
@@ -358,6 +366,10 @@ export const globalPackingResults = pgTable('global_packing_results', {
   palletCount: integer('pallet_count').notNull(),
   lastPalletCartons: integer('last_pallet_cartons').notNull(),
   unpackable: boolean('unpackable').default(false).notNull(),
+  lots: jsonb('lots')
+    .$type<Array<{ lotNumber: string | null; expirationDate: string | null; quantity: number }>>()
+    .default([])
+    .notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
 }, (table) => [

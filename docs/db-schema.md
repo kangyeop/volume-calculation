@@ -259,7 +259,7 @@ erDiagram
 | `global_products` | UNIQUE | `(user_id, sku)` |
 | `global_products` | INDEX | `user_id` |
 | `global_orders` | UNIQUE | `(global_shipment_id, order_number)` |
-| `global_order_items` | UNIQUE | `(global_order_id, sku)` |
+| `global_order_items` | UNIQUE | `(global_order_id, sku, lot_number, expiration_date)` |
 | `global_order_items` | INDEX | `(global_shipment_id, sku)` |
 | `global_order_items` | INDEX | `(global_shipment_id, global_product_id)` |
 | `global_packing_results` | UNIQUE | `(global_shipment_id, sku)` |

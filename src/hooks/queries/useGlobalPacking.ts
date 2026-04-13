@@ -21,6 +21,7 @@ export interface GlobalPackingResultRow {
   palletCount: number;
   lastPalletCartons: number;
   unpackable: boolean;
+  lots: Array<{ lotNumber: string | null; expirationDate: string | null; quantity: number }>;
   width: number | null;
   length: number | null;
   height: number | null;

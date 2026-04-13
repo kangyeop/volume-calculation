@@ -22,9 +22,19 @@ export default function GlobalShipmentDetail() {
 
   const rows = React.useMemo(() => {
     if (!items) return [];
-    const map = new Map<string, { sku: string; name: string; quantity: number; matched: boolean }>();
+    const map = new Map<
+      string,
+      {
+        sku: string;
+        name: string;
+        quantity: number;
+        matched: boolean;
+        lotNumber: string | null;
+        expirationDate: string | null;
+      }
+    >();
     for (const item of items) {
-      const key = item.sku;
+      const key = `${item.sku}::${item.lotNumber ?? ''}::${item.expirationDate ?? ''}`;
       const existing = map.get(key);
       if (existing) {
         existing.quantity += item.quantity;
@@ -34,10 +44,18 @@ export default function GlobalShipmentDetail() {
           name: item.product?.name ?? item.sku,
           quantity: item.quantity,
           matched: !!item.product,
+          lotNumber: item.lotNumber,
+          expirationDate: item.expirationDate,
         });
       }
     }
-    return [...map.values()].sort((a, b) => b.quantity - a.quantity);
+    return [...map.values()].sort((a, b) => {
+      if (a.sku !== b.sku) return a.sku.localeCompare(b.sku);
+      const ae = a.expirationDate ?? '';
+      const be = b.expirationDate ?? '';
+      if (ae !== be) return ae.localeCompare(be);
+      return (a.lotNumber ?? '').localeCompare(b.lotNumber ?? '');
+    });
   }, [items]);
 
   const totalQuantity = rows.reduce((acc, r) => acc + r.quantity, 0);
@@ -91,18 +109,26 @@ export default function GlobalShipmentDetail() {
               <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
                 <tr>
                   <th className="px-4 py-2 text-left">상품명</th>
+                  <th className="px-4 py-2 text-left">로트번호</th>
+                  <th className="px-4 py-2 text-left">유통기한</th>
                   <th className="px-4 py-2 text-right">수량</th>
                   <th className="px-4 py-2 text-center">매칭</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
-                  <tr key={row.sku} className="border-t">
+                {rows.map((row, idx) => (
+                  <tr key={`${row.sku}-${row.lotNumber ?? ''}-${row.expirationDate ?? ''}-${idx}`} className="border-t">
                     <td className="px-4 py-2">
                       <div className="font-medium text-gray-900">{row.name}</div>
                       {row.name !== row.sku && (
                         <div className="text-xs text-gray-500 font-mono">{row.sku}</div>
                       )}
+                    </td>
+                    <td className="px-4 py-2 font-mono text-xs text-gray-700">
+                      {row.lotNumber ?? '-'}
+                    </td>
+                    <td className="px-4 py-2 font-mono text-xs text-gray-700">
+                      {row.expirationDate ?? '-'}
                     </td>
                     <td className="px-4 py-2 text-right font-mono">
                       {row.quantity.toLocaleString()}

@@ -20,17 +20,32 @@ export async function uploadGlobalShipment(
   const parseResult = await parseExcelFile(buffer, originalName);
   const items = parseGlobalByFormat(format, parseResult.rows);
 
-  const aggregated = new Map<string, { orderNumber: string; sku: string; quantity: number }>();
+  const aggregated = new Map<
+    string,
+    {
+      orderNumber: string;
+      sku: string;
+      quantity: number;
+      lotNumber: string | null;
+      expirationDate: string | null;
+    }
+  >();
   for (const item of items) {
     const orderNumber = item.orderId.trim();
     const sku = item.sku.trim();
     if (!orderNumber || !sku) continue;
-    const key = `${orderNumber}::${sku}`;
+    const key = `${orderNumber}::${sku}::${item.lotNumber ?? ''}::${item.expirationDate ?? ''}`;
     const existing = aggregated.get(key);
     if (existing) {
       existing.quantity += item.quantity;
     } else {
-      aggregated.set(key, { orderNumber, sku, quantity: item.quantity });
+      aggregated.set(key, {
+        orderNumber,
+        sku,
+        quantity: item.quantity,
+        lotNumber: item.lotNumber,
+        expirationDate: item.expirationDate,
+      });
     }
   }
 
@@ -44,11 +59,14 @@ export async function uploadGlobalShipment(
   const productBySku = new Map(allProducts.map((p) => [p.sku.trim(), p]));
 
   const unmatched: UnmatchedItem[] = [];
+  const unmatchedSeen = new Set<string>();
   const toInsert: {
     orderNumber: string;
     sku: string;
     quantity: number;
     globalProductId: string | null;
+    lotNumber: string | null;
+    expirationDate: string | null;
   }[] = [];
 
   for (const row of aggregated.values()) {
@@ -58,8 +76,11 @@ export async function uploadGlobalShipment(
       sku: row.sku,
       quantity: row.quantity,
       globalProductId: matched?.id ?? null,
+      lotNumber: row.lotNumber,
+      expirationDate: row.expirationDate,
     });
-    if (!matched) {
+    if (!matched && !unmatchedSeen.has(row.sku)) {
+      unmatchedSeen.add(row.sku);
       unmatched.push({ sku: row.sku, quantity: row.quantity, reason: 'Product not found' });
     }
   }

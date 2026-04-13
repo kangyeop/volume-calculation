@@ -115,6 +115,8 @@ GlobalProduct ← GlobalPackingResult (FK, nullable)
 | globalOrderId | UUID (FK → global_orders.id) | CASCADE, **적절한 UUID FK** |
 | sku | varchar(255) | 상품 SKU |
 | quantity | integer | 수량 |
+| lotNumber | varchar(100), nullable | 로트번호 (엑셀 `로트번호` 컬럼) |
+| expirationDate | date, nullable | 유통기한 (엑셀 `유통기한` 컬럼) |
 | globalShipmentId | UUID (FK → global_shipments) | CASCADE, **역정규화** |
 | globalProductId | UUID (FK → global_products), nullable | SET NULL |
 | createdAt | timestamp | |
@@ -122,7 +124,7 @@ GlobalProduct ← GlobalPackingResult (FK, nullable)
 
 **DB 테이블:** `global_order_items`  
 **제약조건:**
-- UNIQUE `(global_order_id, sku)` — 동일 주문 내 SKU 중복 방지. 재업로드 시 `ON CONFLICT ... DO UPDATE` 또는 선삭제로 멱등성 보장.
+- UNIQUE `(global_order_id, sku, lot_number, expiration_date)` — 동일 주문 내 (SKU, 로트, 유통기한) 조합 중복 방지. 같은 SKU 라도 로트/유통기한이 다르면 별도 행으로 저장된다.
 
 **인덱스:**
 - `(global_shipment_id, sku)` — 팔레트 계산 시 집계 경로 (hot path)
@@ -153,6 +155,7 @@ GlobalProduct ← GlobalPackingResult (FK, nullable)
 | palletCount | integer | 필요 팔레트 수 |
 | lastPalletCartons | integer | 마지막 팔레트의 카톤 수 |
 | unpackable | boolean | `true` if 카톤이 팔레트를 초과 (W>110 OR L>110 OR H>165) |
+| lots | jsonb | `[{ lotNumber, expirationDate, quantity }]` 스냅샷. SKU 내 로트/유통기한 내역. PDF 렌더링용. |
 | createdAt | timestamp | |
 | updatedAt | timestamp | |
 
@@ -241,7 +244,8 @@ EXPORT_PALLET = {
 
 - **파서:** `src/lib/services/global-format-parser.ts` — 글로벌 전용 구현
 - **포맷:** `globalStandard` (단일 포맷)
-- **엑셀 컬럼:** `상품명`, `출고수량` (필수), `유통기한`·`로트번호`·`순번` 등 기타 컬럼은 존재해도 무시
+- **엑셀 컬럼:** `상품명`·`출고수량` (필수), `로트번호`·`유통기한` (선택, 존재 시 저장), `순번` 등 그 외는 무시
+- **로트/유통기한:** 동일 SKU 라도 로트/유통기한이 다르면 `global_order_items` 에 별도 행으로 저장된다. 유통기한은 ISO `YYYY-MM-DD` 로 정규화 후 `date` 컬럼에 저장.
 - **주문번호:** 엑셀에 주문번호 컬럼이 없으므로 모든 행을 고정 더미 주문번호 `DEFAULT` 하나로 묶음
 - **richText 대응:** `src/lib/services/excel.ts`의 `cellToString`이 ExcelJS richText 객체를 평탄화해 한/영 혼용 폰트 상품명도 정상 파싱
 
@@ -263,8 +267,8 @@ EXPORT_PALLET = {
 ### 주문 그룹핑 및 멱등성
 
 - **그룹핑 기준:** `orderNumber` 기준으로 행 그룹핑 (`globalStandard`는 모든 행이 `DEFAULT` 단일 주문)
-- **중복 행 사전 집계:** 동일 `(orderNumber, sku)` 조합 행들의 `quantity` 합산
-- **재업로드 멱등성:** UNIQUE INDEX `(global_order_id, sku)` + `ON CONFLICT ... DO UPDATE` 또는 선삭제
+- **중복 행 사전 집계:** 동일 `(orderNumber, sku, lotNumber, expirationDate)` 조합 행들의 `quantity` 합산 — 로트/유통기한이 다르면 별도 행 유지
+- **재업로드 멱등성:** UNIQUE INDEX `(global_order_id, sku, lot_number, expiration_date)` + `ON CONFLICT ... DO UPDATE` 또는 선삭제
   ```
   DELETE FROM global_order_items WHERE globalOrderId = ?
   INSERT INTO global_order_items (...)  -- 새 데이터 일괄 삽입
@@ -276,9 +280,10 @@ EXPORT_PALLET = {
 
 1. **입력:** 출고 내 모든 주문 아이템
 2. **집계:** `SELECT sku, SUM(quantity) AS totalUnits FROM global_order_items WHERE globalShipmentId = ? GROUP BY sku`
-3. **상품 조회:** SKU별로 `global_products` 조인하여 `{ width, length, height, innerQuantity, name }` 획득
-4. **팔레트 계산:** 각 SKU에 대해 `calculatePalletization(carton, totalUnits)` 호출
-5. **결과 저장:** `global_packing_results`에 (shipment, sku) 당 1행으로 저장
+3. **로트 스냅샷:** 별도로 `GROUP BY sku, lot_number, expiration_date` 쿼리로 로트별 수량을 수집해 `globalPackingResults.lots` jsonb 에 스냅샷 (박스/파레트 계산은 SKU 합계 기준 그대로)
+4. **상품 조회:** SKU별로 `global_products` 조인하여 `{ width, length, height, innerQuantity, name }` 획득
+5. **팔레트 계산:** 각 SKU에 대해 `calculatePalletization(carton, totalUnits)` 호출
+6. **결과 저장:** `global_packing_results`에 (shipment, sku) 당 1행으로 저장
 
 ### 미매칭 SKU 처리
 
@@ -326,6 +331,11 @@ EXPORT_PALLET = {
   - `팔레트 수`, `한 층 적재 수량`, `한 팔레트 적재 수량`, `마지막 팔레트 수량`
   - 마지막 팔레트 미완성 시 강조 표시 (예: `3/12 칸`)
   - **3D 뷰 모달:** 카드의 `3D로 보기` 버튼으로 팔레트 한 대의 실제 박스 배치를 react-three-fiber 기반 인터랙티브 뷰(OrbitControls)로 확인. 각 층은 `computeLayerLayout`가 반환하는 동일한 Rect 레이아웃을 `layersPerPallet` 만큼 수직 반복해 렌더.
+- **PDF 다운로드:** 헤더 우측에서 두 종류의 인쇄물을 내려받음.
+  - `전체 목록 PDF` (A4 세로): 1~N 번까지 전체 파레트를 표로 나열 (`파레트 번호` / `상품명` / `박스 수`)
+  - `파레트 라벨 PDF` (A4 가로): 파레트마다 1페이지. 헤더에 출고명 + `k / N번 파레트`, 본문에 `#/SKU/상품명/박스 수` 표. 현재는 파레트당 1개 SKU지만 추후 혼합 적재에 대비해 아이템 배열(`FlatPallet.items`) 구조로 렌더.
+  - 평탄화 유틸(`flattenPallets`)로 SKU 단위 행을 파레트 단위로 풀어 통합 번호(1~totalPallets) 부여. 마지막 파레트는 `lastPalletCartons > 0` 이면 해당 값 사용, 아니면 `cartonsPerPallet`.
+  - `@react-pdf/renderer` + `Noto Sans KR` OTF 임베드로 한글 렌더링. 문서 컴포넌트는 `next/dynamic({ ssr: false })` 로 클라이언트 번들 분리.
 
 ## API
 
@@ -395,6 +405,12 @@ EXPORT_PALLET = {
 | `src/lib/algorithms/__tests__/pallet.test.ts` | 팔레트 알고리즘 테스트 (Vitest) |
 | `src/components/global/PalletPacking3DView.tsx` | react-three-fiber 기반 팔레트 3D 캔버스 |
 | `src/components/global/PalletPacking3DModal.tsx` | 3D 뷰 모달 래퍼 (`next/dynamic`으로 Canvas 번들 지연 로드) |
+| `src/components/global/ShipmentPdfDownloadButtons.tsx` | 전체 목록 / 파레트 라벨 PDF 다운로드 버튼 (`PDFDownloadLink`) |
+| `src/components/global/ShipmentPalletListPdf.tsx` | 전체 파레트 목록 PDF 문서 (A4 세로, 표 형태) |
+| `src/components/global/ShipmentPalletLabelsPdf.tsx` | 파레트별 적재 라벨 PDF 문서 (A4 가로, 파레트당 1페이지) |
+| `src/lib/pdf/flattenPallets.ts` | SKU별 결과 행을 파레트 단위로 평탄화 (`FlatPallet[]`) |
+| `src/lib/pdf/fonts.ts` | `Noto Sans KR` PDF 폰트 등록 (`Font.register`) |
+| `public/fonts/NotoSansKR-{Regular,Bold}.otf` | PDF 한글 렌더링용 정적 폰트 (Noto CJK 서브셋 OTF) |
 
 ### React Query & Hooks
 
