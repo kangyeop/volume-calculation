@@ -2,15 +2,22 @@
 
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { ArrowLeft, RefreshCw, AlertTriangle, AlertCircle, Package, Box } from 'lucide-react';
 import {
   useGlobalPackingRecommendation,
   useCalculateGlobalPacking,
+  useGlobalShipment,
   type GlobalPackingResultRow,
 } from '@/hooks/queries';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { PalletPacking3DModal } from '@/components/global/PalletPacking3DModal';
+
+const ShipmentPdfDownloadButtons = dynamic(
+  () => import('@/components/global/ShipmentPdfDownloadButtons'),
+  { ssr: false },
+);
 
 export default function GlobalPackingCalculator() {
   const params = useParams<{ id: string }>();
@@ -18,6 +25,7 @@ export default function GlobalPackingCalculator() {
   const router = useRouter();
 
   const { data: recommendation, isLoading } = useGlobalPackingRecommendation(shipmentId);
+  const { data: shipment } = useGlobalShipment(shipmentId);
   const calculateMutation = useCalculateGlobalPacking(shipmentId);
   const [view3dRow, setView3dRow] = useState<GlobalPackingResultRow | null>(null);
 
@@ -60,14 +68,23 @@ export default function GlobalPackingCalculator() {
           </div>
         </div>
 
-        <button
-          onClick={handleCalculate}
-          disabled={isCalculating || !shipmentId}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-        >
-          <RefreshCw className={`h-4 w-4 ${isCalculating ? 'animate-spin' : ''}`} />
-          {isCalculating ? '계산 중...' : hasResult ? '재계산' : '계산하기'}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {hasResult && (
+            <ShipmentPdfDownloadButtons
+              rows={packableRows}
+              totalPallets={totalPallets}
+              shipmentLabel={shipment?.name ?? `글로벌 출고 ${shipmentId}`}
+            />
+          )}
+          <button
+            onClick={handleCalculate}
+            disabled={isCalculating || !shipmentId}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+          >
+            <RefreshCw className={`h-4 w-4 ${isCalculating ? 'animate-spin' : ''}`} />
+            {isCalculating ? '계산 중...' : hasResult ? '재계산' : '계산하기'}
+          </button>
+        </div>
       </div>
 
       {hasResult && (
