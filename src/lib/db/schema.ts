@@ -276,3 +276,142 @@ export const packingResultsRelations = relations(packingResults, ({ one }) => ({
     references: [boxes.id],
   }),
 }));
+
+export const globalProductGroups = pgTable('global_product_groups', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
+}, (table) => [
+  index('global_product_groups_user_id_idx').on(table.userId),
+]).enableRLS();
+
+export const globalProducts = pgTable('global_products', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull(),
+  sku: varchar('sku', { length: 255 }).notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  width: numeric('width', { precision: 10, scale: 2 }).notNull(),
+  length: numeric('length', { precision: 10, scale: 2 }).notNull(),
+  height: numeric('height', { precision: 10, scale: 2 }).notNull(),
+  innerQuantity: integer('inner_quantity').notNull(),
+  globalProductGroupId: uuid('global_product_group_id').notNull().references(() => globalProductGroups.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
+}, (table) => [
+  uniqueIndex('global_products_user_sku_unique').on(table.userId, table.sku),
+  index('global_products_user_id_idx').on(table.userId),
+]).enableRLS();
+
+export const globalShipments = pgTable('global_shipments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  status: shipmentStatusEnum('status').default('PACKING').notNull(),
+  note: text('note'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
+}, (table) => [
+  index('global_shipments_user_id_idx').on(table.userId),
+]).enableRLS();
+
+export const globalOrders = pgTable('global_orders', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  orderNumber: varchar('order_number', { length: 255 }).notNull(),
+  status: orderStatusEnum('status').default('PENDING').notNull(),
+  globalShipmentId: uuid('global_shipment_id').notNull().references(() => globalShipments.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
+}, (table) => [
+  uniqueIndex('global_orders_shipment_order_unique').on(table.globalShipmentId, table.orderNumber),
+  index('global_orders_shipment_id_idx').on(table.globalShipmentId),
+]).enableRLS();
+
+export const globalOrderItems = pgTable('global_order_items', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  globalOrderId: uuid('global_order_id').notNull().references(() => globalOrders.id, { onDelete: 'cascade' }),
+  sku: varchar('sku', { length: 255 }).notNull(),
+  quantity: integer('quantity').notNull(),
+  globalShipmentId: uuid('global_shipment_id').notNull().references(() => globalShipments.id, { onDelete: 'cascade' }),
+  globalProductId: uuid('global_product_id').references(() => globalProducts.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
+}, (table) => [
+  uniqueIndex('global_order_items_order_sku_unique').on(table.globalOrderId, table.sku),
+  index('global_order_items_shipment_sku_idx').on(table.globalShipmentId, table.sku),
+  index('global_order_items_shipment_product_idx').on(table.globalShipmentId, table.globalProductId),
+]).enableRLS();
+
+export const globalPackingResults = pgTable('global_packing_results', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  globalShipmentId: uuid('global_shipment_id').notNull().references(() => globalShipments.id, { onDelete: 'cascade' }),
+  sku: varchar('sku', { length: 255 }).notNull(),
+  productName: varchar('product_name', { length: 255 }).notNull(),
+  globalProductId: uuid('global_product_id').references(() => globalProducts.id, { onDelete: 'set null' }),
+  totalUnits: integer('total_units').notNull(),
+  innerQuantity: integer('inner_quantity').notNull(),
+  cartonCount: integer('carton_count').notNull(),
+  itemsPerLayer: integer('items_per_layer').notNull(),
+  layersPerPallet: integer('layers_per_pallet').notNull(),
+  cartonsPerPallet: integer('cartons_per_pallet').notNull(),
+  palletCount: integer('pallet_count').notNull(),
+  lastPalletCartons: integer('last_pallet_cartons').notNull(),
+  unpackable: boolean('unpackable').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
+}, (table) => [
+  uniqueIndex('global_packing_results_shipment_sku_unique').on(table.globalShipmentId, table.sku),
+  index('global_packing_results_shipment_id_idx').on(table.globalShipmentId),
+]).enableRLS();
+
+export const globalProductGroupsRelations = relations(globalProductGroups, ({ many }) => ({
+  products: many(globalProducts),
+}));
+
+export const globalProductsRelations = relations(globalProducts, ({ one }) => ({
+  productGroup: one(globalProductGroups, {
+    fields: [globalProducts.globalProductGroupId],
+    references: [globalProductGroups.id],
+  }),
+}));
+
+export const globalShipmentsRelations = relations(globalShipments, ({ many }) => ({
+  orders: many(globalOrders),
+  orderItems: many(globalOrderItems),
+  packingResults: many(globalPackingResults),
+}));
+
+export const globalOrdersRelations = relations(globalOrders, ({ one, many }) => ({
+  shipment: one(globalShipments, {
+    fields: [globalOrders.globalShipmentId],
+    references: [globalShipments.id],
+  }),
+  orderItems: many(globalOrderItems),
+}));
+
+export const globalOrderItemsRelations = relations(globalOrderItems, ({ one }) => ({
+  order: one(globalOrders, {
+    fields: [globalOrderItems.globalOrderId],
+    references: [globalOrders.id],
+  }),
+  shipment: one(globalShipments, {
+    fields: [globalOrderItems.globalShipmentId],
+    references: [globalShipments.id],
+  }),
+  product: one(globalProducts, {
+    fields: [globalOrderItems.globalProductId],
+    references: [globalProducts.id],
+  }),
+}));
+
+export const globalPackingResultsRelations = relations(globalPackingResults, ({ one }) => ({
+  shipment: one(globalShipments, {
+    fields: [globalPackingResults.globalShipmentId],
+    references: [globalShipments.id],
+  }),
+  product: one(globalProducts, {
+    fields: [globalPackingResults.globalProductId],
+    references: [globalProducts.id],
+  }),
+}));
