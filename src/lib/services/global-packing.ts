@@ -11,6 +11,7 @@ import { calculatePalletization } from '@/lib/algorithms/pallet';
 import {
   packMixedPallets,
   type LeftoverCarton,
+  type MixedPallet,
   type PlacedCarton,
 } from '@/lib/algorithms/mixed-pallet';
 
@@ -21,6 +22,8 @@ export type GlobalPackingResultRow = typeof globalPackingResults.$inferSelect & 
   length: number | null;
   height: number | null;
   fullPalletCount: number;
+  soloPalletCount: number;
+  lastPalletInMixed: boolean;
 };
 
 export type GlobalMixedPalletRow = typeof globalPackingMixedPallets.$inferSelect;
@@ -184,6 +187,18 @@ export async function calculate(
 
   const mixedResult = packMixedPallets(leftovers);
 
+  const trueMixedPallets: MixedPallet[] = [];
+  const reclaimedSkus = new Set<string>();
+  for (const p of mixedResult.pallets) {
+    const distinctSkus = new Set(p.items.map((i) => i.sku));
+    if (distinctSkus.size <= 1) {
+      const only = [...distinctSkus][0];
+      if (only !== undefined) reclaimedSkus.add(only);
+    } else {
+      trueMixedPallets.push(p);
+    }
+  }
+
   const { rows, mixedPallets } = await db.transaction(async (tx) => {
     await tx
       .delete(globalPackingMixedPallets)
@@ -199,19 +214,35 @@ export async function calculate(
         const inserted = await tx.insert(globalPackingResults).values(chunk).returning();
         for (const row of inserted) {
           const product = row.sku ? productBySku.get(row.sku) : undefined;
+          const fullPalletCount = computeFullPalletCount(row);
+          const lastPalletIsFull =
+            row.lastPalletCartons === row.cartonsPerPallet && row.cartonsPerPallet > 0;
+          const leftoverExists =
+            !row.unpackable &&
+            row.lastPalletCartons > 0 &&
+            !lastPalletIsFull &&
+            row.palletCount > 0;
+          const lastPalletInMixed = leftoverExists && !reclaimedSkus.has(row.sku);
+          const soloPalletCount = row.unpackable
+            ? 0
+            : lastPalletInMixed
+              ? fullPalletCount
+              : row.palletCount;
           saved.push({
             ...row,
             width: product ? Number(product.width) : null,
             length: product ? Number(product.length) : null,
             height: product ? Number(product.height) : null,
-            fullPalletCount: computeFullPalletCount(row),
+            fullPalletCount,
+            soloPalletCount,
+            lastPalletInMixed,
           });
         }
       }
     }
 
     const mixedInserts: (typeof globalPackingMixedPallets.$inferInsert)[] =
-      mixedResult.pallets.map((p, idx) => ({
+      trueMixedPallets.map((p, idx) => ({
         globalShipmentId,
         palletIndex: idx + 1,
         items: p.items,
@@ -233,7 +264,7 @@ export async function calculate(
   });
 
   const totalPallets =
-    rows.reduce((acc, r) => acc + r.fullPalletCount, 0) + mixedPallets.length;
+    rows.reduce((acc, r) => acc + r.soloPalletCount, 0) + mixedPallets.length;
   const unpackableSkus = rows.filter((r) => r.unpackable);
 
   return {
@@ -263,22 +294,47 @@ export async function getRecommendation(
     .where(eq(globalPackingResults.globalShipmentId, globalShipmentId))
     .orderBy(desc(globalPackingResults.palletCount), asc(globalPackingResults.sku));
 
-  const rows: GlobalPackingResultRow[] = joined.map((r) => ({
-    ...r.result,
-    width: r.width != null ? Number(r.width) : null,
-    length: r.length != null ? Number(r.length) : null,
-    height: r.height != null ? Number(r.height) : null,
-    fullPalletCount: computeFullPalletCount(r.result),
-  }));
-
   const mixedPallets = await db
     .select()
     .from(globalPackingMixedPallets)
     .where(eq(globalPackingMixedPallets.globalShipmentId, globalShipmentId))
     .orderBy(asc(globalPackingMixedPallets.palletIndex));
 
+  const mixedSkuSet = new Set<string>();
+  for (const p of mixedPallets) {
+    const items = (p.items ?? []) as PlacedCarton[];
+    for (const it of items) mixedSkuSet.add(it.sku);
+  }
+
+  const rows: GlobalPackingResultRow[] = joined.map((r) => {
+    const row = r.result;
+    const fullPalletCount = computeFullPalletCount(row);
+    const lastPalletIsFull =
+      row.lastPalletCartons === row.cartonsPerPallet && row.cartonsPerPallet > 0;
+    const leftoverExists =
+      !row.unpackable &&
+      row.lastPalletCartons > 0 &&
+      !lastPalletIsFull &&
+      row.palletCount > 0;
+    const lastPalletInMixed = leftoverExists && mixedSkuSet.has(row.sku);
+    const soloPalletCount = row.unpackable
+      ? 0
+      : lastPalletInMixed
+        ? fullPalletCount
+        : row.palletCount;
+    return {
+      ...row,
+      width: r.width != null ? Number(r.width) : null,
+      length: r.length != null ? Number(r.length) : null,
+      height: r.height != null ? Number(r.height) : null,
+      fullPalletCount,
+      soloPalletCount,
+      lastPalletInMixed,
+    };
+  });
+
   const totalPallets =
-    rows.reduce((acc, r) => acc + r.fullPalletCount, 0) + mixedPallets.length;
+    rows.reduce((acc, r) => acc + r.soloPalletCount, 0) + mixedPallets.length;
   const unpackableSkus = rows.filter((r) => r.unpackable);
 
   return {

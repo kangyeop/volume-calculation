@@ -26,6 +26,8 @@ export interface GlobalPackingResultRow {
   length: number | null;
   height: number | null;
   fullPalletCount: number;
+  soloPalletCount: number;
+  lastPalletInMixed: boolean;
   createdAt: string;
   updatedAt: string;
 }

@@ -309,14 +309,21 @@ EXPORT_PALLET = {
 **leftover 수집 조건:**
 - `!unpackable && lastPalletCartons > 0 && !lastPalletIsFull && palletCount > 0`
 
+**단일-SKU 팔레트 환원:** 패킹 결과 중 한 팔레트의 모든 카톤이 동일 SKU이면 그건 본질적으로 그 SKU의 단독 부분 팔레트이므로 혼합 팔레트가 아니다. 후처리에서 단일-SKU 팔레트는 mixedPallets 저장에서 제외하고 해당 SKU의 단독 팔레트로 환원한다. row 응답에는 다음 두 파생 필드가 추가된다:
+- `soloPalletCount` — 단독 팔레트 수 (꽉 찬 것 + 환원된 부분 팔레트). `lastPalletInMixed`면 `fullPalletCount`, 아니면 `palletCount`.
+- `lastPalletInMixed` — 마지막 부분 팔레트가 진짜 혼합 팔레트(≥2 SKU)로 갔는지 여부.
+- 저장된 `globalPackingMixedPallets`는 invariant로 항상 다중 SKU 팔레트만 포함한다.
+
 **서비스 흐름 (`calculate`)**
 
 1. SKU별 `calculatePalletization()` 실행 (기존과 동일)
 2. 잉여 카톤 수집 → `packMixedPallets(leftovers)` 호출
 3. 트랜잭션 내에서 `globalPackingMixedPallets` → `globalPackingResults` 순으로 DELETE 후 재삽입 (멱등)
-4. `totalPallets = Σ fullPalletCount + mixedPallets.length`
-   - `fullPalletCount = unpackable ? 0 : (lastPalletIsFull ? palletCount : palletCount - 1)`
-5. 응답 shape `GlobalPackingCalculateResult`에 `mixedPallets`, `mixedPalletCount`, `rows[i].fullPalletCount` 포함
+4. 단일-SKU 팔레트 환원 후처리 (위 "단일-SKU 팔레트 환원" 참조)
+5. `totalPallets = Σ soloPalletCount + mixedPallets.length`
+   - `fullPalletCount = unpackable ? 0 : (lastPalletIsFull ? palletCount : palletCount - 1)` (꽉 찬 단독만)
+   - `soloPalletCount = unpackable ? 0 : (lastPalletInMixed ? fullPalletCount : palletCount)`
+6. 응답 shape `GlobalPackingCalculateResult`에 `mixedPallets`, `mixedPalletCount`, `rows[i].{fullPalletCount, soloPalletCount, lastPalletInMixed}` 포함
 
 **데이터 모델 — `globalPackingMixedPallets`**
 
@@ -380,15 +387,16 @@ UNIQUE: `(globalShipmentId, palletIndex)`
 
 **`/global/shipments/[id]/packing` 페이지:**
 
-- **상단 요약:** `총 팔레트 수: N pallets (M SKUs)` + breakdown `완전 A개 + 혼합 B개`
+- **상단 요약:** `총 팔레트 수: N pallets (M SKUs)` + breakdown `단독 A개 + 혼합 B개`
 - **경고 배너:**
   - Oversize SKU 목록 (초과 축명 명시)
   - 미매칭 SKU 목록
 - **SKU별 카드 (단독 팔레트):**
   - 상품명, SKU, 총 개수 + 카톤 수 (innerQuantity 표시)
-  - `완전 팔레트 N개` (= `fullPalletCount`), `한 층 적재`, `한 팔레트 적재`
-  - `lastPalletCartons > 0 && !lastPalletIsFull`이면 "잔여 X박스 → 혼합 팔레트" 안내
-  - `fullPalletCount === 0`이면 "팔레트 단독 없음 — X박스는 혼합 팔레트에 포함" 표시 (3D 버튼 숨김)
+  - `단독 팔레트 N개` (= `soloPalletCount`), `한 층 적재`, `한 팔레트 적재`
+  - `lastPalletInMixed === true`면 "잔여 X박스 → 혼합 팔레트" 안내 (amber)
+  - `!lastPalletInMixed && !lastPalletIsFull && lastPalletCartons > 0`이면 "마지막 팔레트 X/M 칸 (부분 적재)" 표시 (단독으로 환원된 경우)
+  - `soloPalletCount === 0 && lastPalletInMixed`이면 "팔레트 단독 없음 — X박스는 혼합 팔레트에 포함" 표시 (3D 버튼 숨김)
   - **3D 뷰 모달 (`PalletPacking3DView`):** 단독 팔레트 한 대의 박스 배치. `computeLayerLayout` Rect를 `layersPerPallet` 수직 반복 렌더.
 - **혼합 팔레트 섹션 (`mixedPallets.length > 0`일 때만 렌더):**
   - 카드별로 `혼합 팔레트 #{palletIndex}`, 구성 SKU 목록 (SKU별 박스 수 groupBy), 총 부피, 최고 높이
@@ -396,7 +404,7 @@ UNIQUE: `(globalShipmentId, palletIndex)`
 - **PDF 다운로드:** 헤더 우측에서 두 종류의 인쇄물을 내려받음.
   - `전체 목록 PDF` (A4 세로): 1~N 번까지 전체 파레트를 표로 나열. 혼합 팔레트는 번호 컬럼에 `(혼합)` 표기.
   - `파레트 라벨 PDF` (A4 가로): 파레트마다 1페이지. 헤더에 출고명 + `k / N번 파레트`, 본문에 `#/SKU/상품명/박스 수` 표. 혼합 팔레트는 헤더/요약에 `(혼합)` 라벨.
-  - 평탄화 유틸(`flattenPallets({ rows, mixedPallets })`)이 solo 팔레트(1..Σ `fullPalletCount`) + mixed 팔레트(이어서 번호)로 통합 번호 부여. `FlatPallet.kind: 'solo' | 'mixed'`.
+  - 평탄화 유틸(`flattenPallets({ rows, mixedPallets })`)이 solo 팔레트(1..Σ `soloPalletCount`) + mixed 팔레트(이어서 번호)로 통합 번호 부여. solo 루프는 `i < fullPalletCount`면 `cartonsPerPallet`, 그 외(환원된 부분 팔레트)는 `lastPalletCartons`. `FlatPallet.kind: 'solo' | 'mixed'`.
   - `@react-pdf/renderer` + `Noto Sans KR` OTF 임베드로 한글 렌더링. 문서 컴포넌트는 `next/dynamic({ ssr: false })` 로 클라이언트 번들 분리.
 
 ## API

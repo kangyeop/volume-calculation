@@ -38,7 +38,9 @@ export function flattenPallets(input: FlattenPalletsInput): FlatPallet[] {
 
   for (const row of rows) {
     if (row.unpackable) continue;
-    for (let i = 0; i < row.fullPalletCount; i++) {
+    for (let i = 0; i < row.soloPalletCount; i++) {
+      const cartons =
+        i < row.fullPalletCount ? row.cartonsPerPallet : row.lastPalletCartons;
       result.push({
         no: no++,
         kind: 'solo',
@@ -46,7 +48,7 @@ export function flattenPallets(input: FlattenPalletsInput): FlatPallet[] {
           {
             sku: row.sku,
             productName: row.productName,
-            cartons: row.cartonsPerPallet,
+            cartons,
             lots: row.lots ?? [],
           },
         ],

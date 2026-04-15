@@ -56,7 +56,7 @@ export default function GlobalPackingCalculator() {
   const packableRows = allRows.filter((r) => !r.unpackable);
   const mixedPallets: GlobalMixedPalletRow[] = result?.mixedPallets ?? [];
   const totalPallets = result?.totalPallets ?? 0;
-  const fullPalletTotal = packableRows.reduce((acc, r) => acc + r.fullPalletCount, 0);
+  const soloPalletTotal = packableRows.reduce((acc, r) => acc + r.soloPalletCount, 0);
   const mixedPalletTotal = mixedPallets.length;
   const totalSkus = packableRows.length;
 
@@ -109,7 +109,7 @@ export default function GlobalPackingCalculator() {
                 <span className="ml-2 text-sm text-muted-foreground">({totalSkus} SKUs)</span>
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                완전 팔레트 {fullPalletTotal}개 + 혼합 팔레트 {mixedPalletTotal}개 = 총{' '}
+                단독 팔레트 {soloPalletTotal}개 + 혼합 팔레트 {mixedPalletTotal}개 = 총{' '}
                 {totalPallets}팔레트
               </div>
             </div>
@@ -205,9 +205,15 @@ export default function GlobalPackingCalculator() {
               const lastPalletIsFull =
                 row.cartonsPerPallet > 0 &&
                 row.lastPalletCartons === row.cartonsPerPallet;
-              const leftoverCartons =
-                !lastPalletIsFull && row.lastPalletCartons > 0 ? row.lastPalletCartons : 0;
-              const hasSoloPallets = row.fullPalletCount > 0;
+              const hasSoloPallets = row.soloPalletCount > 0;
+              const showMixedLeftover =
+                row.lastPalletInMixed && row.lastPalletCartons > 0;
+              const showPartialSolo =
+                !row.lastPalletInMixed &&
+                !lastPalletIsFull &&
+                row.lastPalletCartons > 0 &&
+                hasSoloPallets;
+              const showNoSoloMixed = !hasSoloPallets && row.lastPalletInMixed;
               return (
                 <div
                   key={row.id}
@@ -225,7 +231,7 @@ export default function GlobalPackingCalculator() {
                     </div>
                     {hasSoloPallets ? (
                       <span className="inline-flex items-center px-2 py-1 text-xs font-semibold bg-indigo-100 text-indigo-700 rounded">
-                        완전 팔레트 {row.fullPalletCount}개
+                        단독 팔레트 {row.soloPalletCount}개
                       </span>
                     ) : (
                       <span className="inline-flex items-center px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-800 rounded">
@@ -269,20 +275,28 @@ export default function GlobalPackingCalculator() {
                       <span className="font-medium">{row.cartonsPerPallet} 칸</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">완전 팔레트</span>
-                      <span className="font-medium">{row.fullPalletCount} pallets</span>
+                      <span className="text-muted-foreground">단독 팔레트</span>
+                      <span className="font-medium">{row.soloPalletCount} pallets</span>
                     </div>
-                    {hasSoloPallets && leftoverCartons > 0 && (
+                    {showMixedLeftover && (
                       <div className="flex justify-between items-center pt-1 border-t">
                         <span className="text-muted-foreground">잔여</span>
                         <span className="font-bold text-amber-700">
-                          {leftoverCartons}박스 → 혼합 팔레트
+                          {row.lastPalletCartons}박스 → 혼합 팔레트
                         </span>
                       </div>
                     )}
-                    {!hasSoloPallets && leftoverCartons > 0 && (
+                    {showPartialSolo && (
+                      <div className="flex justify-between items-center pt-1 border-t">
+                        <span className="text-muted-foreground">마지막 팔레트</span>
+                        <span className="font-bold text-amber-700">
+                          {row.lastPalletCartons}/{row.cartonsPerPallet} 칸 (부분 적재)
+                        </span>
+                      </div>
+                    )}
+                    {showNoSoloMixed && (
                       <div className="pt-1 border-t text-xs text-amber-700">
-                        팔레트 단독 없음 — {leftoverCartons}박스는 혼합 팔레트에 포함
+                        팔레트 단독 없음 — {row.lastPalletCartons}박스는 혼합 팔레트에 포함
                       </div>
                     )}
                   </div>
