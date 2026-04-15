@@ -2,23 +2,25 @@
 
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { FileText, FileDown } from 'lucide-react';
-import type { GlobalPackingResultRow } from '@/hooks/queries';
+import type { GlobalPackingResultRow, GlobalMixedPalletRow } from '@/hooks/queries';
 import { flattenPallets } from '@/lib/pdf/flattenPallets';
 import { ShipmentPalletListPdf } from './ShipmentPalletListPdf';
 import { ShipmentPalletLabelsPdf } from './ShipmentPalletLabelsPdf';
 
 export interface ShipmentPdfDownloadButtonsProps {
   rows: GlobalPackingResultRow[];
+  mixedPallets?: GlobalMixedPalletRow[];
   totalPallets: number;
   shipmentLabel: string;
 }
 
 export default function ShipmentPdfDownloadButtons({
   rows,
+  mixedPallets = [],
   totalPallets,
   shipmentLabel,
 }: ShipmentPdfDownloadButtonsProps) {
-  const pallets = flattenPallets(rows);
+  const pallets = flattenPallets({ rows, mixedPallets });
   const disabled = pallets.length === 0;
   const generatedAt = new Date().toLocaleString('ko-KR');
 

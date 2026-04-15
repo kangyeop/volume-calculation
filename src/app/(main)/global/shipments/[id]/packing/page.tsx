@@ -10,9 +10,11 @@ import {
   useCalculateGlobalPacking,
   useGlobalShipment,
   type GlobalPackingResultRow,
+  type GlobalMixedPalletRow,
 } from '@/hooks/queries';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { PalletPacking3DModal } from '@/components/global/PalletPacking3DModal';
+import { MixedPalletPacking3DModal } from '@/components/global/MixedPalletPacking3DModal';
 
 const ShipmentPdfDownloadButtons = dynamic(
   () => import('@/components/global/ShipmentPdfDownloadButtons'),
@@ -28,6 +30,7 @@ export default function GlobalPackingCalculator() {
   const { data: shipment } = useGlobalShipment(shipmentId);
   const calculateMutation = useCalculateGlobalPacking(shipmentId);
   const [view3dRow, setView3dRow] = useState<GlobalPackingResultRow | null>(null);
+  const [view3dMixed, setView3dMixed] = useState<GlobalMixedPalletRow | null>(null);
 
   const isCalculating = calculateMutation.isPending;
   const result = recommendation ?? null;
@@ -44,12 +47,17 @@ export default function GlobalPackingCalculator() {
     }
   };
 
-  const hasResult = !!result && (result.rows?.length ?? 0) > 0;
+  const hasResult =
+    !!result &&
+    ((result.rows?.length ?? 0) > 0 || (result.mixedPallets?.length ?? 0) > 0);
   const unpackableRows: GlobalPackingResultRow[] = result?.unpackableSkus ?? [];
   const unmatched: string[] = result?.unmatched ?? [];
   const allRows: GlobalPackingResultRow[] = result?.rows ?? [];
   const packableRows = allRows.filter((r) => !r.unpackable);
+  const mixedPallets: GlobalMixedPalletRow[] = result?.mixedPallets ?? [];
   const totalPallets = result?.totalPallets ?? 0;
+  const fullPalletTotal = packableRows.reduce((acc, r) => acc + r.fullPalletCount, 0);
+  const mixedPalletTotal = mixedPallets.length;
   const totalSkus = packableRows.length;
 
   return (
@@ -72,6 +80,7 @@ export default function GlobalPackingCalculator() {
           {hasResult && (
             <ShipmentPdfDownloadButtons
               rows={packableRows}
+              mixedPallets={mixedPallets}
               totalPallets={totalPallets}
               shipmentLabel={shipment?.name ?? `글로벌 출고 ${shipmentId}`}
             />
@@ -98,6 +107,10 @@ export default function GlobalPackingCalculator() {
               <div className="text-2xl font-bold">
                 {totalPallets} <span className="text-base font-medium">pallets</span>
                 <span className="ml-2 text-sm text-muted-foreground">({totalSkus} SKUs)</span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                완전 팔레트 {fullPalletTotal}개 + 혼합 팔레트 {mixedPalletTotal}개 = 총{' '}
+                {totalPallets}팔레트
               </div>
             </div>
           </div>
@@ -189,10 +202,12 @@ export default function GlobalPackingCalculator() {
           <h2 className="text-lg font-semibold">SKU별 적재 계획</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {packableRows.map((row) => {
-              const hasPartialLast =
-                row.palletCount > 0 &&
-                row.lastPalletCartons > 0 &&
-                row.lastPalletCartons !== row.cartonsPerPallet;
+              const lastPalletIsFull =
+                row.cartonsPerPallet > 0 &&
+                row.lastPalletCartons === row.cartonsPerPallet;
+              const leftoverCartons =
+                !lastPalletIsFull && row.lastPalletCartons > 0 ? row.lastPalletCartons : 0;
+              const hasSoloPallets = row.fullPalletCount > 0;
               return (
                 <div
                   key={row.id}
@@ -208,12 +223,18 @@ export default function GlobalPackingCalculator() {
                         </div>
                       )}
                     </div>
-                    <span className="inline-flex items-center px-2 py-1 text-xs font-semibold bg-indigo-100 text-indigo-700 rounded">
-                      {row.palletCount} pallets
-                    </span>
+                    {hasSoloPallets ? (
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-semibold bg-indigo-100 text-indigo-700 rounded">
+                        완전 팔레트 {row.fullPalletCount}개
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-800 rounded">
+                        혼합 전용
+                      </span>
+                    )}
                   </div>
 
-                  {row.width != null && row.length != null && row.height != null && (
+                  {row.width != null && row.length != null && row.height != null && hasSoloPallets && (
                     <button
                       onClick={() => setView3dRow(row)}
                       className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
@@ -248,17 +269,104 @@ export default function GlobalPackingCalculator() {
                       <span className="font-medium">{row.cartonsPerPallet} 칸</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">팔레트 수</span>
-                      <span className="font-medium">{row.palletCount} pallets</span>
+                      <span className="text-muted-foreground">완전 팔레트</span>
+                      <span className="font-medium">{row.fullPalletCount} pallets</span>
                     </div>
-                    {hasPartialLast && (
+                    {hasSoloPallets && leftoverCartons > 0 && (
                       <div className="flex justify-between items-center pt-1 border-t">
-                        <span className="text-muted-foreground">마지막 팔레트</span>
-                        <span className="font-bold text-indigo-700">
-                          {row.lastPalletCartons}/{row.cartonsPerPallet} 칸
+                        <span className="text-muted-foreground">잔여</span>
+                        <span className="font-bold text-amber-700">
+                          {leftoverCartons}박스 → 혼합 팔레트
                         </span>
                       </div>
                     )}
+                    {!hasSoloPallets && leftoverCartons > 0 && (
+                      <div className="pt-1 border-t text-xs text-amber-700">
+                        팔레트 단독 없음 — {leftoverCartons}박스는 혼합 팔레트에 포함
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {mixedPallets.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">혼합 팔레트 (Mixed Pallets)</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {mixedPallets.map((mp) => {
+              const totalBoxes = mp.items.length;
+              const bySku = new Map<
+                string,
+                { productName: string; count: number }
+              >();
+              for (const it of mp.items) {
+                const entry = bySku.get(it.sku);
+                if (entry) {
+                  entry.count += 1;
+                } else {
+                  bySku.set(it.sku, { productName: it.productName, count: 1 });
+                }
+              }
+              const totalVolume = mp.items.reduce((acc, it) => acc + it.w * it.l * it.h, 0);
+              const maxTop = mp.items.reduce((acc, it) => Math.max(acc, it.z + it.h), 0);
+              return (
+                <div
+                  key={mp.id}
+                  className="bg-white border rounded-xl shadow-sm p-4 flex flex-col gap-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-gray-900">
+                        혼합 팔레트 #{mp.palletIndex}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-0.5">
+                        {bySku.size}개 SKU · 총 {totalBoxes}박스
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-800 rounded">
+                      mixed
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => setView3dMixed(mp)}
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+                  >
+                    <Box className="h-3.5 w-3.5" />
+                    3D로 보기
+                  </button>
+
+                  <div className="space-y-1 text-sm border-t pt-2">
+                    {Array.from(bySku.entries()).map(([sku, info]) => (
+                      <div
+                        key={sku}
+                        className="flex justify-between items-center gap-2 text-xs"
+                      >
+                        <div className="min-w-0 flex-1 truncate">
+                          <span className="font-mono text-gray-500">{sku}</span>
+                          <span className="mx-1 text-gray-300">·</span>
+                          <span className="text-gray-800">{info.productName}</span>
+                        </div>
+                        <span className="font-semibold shrink-0">× {info.count}박스</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-center pt-2 border-t">
+                    <div className="p-2 bg-gray-50 rounded-lg">
+                      <div className="text-xs text-muted-foreground">총 부피</div>
+                      <div className="text-sm font-semibold">
+                        {(totalVolume / 1000).toFixed(1)} L
+                      </div>
+                    </div>
+                    <div className="p-2 bg-gray-50 rounded-lg">
+                      <div className="text-xs text-muted-foreground">최고 높이</div>
+                      <div className="text-sm font-semibold">{maxTop.toFixed(0)} cm</div>
+                    </div>
                   </div>
                 </div>
               );
@@ -285,6 +393,12 @@ export default function GlobalPackingCalculator() {
               }
             : null
         }
+      />
+
+      <MixedPalletPacking3DModal
+        open={view3dMixed !== null}
+        onClose={() => setView3dMixed(null)}
+        pallet={view3dMixed}
       />
     </PageContainer>
   );

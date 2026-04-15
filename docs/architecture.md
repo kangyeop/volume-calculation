@@ -122,7 +122,8 @@ volume-calculator/
 │   │   │   └── middleware.ts        # 미들웨어 세션 갱신 헬퍼
 │   │   ├── algorithms/
 │   │   │   ├── packing.ts           # 패킹 알고리즘 (국내 박스)
-│   │   │   ├── pallet.ts            # 팔레트 계산 알고리즘 (글로벌)
+│   │   │   ├── pallet.ts            # 팔레트 계산 알고리즘 (글로벌, SKU별 독립)
+│   │   │   ├── mixed-pallet.ts      # 혼합 팔레트 3D 빈패킹 (Extreme-Point DBLF)
 │   │   │   └── __tests__/
 │   │   │       └── pallet.test.ts   # 팔레트 계산 테스트 (Vitest)
 │   │   ├── services/                 # 비즈니스 로직 서비스

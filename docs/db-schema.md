@@ -226,6 +226,17 @@ erDiagram
         integer palletCount
         integer lastPalletCartons
         boolean unpackable "default false"
+        jsonb lots "lot snapshot"
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    GlobalShipment ||--o{ GlobalPackingMixedPallet : "has many"
+    GlobalPackingMixedPallet {
+        uuid id PK
+        uuid globalShipmentId FK
+        integer palletIndex "1-based"
+        jsonb items "PlacedCarton[] (3D placed cartons)"
         timestamp createdAt
         timestamp updatedAt
     }
@@ -264,6 +275,8 @@ erDiagram
 | `global_order_items` | INDEX | `(global_shipment_id, global_product_id)` |
 | `global_packing_results` | UNIQUE | `(global_shipment_id, sku)` |
 | `global_packing_results` | INDEX | `global_shipment_id` |
+| `global_packing_mixed_pallets` | UNIQUE | `(global_shipment_id, pallet_index)` |
+| `global_packing_mixed_pallets` | INDEX | `global_shipment_id` |
 
 ## 관계 요약
 
@@ -285,6 +298,7 @@ erDiagram
 | `GlobalShipment` | `GlobalOrder` | 1:N | CASCADE |
 | `GlobalShipment` | `GlobalOrderItem` | 1:N | CASCADE |
 | `GlobalShipment` | `GlobalPackingResult` | 1:N | CASCADE |
+| `GlobalShipment` | `GlobalPackingMixedPallet` | 1:N | CASCADE |
 | `GlobalOrder` | `GlobalOrderItem` | 1:N | CASCADE |
 | `GlobalProduct` | `GlobalOrderItem` | 1:N | SET NULL |
 | `GlobalProduct` | `GlobalPackingResult` | 1:N | SET NULL |

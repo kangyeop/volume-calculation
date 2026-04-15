@@ -1,8 +1,18 @@
 import { db } from '@/lib/db';
-import { globalOrderItems, globalPackingResults, globalProducts } from '@/lib/db/schema';
+import {
+  globalOrderItems,
+  globalPackingMixedPallets,
+  globalPackingResults,
+  globalProducts,
+} from '@/lib/db/schema';
 import { eq, and, inArray, sum, asc, desc } from 'drizzle-orm';
 import { assertOwnership } from '@/lib/services/global-shipment';
 import { calculatePalletization } from '@/lib/algorithms/pallet';
+import {
+  packMixedPallets,
+  type LeftoverCarton,
+  type PlacedCarton,
+} from '@/lib/algorithms/mixed-pallet';
 
 const CHUNK_SIZE = 500;
 
@@ -10,14 +20,32 @@ export type GlobalPackingResultRow = typeof globalPackingResults.$inferSelect & 
   width: number | null;
   length: number | null;
   height: number | null;
+  fullPalletCount: number;
 };
+
+export type GlobalMixedPalletRow = typeof globalPackingMixedPallets.$inferSelect;
 
 export type GlobalPackingCalculateResult = {
   totalPallets: number;
+  mixedPalletCount: number;
   unpackableSkus: GlobalPackingResultRow[];
   unmatched: string[];
   rows: GlobalPackingResultRow[];
+  mixedPallets: GlobalMixedPalletRow[];
 };
+
+function computeFullPalletCount(row: {
+  unpackable: boolean;
+  palletCount: number;
+  cartonsPerPallet: number;
+  lastPalletCartons: number;
+}): number {
+  if (row.unpackable) return 0;
+  if (row.palletCount === 0) return 0;
+  const lastPalletIsFull =
+    row.lastPalletCartons === row.cartonsPerPallet && row.cartonsPerPallet > 0;
+  return lastPalletIsFull ? row.palletCount : Math.max(0, row.palletCount - 1);
+}
 
 export async function calculate(
   userId: string,
@@ -72,10 +100,22 @@ export async function calculate(
   }
 
   if (aggregated.length === 0) {
-    await db
-      .delete(globalPackingResults)
-      .where(eq(globalPackingResults.globalShipmentId, globalShipmentId));
-    return { totalPallets: 0, unpackableSkus: [], unmatched: [], rows: [] };
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(globalPackingMixedPallets)
+        .where(eq(globalPackingMixedPallets.globalShipmentId, globalShipmentId));
+      await tx
+        .delete(globalPackingResults)
+        .where(eq(globalPackingResults.globalShipmentId, globalShipmentId));
+    });
+    return {
+      totalPallets: 0,
+      mixedPalletCount: 0,
+      unpackableSkus: [],
+      unmatched: [],
+      rows: [],
+      mixedPallets: [],
+    };
   }
 
   const skuList = aggregated.map((a) => a.sku);
@@ -89,6 +129,7 @@ export async function calculate(
 
   const unmatched: string[] = [];
   const inserts: (typeof globalPackingResults.$inferInsert)[] = [];
+  const leftovers: LeftoverCarton[] = [];
 
   for (const { sku, totalUnits } of aggregated) {
     const product = productBySku.get(sku);
@@ -123,43 +164,94 @@ export async function calculate(
       unpackable: result.unpackable,
       lots: lotsBySku.get(sku) ?? [],
     });
+
+    if (
+      !result.unpackable &&
+      result.lastPalletCartons > 0 &&
+      !result.lastPalletIsFull &&
+      result.palletCount > 0
+    ) {
+      leftovers.push({
+        sku,
+        productName: product.name,
+        w: Number(product.width),
+        l: Number(product.length),
+        h: Number(product.height),
+        count: result.lastPalletCartons,
+      });
+    }
   }
 
-  const rows = await db.transaction(async (tx) => {
+  const mixedResult = packMixedPallets(leftovers);
+
+  const { rows, mixedPallets } = await db.transaction(async (tx) => {
+    await tx
+      .delete(globalPackingMixedPallets)
+      .where(eq(globalPackingMixedPallets.globalShipmentId, globalShipmentId));
     await tx
       .delete(globalPackingResults)
       .where(eq(globalPackingResults.globalShipmentId, globalShipmentId));
 
-    if (inserts.length === 0) return [] as GlobalPackingResultRow[];
-
     const saved: GlobalPackingResultRow[] = [];
-    for (let i = 0; i < inserts.length; i += CHUNK_SIZE) {
-      const chunk = inserts.slice(i, i + CHUNK_SIZE);
-      const inserted = await tx.insert(globalPackingResults).values(chunk).returning();
-      for (const row of inserted) {
-        const product = row.sku ? productBySku.get(row.sku) : undefined;
-        saved.push({
-          ...row,
-          width: product ? Number(product.width) : null,
-          length: product ? Number(product.length) : null,
-          height: product ? Number(product.height) : null,
-        });
+    if (inserts.length > 0) {
+      for (let i = 0; i < inserts.length; i += CHUNK_SIZE) {
+        const chunk = inserts.slice(i, i + CHUNK_SIZE);
+        const inserted = await tx.insert(globalPackingResults).values(chunk).returning();
+        for (const row of inserted) {
+          const product = row.sku ? productBySku.get(row.sku) : undefined;
+          saved.push({
+            ...row,
+            width: product ? Number(product.width) : null,
+            length: product ? Number(product.length) : null,
+            height: product ? Number(product.height) : null,
+            fullPalletCount: computeFullPalletCount(row),
+          });
+        }
       }
     }
-    return saved;
+
+    const mixedInserts: (typeof globalPackingMixedPallets.$inferInsert)[] =
+      mixedResult.pallets.map((p, idx) => ({
+        globalShipmentId,
+        palletIndex: idx + 1,
+        items: p.items,
+      }));
+
+    const savedMixed: GlobalMixedPalletRow[] = [];
+    if (mixedInserts.length > 0) {
+      for (let i = 0; i < mixedInserts.length; i += CHUNK_SIZE) {
+        const chunk = mixedInserts.slice(i, i + CHUNK_SIZE);
+        const inserted = await tx
+          .insert(globalPackingMixedPallets)
+          .values(chunk)
+          .returning();
+        savedMixed.push(...inserted);
+      }
+    }
+
+    return { rows: saved, mixedPallets: savedMixed };
   });
 
-  const totalPallets = rows.reduce((acc, r) => acc + (r.unpackable ? 0 : r.palletCount), 0);
+  const totalPallets =
+    rows.reduce((acc, r) => acc + r.fullPalletCount, 0) + mixedPallets.length;
   const unpackableSkus = rows.filter((r) => r.unpackable);
 
-  return { totalPallets, unpackableSkus, unmatched, rows };
+  return {
+    totalPallets,
+    mixedPalletCount: mixedPallets.length,
+    unpackableSkus,
+    unmatched,
+    rows,
+    mixedPallets,
+  };
 }
 
 export async function getRecommendation(
   globalShipmentId: string,
-): Promise<GlobalPackingResultRow[]> {
+): Promise<GlobalPackingCalculateResult> {
   await assertOwnership(globalShipmentId);
-  const rows = await db
+
+  const joined = await db
     .select({
       result: globalPackingResults,
       width: globalProducts.width,
@@ -171,10 +263,32 @@ export async function getRecommendation(
     .where(eq(globalPackingResults.globalShipmentId, globalShipmentId))
     .orderBy(desc(globalPackingResults.palletCount), asc(globalPackingResults.sku));
 
-  return rows.map((r) => ({
+  const rows: GlobalPackingResultRow[] = joined.map((r) => ({
     ...r.result,
     width: r.width != null ? Number(r.width) : null,
     length: r.length != null ? Number(r.length) : null,
     height: r.height != null ? Number(r.height) : null,
+    fullPalletCount: computeFullPalletCount(r.result),
   }));
+
+  const mixedPallets = await db
+    .select()
+    .from(globalPackingMixedPallets)
+    .where(eq(globalPackingMixedPallets.globalShipmentId, globalShipmentId))
+    .orderBy(asc(globalPackingMixedPallets.palletIndex));
+
+  const totalPallets =
+    rows.reduce((acc, r) => acc + r.fullPalletCount, 0) + mixedPallets.length;
+  const unpackableSkus = rows.filter((r) => r.unpackable);
+
+  return {
+    totalPallets,
+    mixedPalletCount: mixedPallets.length,
+    unpackableSkus,
+    unmatched: [],
+    rows,
+    mixedPallets,
+  };
 }
+
+export type { PlacedCarton };

@@ -291,9 +291,68 @@ EXPORT_PALLET = {
 - 결과 요약에 `unmatched` 리스트로 표시
 - `global_packing_results` 에는 행 작성 안 함 (계산 불가)
 
+### 혼합 팔레트 합치기 (Mixed Pallets)
+
+각 SKU의 단독 파레트 계산 이후, 부분 적재된 "마지막 파레트"들의 잉여 카톤(`lastPalletCartons`)만 모아 3D 빈패킹으로 합쳐 팔레트 수를 절감한다.
+
+**알고리즘** — `src/lib/algorithms/mixed-pallet.ts`
+
+- Extreme-Point Deepest-Bottom-Left-Fill 3D 빈패커
+- 팔레트 규격: `EXPORT_PALLET` 110×110×165 cm
+- 회전: xy 평면 90도만 허용 (w↔l 스왑), z축 회전 금지 (카톤 upright 유지)
+- 지지 조건: `z = 0` 이거나 하단면 면적의 70% 이상이 기존 카톤 윗면과 접촉 (공중부양 방지)
+- 정렬: 부피 내림차순 → 높이 내림차순 (결정론적)
+- 배치 점수: `(z, y, x)` 사전식 최소 = DBLF
+- AABB 충돌 검사로 겹침 방지
+- 예산 300,000 연산 초과 시 `console.warn` 후 나머지 미배치 카톤은 `unplacedCartons`로 수집
+
+**leftover 수집 조건:**
+- `!unpackable && lastPalletCartons > 0 && !lastPalletIsFull && palletCount > 0`
+
+**서비스 흐름 (`calculate`)**
+
+1. SKU별 `calculatePalletization()` 실행 (기존과 동일)
+2. 잉여 카톤 수집 → `packMixedPallets(leftovers)` 호출
+3. 트랜잭션 내에서 `globalPackingMixedPallets` → `globalPackingResults` 순으로 DELETE 후 재삽입 (멱등)
+4. `totalPallets = Σ fullPalletCount + mixedPallets.length`
+   - `fullPalletCount = unpackable ? 0 : (lastPalletIsFull ? palletCount : palletCount - 1)`
+5. 응답 shape `GlobalPackingCalculateResult`에 `mixedPallets`, `mixedPalletCount`, `rows[i].fullPalletCount` 포함
+
+**데이터 모델 — `globalPackingMixedPallets`**
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `id` | uuid PK | |
+| `globalShipmentId` | uuid FK → `globalShipments` (CASCADE) | |
+| `palletIndex` | integer | 출고 내 혼합 팔레트 1-based 순번 |
+| `items` | jsonb `PlacedCarton[]` | 카톤별 배치 좌표 |
+| `createdAt`, `updatedAt` | timestamptz | |
+
+UNIQUE: `(globalShipmentId, palletIndex)`
+
+**`PlacedCarton` 타입**
+
+```ts
+{
+  sku: string
+  productName: string
+  cartonIndex: number           // 같은 SKU 내 1부터 순번
+  x: number; y: number; z: number   // cm, 팔레트 원점 (left-bottom-back)
+  w: number; l: number; h: number   // 배치 방향 반영 치수
+  rotated: boolean              // xy 90도 회전 여부
+}
+```
+
+**UI**
+- 기존 SKU 카드는 `fullPalletCount` 기반 "완전 팔레트 N개" 표시. 잔여 카톤은 "혼합 팔레트로 이동" 안내.
+- 페이지 하단 "혼합 팔레트" 섹션에 카드별로 구성 SKU, 총 박스 수, 총 부피/높이 표시.
+- `MixedPalletPacking3DView` (R3F 기반, SKU별 해시 색상)로 3D 뷰 제공.
+
+**PDF**
+- `flattenPallets({ rows, mixedPallets })`가 solo 팔레트 (1..Σfull) + mixed 팔레트 (이어서) 순으로 번호 부여. `kind: 'solo' | 'mixed'` 필드로 라벨/리스트 PDF에 "(혼합)" 접미어 표기.
+
 ### 비공개 목표
 
-- **v1 비목표:** 혼합 SKU 팔레트 최적화 (각 SKU는 독립적으로 팔레트 계산)
 - **v1 비목표:** 정산 / 유형 판별 (no `type` column)
 - **v1 비목표:** 무게 / 통화 추적
 - **v1 비목표:** 글로벌 전용 엑셀 형식 파서 (국내 재사용)
@@ -321,20 +380,23 @@ EXPORT_PALLET = {
 
 **`/global/shipments/[id]/packing` 페이지:**
 
-- **상단 요약:** `총 팔레트 수: N pallets (M SKUs)`
+- **상단 요약:** `총 팔레트 수: N pallets (M SKUs)` + breakdown `완전 A개 + 혼합 B개`
 - **경고 배너:**
   - Oversize SKU 목록 (초과 축명 명시)
   - 미매칭 SKU 목록
-- **결과 테이블 (SKU별 카드):**
-  - 상품명, SKU
-  - 총 개수 + 카톤 수 (innerQuantity 표시)
-  - `팔레트 수`, `한 층 적재 수량`, `한 팔레트 적재 수량`, `마지막 팔레트 수량`
-  - 마지막 팔레트 미완성 시 강조 표시 (예: `3/12 칸`)
-  - **3D 뷰 모달:** 카드의 `3D로 보기` 버튼으로 팔레트 한 대의 실제 박스 배치를 react-three-fiber 기반 인터랙티브 뷰(OrbitControls)로 확인. 각 층은 `computeLayerLayout`가 반환하는 동일한 Rect 레이아웃을 `layersPerPallet` 만큼 수직 반복해 렌더.
+- **SKU별 카드 (단독 팔레트):**
+  - 상품명, SKU, 총 개수 + 카톤 수 (innerQuantity 표시)
+  - `완전 팔레트 N개` (= `fullPalletCount`), `한 층 적재`, `한 팔레트 적재`
+  - `lastPalletCartons > 0 && !lastPalletIsFull`이면 "잔여 X박스 → 혼합 팔레트" 안내
+  - `fullPalletCount === 0`이면 "팔레트 단독 없음 — X박스는 혼합 팔레트에 포함" 표시 (3D 버튼 숨김)
+  - **3D 뷰 모달 (`PalletPacking3DView`):** 단독 팔레트 한 대의 박스 배치. `computeLayerLayout` Rect를 `layersPerPallet` 수직 반복 렌더.
+- **혼합 팔레트 섹션 (`mixedPallets.length > 0`일 때만 렌더):**
+  - 카드별로 `혼합 팔레트 #{palletIndex}`, 구성 SKU 목록 (SKU별 박스 수 groupBy), 총 부피, 최고 높이
+  - **혼합 3D 뷰 모달 (`MixedPalletPacking3DView`):** `PlacedCarton[]` 좌표(left-bottom-back 원점)를 three.js 중심 좌표로 변환해 렌더. SKU별 해시 색상으로 구분.
 - **PDF 다운로드:** 헤더 우측에서 두 종류의 인쇄물을 내려받음.
-  - `전체 목록 PDF` (A4 세로): 1~N 번까지 전체 파레트를 표로 나열 (`파레트 번호` / `상품명` / `박스 수`)
-  - `파레트 라벨 PDF` (A4 가로): 파레트마다 1페이지. 헤더에 출고명 + `k / N번 파레트`, 본문에 `#/SKU/상품명/박스 수` 표. 현재는 파레트당 1개 SKU지만 추후 혼합 적재에 대비해 아이템 배열(`FlatPallet.items`) 구조로 렌더.
-  - 평탄화 유틸(`flattenPallets`)로 SKU 단위 행을 파레트 단위로 풀어 통합 번호(1~totalPallets) 부여. 마지막 파레트는 `lastPalletCartons > 0` 이면 해당 값 사용, 아니면 `cartonsPerPallet`.
+  - `전체 목록 PDF` (A4 세로): 1~N 번까지 전체 파레트를 표로 나열. 혼합 팔레트는 번호 컬럼에 `(혼합)` 표기.
+  - `파레트 라벨 PDF` (A4 가로): 파레트마다 1페이지. 헤더에 출고명 + `k / N번 파레트`, 본문에 `#/SKU/상품명/박스 수` 표. 혼합 팔레트는 헤더/요약에 `(혼합)` 라벨.
+  - 평탄화 유틸(`flattenPallets({ rows, mixedPallets })`)이 solo 팔레트(1..Σ `fullPalletCount`) + mixed 팔레트(이어서 번호)로 통합 번호 부여. `FlatPallet.kind: 'solo' | 'mixed'`.
   - `@react-pdf/renderer` + `Noto Sans KR` OTF 임베드로 한글 렌더링. 문서 컴포넌트는 `next/dynamic({ ssr: false })` 로 클라이언트 번들 분리.
 
 ## API

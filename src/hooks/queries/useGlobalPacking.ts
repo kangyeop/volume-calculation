@@ -25,15 +25,40 @@ export interface GlobalPackingResultRow {
   width: number | null;
   length: number | null;
   height: number | null;
+  fullPalletCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PlacedCarton {
+  sku: string;
+  productName: string;
+  cartonIndex: number;
+  x: number;
+  y: number;
+  z: number;
+  w: number;
+  l: number;
+  h: number;
+  rotated: boolean;
+}
+
+export interface GlobalMixedPalletRow {
+  id: string;
+  globalShipmentId: string;
+  palletIndex: number;
+  items: PlacedCarton[];
   createdAt: string;
   updatedAt: string;
 }
 
 export interface GlobalPackingCalculateResult {
   totalPallets: number;
+  mixedPalletCount: number;
   unpackableSkus: GlobalPackingResultRow[];
   unmatched: string[];
   rows: GlobalPackingResultRow[];
+  mixedPallets: GlobalMixedPalletRow[];
 }
 
 async function fetchRecommendation(

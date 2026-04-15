@@ -121,7 +121,11 @@ export function ShipmentPalletListPdf({
               const lots = item.lots.length > 0 ? item.lots : [{ lotNumber: null, expirationDate: null, quantity: 0 }];
               return lots.map((lot, lotIdx) => (
                 <View key={`${p.no}-${idx}-${lotIdx}`} style={styles.tableRow} wrap={false}>
-                  <Text style={styles.colNo}>{idx === 0 && lotIdx === 0 ? p.no : ''}</Text>
+                  <Text style={styles.colNo}>
+                    {idx === 0 && lotIdx === 0
+                      ? `${p.no}${p.kind === 'mixed' ? '(혼합)' : ''}`
+                      : ''}
+                  </Text>
                   <Text style={styles.colName}>{lotIdx === 0 ? item.productName : ''}</Text>
                   <Text style={styles.colLot}>{lot.lotNumber ?? '-'}</Text>
                   <Text style={styles.colExp}>{lot.expirationDate ?? '-'}</Text>

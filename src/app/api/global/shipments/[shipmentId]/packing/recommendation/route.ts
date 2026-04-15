@@ -8,13 +8,11 @@ export async function GET(
 ) {
   try {
     const { shipmentId } = await params;
-    const rows = await globalPackingService.getRecommendation(shipmentId);
-    if (rows.length === 0) {
+    const result = await globalPackingService.getRecommendation(shipmentId);
+    if (result.rows.length === 0 && result.mixedPallets.length === 0) {
       return NextResponse.json(null);
     }
-    const unpackableSkus = rows.filter((r) => r.unpackable);
-    const totalPallets = rows.reduce((sum, r) => sum + (r.unpackable ? 0 : r.palletCount), 0);
-    return NextResponse.json({ totalPallets, unpackableSkus, unmatched: [], rows });
+    return NextResponse.json(result);
   } catch (error) {
     return handleApiError(error, 'GET /global/shipments/[shipmentId]/packing/recommendation');
   }

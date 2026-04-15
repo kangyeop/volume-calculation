@@ -121,11 +121,14 @@ export function ShipmentPalletLabelsPdf({
               <Text style={styles.shipmentLabel}>{shipmentLabel}</Text>
               <Text style={styles.palletHeading}>
                 {p.no} / {totalPallets}번 파레트
+                {p.kind === 'mixed' ? ' (혼합)' : ''}
               </Text>
             </View>
 
             <View style={styles.summaryRow}>
-              <Text>총 {p.items.length}개 상품</Text>
+              <Text>
+                {p.kind === 'mixed' ? '혼합 팔레트 · ' : ''}총 {p.items.length}개 상품
+              </Text>
               <Text>총 {cartonsSum} 박스</Text>
             </View>
 

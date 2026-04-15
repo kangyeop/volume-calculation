@@ -377,6 +377,27 @@ export const globalPackingResults = pgTable('global_packing_results', {
   index('global_packing_results_shipment_id_idx').on(table.globalShipmentId),
 ]).enableRLS();
 
+export const globalPackingMixedPallets = pgTable('global_packing_mixed_pallets', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  globalShipmentId: uuid('global_shipment_id').notNull().references(() => globalShipments.id, { onDelete: 'cascade' }),
+  palletIndex: integer('pallet_index').notNull(),
+  items: jsonb('items')
+    .$type<import('@/lib/algorithms/mixed-pallet').PlacedCarton[]>()
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdate(() => new Date()),
+}, (table) => [
+  uniqueIndex('global_packing_mixed_pallets_shipment_pallet_idx').on(table.globalShipmentId, table.palletIndex),
+  index('global_packing_mixed_pallets_shipment_id_idx').on(table.globalShipmentId),
+]).enableRLS();
+
+export const globalPackingMixedPalletsRelations = relations(globalPackingMixedPallets, ({ one }) => ({
+  shipment: one(globalShipments, {
+    fields: [globalPackingMixedPallets.globalShipmentId],
+    references: [globalShipments.id],
+  }),
+}));
+
 export const globalProductGroupsRelations = relations(globalProductGroups, ({ many }) => ({
   products: many(globalProducts),
 }));
@@ -392,6 +413,7 @@ export const globalShipmentsRelations = relations(globalShipments, ({ many }) =>
   orders: many(globalOrders),
   orderItems: many(globalOrderItems),
   packingResults: many(globalPackingResults),
+  mixedPallets: many(globalPackingMixedPallets),
 }));
 
 export const globalOrdersRelations = relations(globalOrders, ({ one, many }) => ({
