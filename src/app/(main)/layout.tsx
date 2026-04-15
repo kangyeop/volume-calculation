@@ -20,7 +20,7 @@ import { createSupabaseBrowser } from '@/lib/supabase/client';
 
 const navGroups = [
   {
-    label: '국내 물류',
+    label: '박스',
     items: [
       { to: '/products', label: '상품', icon: Package },
       { to: '/shipments', label: '출고', icon: Truck },
@@ -31,7 +31,7 @@ const navGroups = [
     ],
   },
   {
-    label: '글로벌 물류',
+    label: '팔레트',
     items: [
       { to: '/global/products', label: '상품 그룹', icon: PackageOpen },
       { to: '/global/shipments', label: '글로벌 출고', icon: Container },
