@@ -4,7 +4,7 @@ import type { ShipmentFormat } from '@/lib/services/format-parser';
 import { handleApiError } from '@/lib/api-error';
 import { validateUploadFile } from '@/lib/upload-validation';
 
-const VALID_FORMATS: ShipmentFormat[] = ['adjustment', 'beforeMapping', 'afterMapping'];
+const VALID_FORMATS: ShipmentFormat[] = ['adjustment', 'beforeMapping', 'afterMapping', 'confirmed'];
 
 export async function POST(request: NextRequest) {
   try {

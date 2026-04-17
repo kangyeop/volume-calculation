@@ -1,4 +1,4 @@
-export type ShipmentFormat = 'adjustment' | 'beforeMapping' | 'afterMapping';
+export type ShipmentFormat = 'adjustment' | 'beforeMapping' | 'afterMapping' | 'confirmed';
 
 export interface ParsedOrderItem {
   orderId: string;
@@ -64,6 +64,20 @@ export function parseAfterMapping(rows: Record<string, unknown>[]): ParsedOrderI
   return result;
 }
 
+export function parseConfirmed(rows: Record<string, unknown>[]): ParsedOrderItem[] {
+  const result: ParsedOrderItem[] = [];
+  for (const row of rows) {
+    const orderId = String(row['쇼핑몰주문번호'] ?? '').trim();
+    const rawOption = String(row['옵션명'] ?? '').trim();
+    if (!orderId || !rawOption) continue;
+    const sku = rawOption.replace(/^-\s*/, '');
+    if (!sku) continue;
+    const quantity = parseInt(String(row['주문수량'] ?? '1')) || 1;
+    result.push({ orderId, sku, quantity });
+  }
+  return result;
+}
+
 export function parseByFormat(format: ShipmentFormat, rows: Record<string, unknown>[]): ParsedOrderItem[] {
   switch (format) {
     case 'adjustment':
@@ -72,5 +86,7 @@ export function parseByFormat(format: ShipmentFormat, rows: Record<string, unkno
       return parseBeforeMapping(rows);
     case 'afterMapping':
       return parseAfterMapping(rows);
+    case 'confirmed':
+      return parseConfirmed(rows);
   }
 }

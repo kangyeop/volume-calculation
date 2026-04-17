@@ -5,7 +5,7 @@ import { api, type Shipment } from '@/lib/api';
 import { shipments } from './queries/queryKeys';
 import type { ShipmentUploadResult } from '@/types';
 
-type ShipmentFormat = 'adjustment' | 'beforeMapping' | 'afterMapping';
+import type { ShipmentFormat } from '@/lib/services/format-parser';
 
 export function useShipmentUploadFlow() {
   const queryClient = useQueryClient();

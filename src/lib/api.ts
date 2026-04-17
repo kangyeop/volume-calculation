@@ -185,7 +185,7 @@ export const api = {
     unconfirm: (id: string) => fetchApi<{ success: boolean }>(`/shipments/${id}/confirm`, { method: 'DELETE' }),
     updateNote: (id: string, note: string | null) =>
       fetchApi<Shipment>(`/shipments/${id}`, { method: 'PATCH', data: { note } }),
-    upload: (file: File, format: 'adjustment' | 'beforeMapping' | 'afterMapping'): Promise<ShipmentUploadResult> => {
+    upload: (file: File, format: 'adjustment' | 'beforeMapping' | 'afterMapping' | 'confirmed'): Promise<ShipmentUploadResult> => {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('format', format);

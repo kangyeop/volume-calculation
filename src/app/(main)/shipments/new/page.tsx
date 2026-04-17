@@ -8,11 +8,12 @@ import { ExcelUpload } from '@/components/ExcelUpload';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { useShipmentUploadFlow } from '@/hooks/useShipmentUploadFlow';
 
-type ShipmentFormat = 'adjustment' | 'beforeMapping' | 'afterMapping';
+import type { ShipmentFormat } from '@/lib/services/format-parser';
 
 const FORMAT_OPTIONS: { value: ShipmentFormat; label: string }[] = [
   { value: 'beforeMapping', label: '매핑 전' },
   { value: 'afterMapping', label: '매핑 후' },
+  { value: 'confirmed', label: '확정' },
 ];
 
 export default function OutboundCreate() {
