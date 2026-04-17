@@ -91,6 +91,18 @@ export function useUpdateShipmentNote() {
   });
 }
 
+export function useUpdateShipmentName() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) => api.shipments.updateName(id, name),
+    onSuccess: (_, { id }: { id: string; name: string }) => {
+      queryClient.invalidateQueries({ queryKey: shipments.all.queryKey });
+      queryClient.invalidateQueries({ queryKey: shipments.detail(id).queryKey });
+    },
+  });
+}
+
 export function useConfigurationSummary(shipmentId: string) {
   return useQuery({
     ...shipments.configurationSummary(shipmentId),

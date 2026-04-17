@@ -436,6 +436,7 @@ UNIQUE: `(globalShipmentId, palletIndex)`
 | GET | `/api/global/shipments` | 글로벌 출고 목록 |
 | POST | `/api/global/shipments` | 글로벌 출고 생성 |
 | GET | `/api/global/shipments/[id]` | 글로벌 출고 상세 |
+| PATCH | `/api/global/shipments/[id]` | 이름/메모 변경 (`{ name?, note? }`) |
 | DELETE | `/api/global/shipments/[id]` | 글로벌 출고 삭제 |
 
 ### 글로벌 팔레트 계산

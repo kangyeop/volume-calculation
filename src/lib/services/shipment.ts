@@ -78,6 +78,16 @@ export async function unconfirm(id: string) {
   return shipment;
 }
 
+export async function updateName(id: string, name: string) {
+  const userId = await getUserId();
+  const [shipment] = await db
+    .update(shipments)
+    .set({ name })
+    .where(and(eq(shipments.id, id), eq(shipments.userId, userId)))
+    .returning();
+  return shipment;
+}
+
 export async function updateNote(id: string, note: string | null) {
   const userId = await getUserId();
   const [shipment] = await db

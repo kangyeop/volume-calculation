@@ -1,12 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
-import { useConfigurationSummary } from '@/hooks/queries';
+import { useConfigurationSummary, useUpdateShipmentName } from '@/hooks/queries';
 import { shipments } from '@/hooks/queries/queryKeys';
 import type { Shipment } from '@/lib/api';
-import { ArrowLeft, Calculator, Package, Layers } from 'lucide-react';
+import { ArrowLeft, Calculator, Package, Layers, Pencil } from 'lucide-react';
+import { toast } from 'sonner';
 import { ShipmentDetailSkeleton } from '@/components/skeletons';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { SummaryStatCard } from '@/components/batch/SummaryStatCard';
@@ -20,6 +21,36 @@ export default function OutboundDetail() {
   const batches = queryClient.getQueryData<Shipment[]>(shipments.all.queryKey);
   const batch = batches?.find((b) => b.id === batchId);
   const { data: summary, isLoading } = useConfigurationSummary(batchId || '');
+  const updateShipmentName = useUpdateShipmentName();
+
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editName, setEditName] = useState('');
+
+  const startEditingName = () => {
+    if (batch && batchId) {
+      setEditName(batch.name);
+      setIsEditingName(true);
+    }
+  };
+
+  const cancelEditingName = () => {
+    setIsEditingName(false);
+  };
+
+  const saveShipmentName = async () => {
+    const trimmed = editName.trim();
+    if (!trimmed || !batchId || trimmed === batch?.name) {
+      setIsEditingName(false);
+      return;
+    }
+    try {
+      await updateShipmentName.mutateAsync({ id: batchId, name: trimmed });
+      toast.success('이름이 변경되었습니다.');
+    } catch {
+      toast.error('이름 변경 실패');
+    }
+    setIsEditingName(false);
+  };
 
   const [expandedConfigs, setExpandedConfigs] = React.useState<Set<string>>(new Set());
 
@@ -42,7 +73,27 @@ export default function OutboundDetail() {
           <ArrowLeft className="h-5 w-5 text-gray-600" />
         </button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold tracking-tight">{batch?.name || '출고 배치'}</h1>
+          {isEditingName ? (
+            <input
+              autoFocus
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') saveShipmentName();
+                if (e.key === 'Escape') cancelEditingName();
+              }}
+              onBlur={saveShipmentName}
+              className="text-2xl font-bold tracking-tight bg-transparent border-b-2 border-indigo-500 outline-none w-full"
+            />
+          ) : (
+            <h1
+              className="text-2xl font-bold tracking-tight group/name cursor-pointer flex items-center gap-2"
+              onClick={startEditingName}
+            >
+              {batch?.name || '출고 배치'}
+              <Pencil className="h-4 w-4 text-gray-400 opacity-0 group-hover/name:opacity-100 transition-opacity" />
+            </h1>
+          )}
           <p className="text-muted-foreground">Configuration별로 그룹화된 출고 데이터입니다.</p>
         </div>
         <button

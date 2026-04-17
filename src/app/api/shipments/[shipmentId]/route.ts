@@ -19,12 +19,24 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   try {
     const { shipmentId } = await params;
     const body = await request.json();
-    const { note } = body;
-    if (note !== undefined && note !== null && typeof note !== 'string') {
-      return NextResponse.json({ error: 'Invalid note value' }, { status: 400 });
+
+    if (body.name !== undefined) {
+      if (typeof body.name !== 'string' || body.name.trim().length === 0) {
+        return NextResponse.json({ error: 'Invalid name value' }, { status: 400 });
+      }
+      const result = await shipmentService.updateName(shipmentId, body.name);
+      return NextResponse.json(result);
     }
-    const result = await shipmentService.updateNote(shipmentId, note ?? null);
-    return NextResponse.json(result);
+
+    if (body.note !== undefined) {
+      if (body.note !== null && typeof body.note !== 'string') {
+        return NextResponse.json({ error: 'Invalid note value' }, { status: 400 });
+      }
+      const result = await shipmentService.updateNote(shipmentId, body.note ?? null);
+      return NextResponse.json(result);
+    }
+
+    return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
   } catch (error) {
     return handleApiError(error, 'PATCH /shipments/[shipmentId]');
   }
