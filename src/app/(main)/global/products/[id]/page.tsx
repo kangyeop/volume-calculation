@@ -11,10 +11,11 @@ import {
 } from '@/hooks/queries';
 import type { GlobalProduct } from '@/hooks/queries/useGlobalProducts';
 import { toast } from 'sonner';
-import { ArrowLeft, Trash2, AlertCircle, Check, X, Pencil } from 'lucide-react';
+import { ArrowLeft, Trash2, AlertCircle, Check, X } from 'lucide-react';
 import { ProductDetailSkeleton } from '@/components/skeletons';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { EditableTitle } from '@/components/ui/EditableTitle';
 
 type EditDims = {
   width: number;
@@ -33,35 +34,6 @@ export default function GlobalProductGroupDetail() {
     useGlobalProductsByGroup(groupId);
   const updateProduct = useUpdateGlobalProduct();
   const deleteBulk = useDeleteGlobalProductsBulk(groupId);
-
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editName, setEditName] = useState('');
-
-  const startEditingName = () => {
-    if (group) {
-      setEditName(group.name);
-      setIsEditingName(true);
-    }
-  };
-
-  const cancelEditingName = () => {
-    setIsEditingName(false);
-  };
-
-  const saveGroupName = async () => {
-    const trimmed = editName.trim();
-    if (!trimmed || !groupId || trimmed === group?.name) {
-      setIsEditingName(false);
-      return;
-    }
-    try {
-      await updateProductGroup.mutateAsync({ id: groupId, data: { name: trimmed } });
-      toast.success('그룹명이 변경되었습니다.');
-    } catch {
-      toast.error('그룹명 변경 실패');
-    }
-    setIsEditingName(false);
-  };
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -152,27 +124,18 @@ export default function GlobalProductGroupDetail() {
           <ArrowLeft className="h-5 w-5 text-gray-600" />
         </button>
         <div className="flex-1">
-          {isEditingName ? (
-            <input
-              autoFocus
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') saveGroupName();
-                if (e.key === 'Escape') cancelEditingName();
-              }}
-              onBlur={saveGroupName}
-              className="text-2xl font-bold tracking-tight bg-transparent border-b-2 border-indigo-500 outline-none w-full"
-            />
-          ) : (
-            <h1
-              className="text-2xl font-bold tracking-tight group/name cursor-pointer flex items-center gap-2"
-              onClick={startEditingName}
-            >
-              {group.name}
-              <Pencil className="h-4 w-4 text-gray-400 opacity-0 group-hover/name:opacity-100 transition-opacity" />
-            </h1>
-          )}
+          <EditableTitle
+            value={group.name}
+            onSave={async (next) => {
+              try {
+                await updateProductGroup.mutateAsync({ id: groupId, data: { name: next } });
+                toast.success('그룹명이 변경되었습니다.');
+              } catch {
+                toast.error('그룹명 변경 실패');
+                throw new Error();
+              }
+            }}
+          />
           <p className="text-muted-foreground">글로벌 상품(내입 수량 포함)을 관리합니다.</p>
         </div>
       </div>

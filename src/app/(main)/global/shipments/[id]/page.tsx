@@ -1,16 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useGlobalOrderItems, useUpdateGlobalShipment } from '@/hooks/queries';
 import { globalShipments as globalShipmentsKey } from '@/hooks/queries/queryKeys';
 import type { GlobalShipment } from '@/hooks/queries/useGlobalShipments';
-import { ArrowLeft, Calculator, Package, Boxes, Pencil } from 'lucide-react';
+import { ArrowLeft, Calculator, Package, Boxes } from 'lucide-react';
 import { toast } from 'sonner';
 import { ShipmentDetailSkeleton } from '@/components/skeletons';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { SummaryStatCard } from '@/components/batch/SummaryStatCard';
+import { EditableTitle } from '@/components/ui/EditableTitle';
 
 export default function GlobalShipmentDetail() {
   const params = useParams<{ id: string }>();
@@ -21,35 +22,6 @@ export default function GlobalShipmentDetail() {
   const batch = batches?.find((b) => b.id === batchId);
   const { data: items, isLoading } = useGlobalOrderItems(batchId || '');
   const updateGlobalShipment = useUpdateGlobalShipment();
-
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editName, setEditName] = useState('');
-
-  const startEditingName = () => {
-    if (batch && batchId) {
-      setEditName(batch.name);
-      setIsEditingName(true);
-    }
-  };
-
-  const cancelEditingName = () => {
-    setIsEditingName(false);
-  };
-
-  const saveShipmentName = async () => {
-    const trimmed = editName.trim();
-    if (!trimmed || !batchId || trimmed === batch?.name) {
-      setIsEditingName(false);
-      return;
-    }
-    try {
-      await updateGlobalShipment.mutateAsync({ id: batchId, data: { name: trimmed } });
-      toast.success('이름이 변경되었습니다.');
-    } catch {
-      toast.error('이름 변경 실패');
-    }
-    setIsEditingName(false);
-  };
 
   const rows = React.useMemo(() => {
     if (!items) return [];
@@ -101,27 +73,20 @@ export default function GlobalShipmentDetail() {
           <ArrowLeft className="h-5 w-5 text-gray-600" />
         </button>
         <div className="flex-1">
-          {isEditingName ? (
-            <input
-              autoFocus
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') saveShipmentName();
-                if (e.key === 'Escape') cancelEditingName();
-              }}
-              onBlur={saveShipmentName}
-              className="text-2xl font-bold tracking-tight bg-transparent border-b-2 border-indigo-500 outline-none w-full"
-            />
-          ) : (
-            <h1
-              className="text-2xl font-bold tracking-tight group/name cursor-pointer flex items-center gap-2"
-              onClick={startEditingName}
-            >
-              {batch?.name || '글로벌 출고 배치'}
-              <Pencil className="h-4 w-4 text-gray-400 opacity-0 group-hover/name:opacity-100 transition-opacity" />
-            </h1>
-          )}
+          <EditableTitle
+            value={batch?.name ?? ''}
+            placeholder="글로벌 출고 배치"
+            onSave={async (next) => {
+              if (!batchId) return;
+              try {
+                await updateGlobalShipment.mutateAsync({ id: batchId, data: { name: next } });
+                toast.success('이름이 변경되었습니다.');
+              } catch {
+                toast.error('이름 변경 실패');
+                throw new Error();
+              }
+            }}
+          />
           <p className="text-muted-foreground">업로드된 글로벌 출고 SKU 목록입니다.</p>
         </div>
         <button

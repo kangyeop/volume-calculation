@@ -69,7 +69,7 @@ volume-calculator/
 │   │
 │   ├── components/                   # React UI 컴포넌트
 │   │   ├── layout/                   # 레이아웃 (GlobalLayout, Sidebar, ProjectLayout)
-│   │   ├── ui/                       # 공통 UI (table, tabs, collapsible, loading-spinner, status-badge)
+│   │   ├── ui/                       # 공통 UI (table, tabs, collapsible, loading-spinner, status-badge, EditableTitle)
 │   │   ├── batch/                    # 출고/정산 공통 컴포넌트 (BatchListPage, ConfigurationList, SummaryStatCard)
 │   │   ├── packing/                  # 패킹 관련 컴포넌트
 │   │   ├── products/                 # 상품 관련 컴포넌트
