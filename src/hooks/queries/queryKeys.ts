@@ -74,6 +74,7 @@ export const globalProductGroups = createQueryKeys('globalProductGroups', {
 });
 
 export const globalProducts = createQueryKeys('globalProducts', {
+  listAll: null,
   byGroup: (groupId: string) => [groupId, 'group'],
 });
 

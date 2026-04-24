@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
-import { ArrowLeft, RefreshCw, AlertTriangle, AlertCircle, Package, Box } from 'lucide-react';
+import { ArrowLeft, RefreshCw, AlertTriangle, AlertCircle, Package, Box, Tag } from 'lucide-react';
 import {
   useGlobalPackingRecommendation,
   useCalculateGlobalPacking,
@@ -300,6 +300,29 @@ export default function GlobalPackingCalculator() {
                       </div>
                     )}
                   </div>
+
+                  {row.lots && row.lots.length > 0 && (
+                    <div className="border-t pt-2 space-y-1">
+                      <div className="flex items-center gap-1 text-xs font-medium text-gray-700">
+                        <Tag className="h-3 w-3" />
+                        로트 / 유통기한
+                      </div>
+                      <div className="space-y-0.5">
+                        {row.lots.map((lot, idx) => (
+                          <div
+                            key={`${row.id}-lot-${idx}`}
+                            className="text-xs text-gray-600 font-mono flex items-center gap-1.5"
+                          >
+                            <span>{lot.lotNumber ?? '-'}</span>
+                            <span className="text-gray-300">·</span>
+                            <span>{lot.expirationDate ?? '-'}</span>
+                            <span className="text-gray-300">·</span>
+                            <span className="text-gray-700">수량 {lot.quantity.toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

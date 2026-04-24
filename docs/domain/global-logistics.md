@@ -370,7 +370,7 @@ UNIQUE: `(globalShipmentId, palletIndex)`
 
 | 경로 | 기능 |
 |------|------|
-| `/global/products` | 글로벌 상품 그룹 목록 (생성일, 상품 개수) |
+| `/global/products` | Tabs (`상품 그룹` / `상품 검색`). 그룹 목록 (생성일, 상품 개수) + 전체 상품 검색/정렬 (SKU·상품명 검색, 내입수량 컬럼 포함) |
 | `/global/products/new` | 새 그룹 생성 및 엑셀 일괄 업로드 |
 | `/global/products/[id]` | 그룹 상세 — 상품 테이블 (인라인 편집 W/L/H/innerQty, 일괄 삭제) |
 
@@ -397,6 +397,7 @@ UNIQUE: `(globalShipmentId, palletIndex)`
   - `lastPalletInMixed === true`면 "잔여 X박스 → 혼합 팔레트" 안내 (amber)
   - `!lastPalletInMixed && !lastPalletIsFull && lastPalletCartons > 0`이면 "마지막 팔레트 X/M 칸 (부분 적재)" 표시 (단독으로 환원된 경우)
   - `soloPalletCount === 0 && lastPalletInMixed`이면 "팔레트 단독 없음 — X박스는 혼합 팔레트에 포함" 표시 (3D 버튼 숨김)
+  - **로트/유통기한 섹션** (`row.lots.length > 0` 일 때만): `globalPackingResults.lots` 배열을 `로트번호 · 유통기한 · 수량N` 형식으로 나열. null 은 `-` 표시.
   - **3D 뷰 모달 (`PalletPacking3DView`):** 단독 팔레트 한 대의 박스 배치. `computeLayerLayout` Rect를 `layersPerPallet` 수직 반복 렌더.
 - **혼합 팔레트 섹션 (`mixedPallets.length > 0`일 때만 렌더):**
   - 카드별로 `혼합 팔레트 #{palletIndex}`, 구성 SKU 목록 (SKU별 박스 수 groupBy), 총 부피, 최고 높이
@@ -426,6 +427,7 @@ UNIQUE: `(globalShipmentId, palletIndex)`
 
 | Method | Endpoint | 설명 |
 |--------|----------|------|
+| GET | `/api/global/products` | 전체 글로벌 상품 목록 (그룹명 포함, 상품 검색용) |
 | PATCH | `/api/global/products/[id]` | 글로벌 상품 수정 |
 | DELETE | `/api/global/products/[id]` | 글로벌 상품 삭제 |
 
@@ -477,8 +479,9 @@ UNIQUE: `(globalShipmentId, palletIndex)`
 | `src/components/global/PalletPacking3DView.tsx` | react-three-fiber 기반 팔레트 3D 캔버스 |
 | `src/components/global/PalletPacking3DModal.tsx` | 3D 뷰 모달 래퍼 (`next/dynamic`으로 Canvas 번들 지연 로드) |
 | `src/components/global/ShipmentPdfDownloadButtons.tsx` | 전체 목록 / 파레트 라벨 PDF 다운로드 버튼 (`PDFDownloadLink`) |
-| `src/components/global/ShipmentPalletListPdf.tsx` | 전체 파레트 목록 PDF 문서 (A4 세로, 표 형태) |
-| `src/components/global/ShipmentPalletLabelsPdf.tsx` | 파레트별 적재 라벨 PDF 문서 (A4 가로, 파레트당 1페이지) |
+| `src/components/global/ShipmentPalletListPdf.tsx` | 전체 파레트 목록 PDF 문서 (A4 세로, 표 형태, 로트번호/유통기한 포함) |
+| `src/components/global/ShipmentPalletLabelsPdf.tsx` | 파레트별 적재 라벨 PDF 문서 (A4 가로, 파레트당 1페이지, 로트번호/유통기한 포함, A4 1장에 수렴하도록 컴팩트 폰트/여백) |
+| `src/components/global/GlobalProductSearchTab.tsx` | `/global/products` 의 `상품 검색` 탭 (전체 글로벌 상품 검색/정렬 테이블) |
 | `src/lib/pdf/flattenPallets.ts` | SKU별 결과 행을 파레트 단위로 평탄화 (`FlatPallet[]`) |
 | `src/lib/pdf/fonts.ts` | `Noto Sans KR` PDF 폰트 등록 (`Font.register`) |
 | `public/fonts/NotoSansKR-{Regular,Bold}.otf` | PDF 한글 렌더링용 정적 폰트 (Noto CJK 서브셋 OTF) |

@@ -265,7 +265,7 @@ API Route Handler
 
 | 경로 | 기능 |
 |------|------|
-| `/global/products` | 상품 그룹 목록 |
+| `/global/products` | Tabs — 상품 그룹 목록 / 전체 상품 검색 탭 |
 | `/global/products/new` | 새 상품 그룹 생성 (엑셀 업로드 포함) |
 | `/global/products/[id]` | 상품 그룹 상세 (상품 목록, 엑셀 업로드) |
 | `/global/shipments` | 글로벌 출고 목록, 엑셀 업로드 |
@@ -297,6 +297,7 @@ API Route Handler
 | `/api/global/product-groups` | GET, POST | 글로벌 상품 그룹 목록·생성 |
 | `/api/global/product-groups/[groupId]` | PATCH, DELETE | 글로벌 상품 그룹 수정·삭제 |
 | `/api/global/product-groups/[groupId]/products` | GET, POST | 글로벌 상품 목록·생성 |
+| `/api/global/products` | GET | 전체 글로벌 상품 목록 (그룹명 포함) |
 | `/api/global/products/[id]` | PATCH, DELETE | 글로벌 상품 수정·삭제 |
 | `/api/global/shipments` | GET, POST | 글로벌 출고 목록·생성 |
 | `/api/global/shipments/[id]` | GET, DELETE | 글로벌 출고 상세·삭제 |

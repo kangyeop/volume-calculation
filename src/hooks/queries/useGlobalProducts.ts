@@ -21,6 +21,19 @@ export interface GlobalProduct {
   updatedAt: string;
 }
 
+export interface GlobalProductWithGroup {
+  id: string;
+  sku: string;
+  name: string;
+  width: number;
+  length: number;
+  height: number;
+  innerQuantity: number;
+  globalProductGroupId: string;
+  globalProductGroupName: string | null;
+  createdAt: string;
+}
+
 export type CreateGlobalProductInput = {
   sku: string;
   name: string;
@@ -44,6 +57,11 @@ async function listByGroup(groupId: string): Promise<GlobalProduct[]> {
   const { data } = await axios.get<GlobalProduct[]>(
     `/api/global/product-groups/${groupId}/products`,
   );
+  return data;
+}
+
+async function listAll(): Promise<GlobalProductWithGroup[]> {
+  const { data } = await axios.get<GlobalProductWithGroup[]>('/api/global/products');
   return data;
 }
 
@@ -83,6 +101,13 @@ export function useGlobalProductsByGroup(groupId: string) {
     ...globalProductsKey.byGroup(groupId),
     queryFn: () => listByGroup(groupId),
     enabled: !!groupId,
+  });
+}
+
+export function useAllGlobalProducts() {
+  return useQuery({
+    ...globalProductsKey.listAll,
+    queryFn: () => listAll(),
   });
 }
 

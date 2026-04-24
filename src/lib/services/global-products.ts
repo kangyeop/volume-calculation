@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { globalProducts } from '@/lib/db/schema';
+import { globalProducts, globalProductGroups } from '@/lib/db/schema';
 import { eq, and, inArray, desc, sql } from 'drizzle-orm';
 import { getUserId } from '@/lib/auth';
 
@@ -25,6 +25,33 @@ export async function findAll(globalProductGroupId: string) {
     )
     .orderBy(desc(globalProducts.createdAt));
   return rows.map(parseGlobalProduct);
+}
+
+export async function findAllWithGroup() {
+  const userId = await getUserId();
+  const rows = await db
+    .select({
+      id: globalProducts.id,
+      sku: globalProducts.sku,
+      name: globalProducts.name,
+      width: globalProducts.width,
+      length: globalProducts.length,
+      height: globalProducts.height,
+      innerQuantity: globalProducts.innerQuantity,
+      globalProductGroupId: globalProducts.globalProductGroupId,
+      globalProductGroupName: globalProductGroups.name,
+      createdAt: globalProducts.createdAt,
+    })
+    .from(globalProducts)
+    .leftJoin(globalProductGroups, eq(globalProducts.globalProductGroupId, globalProductGroups.id))
+    .where(eq(globalProducts.userId, userId))
+    .orderBy(desc(globalProducts.createdAt));
+  return rows.map((row) => ({
+    ...row,
+    width: Number(row.width),
+    length: Number(row.length),
+    height: Number(row.height),
+  }));
 }
 
 export async function findOne(id: string) {

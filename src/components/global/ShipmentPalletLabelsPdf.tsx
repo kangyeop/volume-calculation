@@ -8,8 +8,8 @@ const styles = StyleSheet.create({
   page: {
     fontFamily: 'NotoSansKR',
     color: '#111827',
-    paddingVertical: 48,
-    paddingHorizontal: 56,
+    paddingVertical: 36,
+    paddingHorizontal: 36,
     flexDirection: 'column',
   },
   headerRow: {
@@ -21,11 +21,11 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   shipmentLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#4b5563',
   },
   palletHeading: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: 700,
   },
   summaryRow: {
@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    fontSize: 13,
+    fontSize: 11,
     color: '#4b5563',
   },
   table: {
@@ -45,16 +45,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
     borderBottomWidth: 1,
     borderBottomColor: '#111827',
-    paddingVertical: 10,
+    paddingVertical: 6,
     paddingHorizontal: 8,
     fontWeight: 700,
-    fontSize: 16,
+    fontSize: 11,
   },
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 0.5,
     borderBottomColor: '#d1d5db',
-    paddingVertical: 12,
+    paddingVertical: 6,
     paddingHorizontal: 8,
   },
   tableRowLast: {
@@ -63,33 +63,33 @@ const styles = StyleSheet.create({
   colNo: {
     width: '6%',
     textAlign: 'center',
-    fontSize: 16,
+    fontSize: 11,
   },
   colSku: {
     width: '16%',
-    fontSize: 13,
+    fontSize: 10,
     paddingRight: 6,
   },
   colName: {
     width: '34%',
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: 700,
     paddingRight: 6,
   },
   colLot: {
     width: '14%',
-    fontSize: 13,
+    fontSize: 10,
     paddingRight: 6,
   },
   colExp: {
     width: '16%',
-    fontSize: 13,
+    fontSize: 10,
     paddingRight: 6,
   },
   colCartons: {
     width: '14%',
     textAlign: 'right',
-    fontSize: 20,
+    fontSize: 14,
     fontWeight: 700,
   },
 });
